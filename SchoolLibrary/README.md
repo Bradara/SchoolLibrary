@@ -33,7 +33,7 @@
 - [x] Персонализация на Home и About страници
 
 ### Етап 2 — Модел и CRUD ⏳
-- [ ] Entity: Resource, Category, GradeLevel
+- [x] Entity: Resource, Category, GradeLevel
 - [ ] Пълен CRUD за Resource
 - [ ] Списък с pagination и филтри
 
