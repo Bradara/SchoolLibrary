@@ -1,5 +1,4 @@
-﻿using Humanizer.Localisation;
-using System.ComponentModel;
+﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 
 namespace SchoolLibrary.Data.Models
