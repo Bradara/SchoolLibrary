@@ -20,4 +20,8 @@
     <PackageReference Include="NuGet.Protocol" Version="7.9.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="Views\Resource\" />
+  </ItemGroup>
+
 </Project>

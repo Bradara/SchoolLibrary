@@ -22,12 +22,12 @@ namespace SchoolLibrary.Data.Models
         public DateTime CreatedOn { get; set; }
 
         public int CategoryId { get; set; }
-        public Category Category { get; set; } = null!;
+        public Category? Category { get; set; }
 
         public int GradeLevelId { get; set; }
-        public GradeLevel GradeLevel { get; set; } = null!;
+        public GradeLevel? GradeLevel { get; set; }
 
         public string OwnerId { get; set; } = string.Empty;
-        public IdentityUser Owner { get; set; } = null!;
+        public IdentityUser? Owner { get; set; }
     }
 }
