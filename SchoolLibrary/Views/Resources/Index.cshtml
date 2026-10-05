@@ -1,89 +1,75 @@
 @model IEnumerable<SchoolLibrary.Data.Models.Resource>
 
 @{
-    ViewData["Title"] = "Index";
+    ViewData["Title"] = "Ресурси";
 }
 
-<h1>Index</h1>
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Учебни ресурси</h1>
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <a asp-action="Create" class="btn btn-primary">+ Нов ресурс</a>
+    }
+</div>
 
-<p>
-    <a asp-action="Create">Create New</a>
-</p>
-<table class="table">
-    <thead>
-        <tr>
-            <th>
-                @Html.DisplayNameFor(model => model.Title)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Description)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Url)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CreatedOn)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.CategoryId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Category)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.GradeLevelId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.GradeLevel)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.OwnerId)
-            </th>
-            <th>
-                @Html.DisplayNameFor(model => model.Owner)
-            </th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-@foreach (var item in Model) {
-        <tr>
-            <td>
-                @Html.DisplayFor(model => item.Title)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Description)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Url)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.CreatedOn)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.CategoryId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Category)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.GradeLevelId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.GradeLevel)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.OwnerId)
-            </td>
-            <td>
-                @Html.DisplayFor(model => item.Owner)
-            </td>
-            <td>
-                <a asp-action="Edit" asp-route-id="@item.Id">Edit</a> |
-                <a asp-action="Details" asp-route-id="@item.Id">Details</a> |
-                <a asp-action="Delete" asp-route-id="@item.Id">Delete</a>
-            </td>
-        </tr>
+@if (!Model.Any())
+{
+    <div class="alert alert-info text-center py-5">
+        <p class="mb-0">Все още няма добавени ресурси.</p>
+    </div>
 }
-    </tbody>
-</table>
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Заглавие</th>
+                    <th>Категория</th>
+                    <th>Клас</th>
+                    <th>Публикувал</th>
+                    <th>Дата</th>
+                    <th class="text-end">Операции</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            <a asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-decoration-none">
+                                @item.Title
+                            </a>
+                            @if (!string.IsNullOrEmpty(item.Description))
+                            {
+                                <div class="small text-muted">
+                                    @(item.Description.Length > 80 ? item.Description.Substring(0, 80) + "..." : item.Description)
+                                </div>
+                            }
+                        </td>
+                        <td>
+                            <span class="badge bg-primary-subtle text-primary-emphasis">@item.Category.Name</span>
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary-subtle text-secondary-emphasis">@item.GradeLevel.Name</span>
+                        </td>
+                        <td class="small text-muted">
+                            @item.Owner.Email
+                        </td>
+                        <td class="small text-muted">
+                            @item.CreatedOn.ToString("dd.MM.yyyy")
+                        </td>
+                        <td class="text-end">
+                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Детайли</a>
+                            @if (User.Identity?.IsAuthenticated == true && item.OwnerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value)
+                            {
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Редактирай</a>
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">Изтрий</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
