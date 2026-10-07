@@ -52,10 +52,18 @@ namespace SchoolLibrary.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create([Bind("Name")] Category category)
         {
+            var categoryExist = _context.Categories.Any(c => c.Name == category.Name);
             if (ModelState.IsValid)
             {
+                if (categoryExist)
+                {
+                    TempData["ErrorMessage"] = $"Категория с име {category.Name} вече съществува.";
+                    return RedirectToAction(nameof(Index));
+                }
+
                 _context.Add(category);
                 await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Създадена е категория {category.Name}.";
                 return RedirectToAction(nameof(Index));
             }
             return View(category);
@@ -82,7 +90,7 @@ namespace SchoolLibrary.Controllers
             {
                 try
                 {
-                    _context.Update(category);
+                    _context.Update(category);                    
                     await _context.SaveChangesAsync();
                 }
                 catch (DbUpdateConcurrencyException)
@@ -90,8 +98,10 @@ namespace SchoolLibrary.Controllers
                     if (!CategoryExists(category.Id)) return NotFound();
                     else throw;
                 }
+                TempData["SuccessMessage"] = $"Категория {category.Name} e променена.";
                 return RedirectToAction(nameof(Index));
             }
+            TempData["SuccessMessage"] = $"Категория {category.Name} e променена.";
             return View(category);
         }
 
@@ -122,12 +132,13 @@ namespace SchoolLibrary.Controllers
             }
             else if (category.Resources.Any())
             {
-                ModelState.AddModelError("", "Не може да изтривате категория, в която има ресурси.");
-                return View(category);
+                TempData["ErrorMessage"] = $"Категорията {category.Name} не може да бъде изтрита — има { category.Resources.Count}   свързани ресурса.";
+        return RedirectToAction(nameof(Index));
             }
             
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
+            TempData["SuccessMessage"] = $"Категория {category.Name} e изтрита.";
             return RedirectToAction(nameof(Index));
             
         }

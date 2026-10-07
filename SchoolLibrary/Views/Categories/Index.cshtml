@@ -6,6 +6,21 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Категории</h1>
+    @if (TempData["ErrorMessage"] is string errorMsg)
+    {
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            @errorMsg
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    @if (TempData["SuccessMessage"] is string successMsg)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            @successMsg
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
     @if (User.Identity?.IsAuthenticated == true)
     {
         <a asp-action="Create" class="btn btn-primary">+ Нова категория</a>
