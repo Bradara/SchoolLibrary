@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
@@ -6,6 +7,7 @@ using SchoolLibrary.Data.Models;
 
 namespace SchoolLibrary.Controllers
 {
+    [Authorize(Roles = "Admin")]
     public class CategoriesController : Controller
     {
         private readonly ApplicationDbContext _context;
@@ -20,6 +22,7 @@ namespace SchoolLibrary.Controllers
         {
             var categories = await _context.Categories
                 .Include(c => c.Resources)
+                .OrderBy(c => c.Name)
                 .ToListAsync();
             return View(categories);
         }
@@ -109,13 +112,24 @@ namespace SchoolLibrary.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var category = await _context.Categories.FindAsync(id);
-            if (category != null)
+            var category = await _context.Categories
+                .Include(c => c.Resources)
+                .FirstOrDefaultAsync(c => c.Id == id);
+            
+            if (category == null)
             {
-                _context.Categories.Remove(category);
-                await _context.SaveChangesAsync();
+                return NotFound();
             }
+            else if (category.Resources.Any())
+            {
+                ModelState.AddModelError("", "Не може да изтривате категория, в която има ресурси.");
+                return View(category);
+            }
+            
+            _context.Categories.Remove(category);
+            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
+            
         }
 
         private bool CategoryExists(int id)

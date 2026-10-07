@@ -23,6 +23,7 @@ else
             <thead class="table-light">
                 <tr>
                     <th>Име</th>
+                    <th>Брой ресурси</th>
                     <th class="text-end">Операции</th>
                 </tr>
             </thead>
@@ -32,6 +33,9 @@ else
                     <tr>
                         <td>
                             <a asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-decoration-none">@item.Name</a>
+                        </td>
+                        <td>
+                            @(item.Resources?.Count ?? 0)
                         </td>
                         <td class="text-end">
                             <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Детайли</a>
