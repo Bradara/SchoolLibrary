@@ -6,7 +6,7 @@ namespace SchoolLibrary
 {
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +16,9 @@ namespace SchoolLibrary
                 options.UseSqlServer(connectionString));
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
-            builder.Services.AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
+            builder.Services
+                .AddDefaultIdentity<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = false)
+                .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
             builder.Services.AddControllersWithViews();
 
@@ -44,6 +46,29 @@ namespace SchoolLibrary
             app.MapControllerRoute(
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
+
+            // Seed на Admin ролята и първия admin
+            using (var scope = app.Services.CreateScope())
+            {
+                var services = scope.ServiceProvider;
+
+                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+                var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
+
+                // Създай ролята ако не съществува
+                if (!await roleManager.RoleExistsAsync("Admin"))
+                {
+                    await roleManager.CreateAsync(new IdentityRole("Admin"));
+                }
+
+                // Първият регистриран user → Admin
+                var firstUser = userManager.Users.OrderBy(u => u.Id).FirstOrDefault();
+                if (firstUser != null && !await userManager.IsInRoleAsync(firstUser, "Admin"))
+                {
+                    await userManager.AddToRoleAsync(firstUser, "Admin");
+                }
+            }
+
             app.MapRazorPages();
 
             app.Run();

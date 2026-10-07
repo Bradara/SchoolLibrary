@@ -1,0 +1,19 @@
+@model SchoolLibrary.Data.Models.Category
+
+@{
+    ViewData["Title"] = "Изтрий категория";
+}
+
+<h1>Изтрий категория</h1>
+
+<h3>Сигурни ли сте, че искате да изтриете тази категория?</h3>
+
+<div class="mb-3">
+    <h4>@Model.Name</h4>
+</div>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Изтрий</button>
+    <a asp-action="Index" class="btn btn-secondary">Откажи</a>
+</form>
