@@ -34,13 +34,13 @@
 
 ### Етап 2 — Модел и CRUD ⏳
 - [x] Entity: Resource, Category, GradeLevel
-- [ ] Пълен CRUD за Resource
-- [ ] Списък с pagination и филтри
+- [x] Пълен CRUD за Resource
+- [x] Списък с pagination и филтри
 
 ### Етап 3 — Роли и валидация ⏳
-- [ ] Admin роля (bootstrap на първия регистриран)
-- [ ] Ограничения по authorization
-- [ ] Client + server side validation
+- [x] Admin роля (bootstrap на първия регистриран)
+- [x] Ограничения по authorization
+- [x] Client + server side validation
 
 ### Етап 4 — Полиране ⏳
 - [ ] Bootstrap layout полиране (responsive design)
