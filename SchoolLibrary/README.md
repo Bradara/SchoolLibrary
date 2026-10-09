@@ -39,6 +39,7 @@
 
 ### Етап 3 — Роли и валидация ⏳
 - [x] Admin роля (bootstrap на първия регистриран)
+- [x] CategoriesController с Admin-only CRUD
 - [x] Ограничения по authorization
 - [x] Client + server side validation
 

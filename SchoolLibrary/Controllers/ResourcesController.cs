@@ -75,6 +75,7 @@ namespace SchoolLibrary.Controllers
 
                 _context.Add(resource);
                 await _context.SaveChangesAsync();
+                TempData["SuccessMessage"] = $"Ресурсът {resource.Title} е създаден успешно.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -149,6 +150,7 @@ namespace SchoolLibrary.Controllers
                     throw;
                 }
 
+                TempData["SuccessMessage"] = $"Ресурсът {resource.Title} е редактиран успешно.";
                 return RedirectToAction(nameof(Index));
             }
 
@@ -203,7 +205,7 @@ namespace SchoolLibrary.Controllers
 
             _context.Resources.Remove(resource);
             await _context.SaveChangesAsync();
-
+            TempData["SuccessMessage"] = $"Ресурсът {resource.Title} е изтрит успешно.";
             return RedirectToAction(nameof(Index));
         }
 

@@ -6,6 +6,9 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1>Учебни ресурси</h1>
+
+    <partial name="_MessagePartial" />
+
     @if (User.Identity?.IsAuthenticated == true)
     {
         <a asp-action="Create" class="btn btn-primary">+ Нов ресурс</a>
