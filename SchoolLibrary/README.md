@@ -24,6 +24,7 @@
 3. Стартирай в Package Manager Console → `Add-Migration InitialCreate`
 4. Приложи migrations: в Package Manager Console → `Update-Database`
 5. F5 за стартиране
+6. Регистрирай първи account — автоматично получаваш Admin права.
 
 ## Развитие — статус
 

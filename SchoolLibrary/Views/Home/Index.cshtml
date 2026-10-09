@@ -2,11 +2,50 @@
     ViewData["Title"] = "Начало";
 }
 
-<div class="text-center py-5">
-    <h1 class="display-4">SchoolLibrary</h1>
-    <p class="lead">Място за учителите да споделят учебни ресурси със своите ученици.</p>
-    <hr class="my-4" />
-    <p>
-        <a asp-controller="Home" asp-action="About" class="btn btn-primary btn-lg">За проекта</a>
+<div class="text-center py-5 bg-light rounded-3 mb-4">
+    <h1 class="display-4 fw-bold">SchoolLibrary</h1>
+    <p class="lead col-md-8 mx-auto">
+        Онлайн библиотека, където учителите споделят учебни ресурси със своите ученици в едно удобно пространство.
     </p>
+    <div class="mt-4">
+        <a asp-controller="Resources" asp-action="Index" class="btn btn-primary btn-lg me-2">
+            Разгледай ресурсите
+        </a>
+        @if (!(User.Identity?.IsAuthenticated ?? false))
+        {
+            <a asp-area="Identity" asp-page="/Account/Register" class="btn btn-outline-primary btn-lg">
+                Регистрирай се
+            </a>
+        }
+        else
+        {
+            <a asp-controller="Resources" asp-action="Create" class="btn btn-outline-primary btn-lg">
+                + Добави ресурс
+            </a>
+        }
+    </div>
+</div>
+
+<div class="row g-4">
+    <div class="col-md-4">
+        <div class="text-center">
+            <div class="fs-1">📚</div>
+            <h4>Споделяй</h4>
+            <p class="text-muted">Качвай полезни линкове към Google Drive, YouTube и други материали.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="text-center">
+            <div class="fs-1">🏷️</div>
+            <h4>Организирай</h4>
+            <p class="text-muted">По предмет и клас, с бърз филтър в списъка.</p>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="text-center">
+            <div class="fs-1">👥</div>
+            <h4>Намирай</h4>
+            <p class="text-muted">Всички учители виждат публикуваните ресурси.</p>
+        </div>
+    </div>
 </div>

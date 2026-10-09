@@ -42,6 +42,7 @@ namespace SchoolLibrary
             app.UseRouting();
 
             app.UseAuthorization();
+            app.UseStatusCodePagesWithReExecute("/Home/Error", "?code={0}");
 
             app.MapControllerRoute(
                 name: "default",
