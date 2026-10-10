@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
 using SchoolLibrary.Data.Models;
+using SchoolLibrary.ViewModels;
 using System.Security.Claims;
 
 namespace SchoolLibrary.Controllers
@@ -21,16 +22,86 @@ namespace SchoolLibrary.Controllers
 
         // GET: Resources
         [AllowAnonymous]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(
+    string? searchTitle,
+    int? categoryId,
+    int? gradeLevelId,
+    string? ownerId,
+    DateTime? fromDate,
+    DateTime? toDate)
         {
-            var resources = await _context.Resources
+            // Строй query условно — всеки филтър е optional
+            var query = _context.Resources
                 .Include(r => r.Category)
                 .Include(r => r.GradeLevel)
                 .Include(r => r.Owner)
-                .OrderByDescending(r => r.CreatedOn)
-                .ToListAsync();
+                .AsQueryable();
 
-            return View(resources);
+            if (!string.IsNullOrWhiteSpace(searchTitle))
+            {
+                query = query.Where(r => r.Title.Contains(searchTitle));
+            }
+
+            if (categoryId.HasValue)
+            {
+                query = query.Where(r => r.CategoryId == categoryId.Value);
+            }
+
+            if (gradeLevelId.HasValue)
+            {
+                query = query.Where(r => r.GradeLevelId == gradeLevelId.Value);
+            }
+
+            if (!string.IsNullOrEmpty(ownerId))
+            {
+                query = query.Where(r => r.OwnerId == ownerId);
+            }
+
+            if (fromDate.HasValue)
+            {
+                query = query.Where(r => r.CreatedOn >= fromDate.Value);
+            }
+
+            if (toDate.HasValue)
+            {
+                // +1 ден за да включва цялата крайна дата
+                var endOfDay = toDate.Value.AddDays(1);
+                query = query.Where(r => r.CreatedOn < endOfDay);
+            }
+
+            var vm = new ResourceIndexViewModel
+            {
+                SearchTitle = searchTitle,
+                CategoryId = categoryId,
+                GradeLevelId = gradeLevelId,
+                OwnerId = ownerId,
+                FromDate = fromDate,
+                ToDate = toDate,
+
+                Categories = await _context.Categories
+                    .OrderBy(c => c.Name)
+                    .ToListAsync(),
+
+                GradeLevels = await _context.GradeLevels
+                    .OrderBy(g => g.Number)
+                    .ToListAsync(),
+
+                Owners = await _context.Users
+                    .Where(u => _context.Resources.Any(r => r.OwnerId == u.Id))
+                    .OrderBy(u => u.Email)
+                    .Select(u => new SelectListItem
+                    {
+                        Value = u.Id,
+                        Text = u.Email!
+                    })
+                    .ToListAsync(),
+
+                Resources = await query
+                    .OrderByDescending(r => r.CreatedOn)
+                    .ToListAsync()
+            };
+
+            return View(vm);
         }
 
         // GET: Resources/Details
