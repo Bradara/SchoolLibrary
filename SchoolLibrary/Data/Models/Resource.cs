@@ -29,5 +29,60 @@ namespace SchoolLibrary.Data.Models
 
         public string OwnerId { get; set; } = string.Empty;
         public IdentityUser? Owner { get; set; }
+
+        [NotMapped]
+        public bool IsEmbeddable => GetEmbedUrl() != null;
+
+        [NotMapped]
+        public string? EmbedUrl => GetEmbedUrl();
+
+        private string? GetEmbedUrl()
+        {
+            if (string.IsNullOrEmpty(Url)) return null;
+
+            try
+            {
+                var uri = new Uri(Url);
+                var host = uri.Host.ToLowerInvariant();
+
+                // YouTube
+                if (host.Contains("youtube.com") || host.Contains("youtu.be"))
+                {
+                    var videoId = ExtractYouTubeId(uri);
+                    return videoId != null
+                        ? $"https://www.youtube-nocookie.com/embed/{videoId}"
+                        : null;
+                }
+
+                // За Google Drive (pdf файл)
+                if (host == "drive.google.com" && Url.Contains("/file/d/"))
+                {
+                    return Url.Replace("/view", "/preview").Replace("?usp=sharing", "");
+                }
+
+                // За Google Docs / Slides / Sheets
+                if (host == "docs.google.com")
+                {
+                    if (Url.Contains("/presentation/")) return Url.Replace("/edit", "/embed");
+                    if (Url.Contains("/document/") || Url.Contains("/spreadsheets/"))
+                        return Url.Replace("/edit", "/preview");
+                }
+
+                return null;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        private static string? ExtractYouTubeId(Uri uri)
+        {
+            if (uri.Host.Contains("youtu.be"))
+                return uri.AbsolutePath.Trim('/');
+
+            var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
+            return query["v"];
+        }
     }
 }

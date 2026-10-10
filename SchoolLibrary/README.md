@@ -33,20 +33,20 @@
 - [x] Преминаване от SQLite към SQL Server LocalDB
 - [x] Персонализация на Home и About страници
 
-### Етап 2 — Модел и CRUD ⏳
+### Етап 2 — Модел и CRUD ✅
 - [x] Entity: Resource, Category, GradeLevel
 - [x] Пълен CRUD за Resource
 - [x] Списък с pagination и филтри
 
-### Етап 3 — Роли и валидация ⏳
+### Етап 3 — Роли и валидация ✅
 - [x] Admin роля (bootstrap на първия регистриран)
 - [x] CategoriesController с Admin-only CRUD
 - [x] Ограничения по authorization
 - [x] Client + server side validation
 
 ### Етап 4 — Полиране ⏳
-- [ ] Bootstrap layout полиране (responsive design)
-- [ ] Error/404 страници
+- [x] Bootstrap layout полиране (responsive design)
+- [x] Error/404 страници
 - [ ] Финален README
 
 ## Идеи за бъдещо развитие (може би в следващ курс)
@@ -55,5 +55,7 @@
 - [ ] File upload за EPUB и изображения (PDF, DOCX)
 - [ ] Markdown ресурси със server-side рендеринг
 - [ ] Диаграми (Mermaid) и формули (KaTeX) в Markdown
+- [ ] Различни видове ресурси, като тестове, интерактивни упражнения и уроци, H5P, SCORM пакети
+- [ ] Поддръжка на различни роли (учител, ученик, родител)
 - [ ] Docker deploy на Oracle OCI - Free Tier(Ampere ARM) или Azure Free Tier
 - [ ] AI асистент за въпроси към ресурси и помощ за учениците за усвояване на нови знания
