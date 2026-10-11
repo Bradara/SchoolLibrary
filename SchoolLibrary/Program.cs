@@ -12,8 +12,15 @@ namespace SchoolLibrary
 
             // Add services to the container.
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
+            // Enable retry on failure for SQL Server connection
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(connectionString));
+    options.UseSqlServer(connectionString, sqlOptions =>
+        sqlOptions.EnableRetryOnFailure(
+            maxRetryCount: 6,
+            maxRetryDelay: TimeSpan.FromSeconds(30),
+            errorNumbersToAdd: null)));
+
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             builder.Services
@@ -51,6 +58,8 @@ namespace SchoolLibrary
             // Seed на Admin ролята и първия admin
             using (var scope = app.Services.CreateScope())
             {
+                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+                db.Database.Migrate();
                 var services = scope.ServiceProvider;
 
                 var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
