@@ -8,7 +8,7 @@
 
 ## Технологии
 
-- ASP.NET Core MVC (.NET 8)
+- ASP.NET Core MVC (.NET 10)
 - Entity Framework Core + SQL Server LocalDB
 - ASP.NET Core Identity (email + парола)
 - Bootstrap 5
@@ -16,15 +16,13 @@
 ## Стартиране
 
 Изисквания:
-- Visual Studio 2022+ с .NET 8 SDK
+- Visual Studio 2022+ с .NET 8+ SDK
 - SQL Server LocalDB (идва с VS installer)
 
 1. Клонирай repo-то
 2. Отвори `SchoolLibrary.sln` във Visual Studio
-3. Стартирай в Package Manager Console → `Add-Migration InitialCreate`
-4. Приложи migrations: в Package Manager Console → `Update-Database`
-5. F5 за стартиране
-6. Регистрирай първи account — автоматично получаваш Admin права.
+3. F5 за стартиране
+4. Регистрирай първи account — автоматично получаваш Admin права.
 
 ## Развитие — статус
 
@@ -36,7 +34,7 @@
 ### Етап 2 — Модел и CRUD ✅
 - [x] Entity: Resource, Category, GradeLevel
 - [x] Пълен CRUD за Resource
-- [x] Списък с pagination и филтри
+- [x] Списък с филтри
 
 ### Етап 3 — Роли и валидация ✅
 - [x] Admin роля (bootstrap на първия регистриран)
@@ -49,9 +47,17 @@
 - [x] Error/404 страници
 - [ ] Финален README
 
+## Реализирани функционалности
+- [x] Публикувано на Azure F1 + Azure SQL Free Tier 
+      https://schoollibrary-pmg-edftb9dedaehbna3.westus2-01.azurewebsites.net/ 
+	  (моля изчакайте да се събуди от auto-pause на F1)
+- [x] Вграждане в iframe за споделени ресурси в Google drive, статични страници, 
+	  Github pages и свободни .pdf файлове от мрежата
+
 ## Идеи за бъдещо развитие (може би в следващ курс)
 
 - [ ] Google OAuth login
+- [ ] Добавянена pagination
 - [ ] File upload за EPUB и изображения (PDF, DOCX)
 - [ ] Markdown ресурси със server-side рендеринг
 - [ ] Диаграми (Mermaid) и формули (KaTeX) в Markdown

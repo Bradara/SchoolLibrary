@@ -68,6 +68,18 @@ namespace SchoolLibrary.Data.Models
                         return Url.Replace("/edit", "/preview");
                 }
 
+                // Опитва да вгради и статични страници и общо достъпни pdf (pdf, html, htm)
+                if (Url.EndsWith(".html") || Url.EndsWith(".htm") || Url.EndsWith(".pdf"))
+                {
+                    return Url;
+                }
+
+                //За Github Pages
+                if (host.EndsWith("github.io"))
+                {
+                    return Url;
+                }
+
                 return null;
             }
             catch
