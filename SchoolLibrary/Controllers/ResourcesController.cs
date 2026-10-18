@@ -39,7 +39,7 @@ namespace SchoolLibrary.Controllers
 
             if (!string.IsNullOrWhiteSpace(searchTitle))
             {
-                query = query.Where(r => r.Title.Contains(searchTitle));
+                query = query.Where(r => r.Title.Contains(searchTitle) || r.Author.Contains(searchTitle));
             }
 
             if (categoryId.HasValue)
@@ -137,7 +137,7 @@ namespace SchoolLibrary.Controllers
         // POST: Resources/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Title,Description,Url,CategoryId,GradeLevelId")] Resource resource)
+        public async Task<IActionResult> Create([Bind("Title,Description,Url,CategoryId,GradeLevelId, Author, Source")] Resource resource)
         {
             if (ModelState.IsValid)
             {
@@ -181,7 +181,7 @@ namespace SchoolLibrary.Controllers
         // POST: Resources/Edit
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Url,CategoryId,GradeLevelId")] Resource resource)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Url,CategoryId,GradeLevelId, Author, Source")] Resource resource)
         {
             if (id != resource.Id)
             {
@@ -207,6 +207,8 @@ namespace SchoolLibrary.Controllers
                 existing.Url = resource.Url;
                 existing.CategoryId = resource.CategoryId;
                 existing.GradeLevelId = resource.GradeLevelId;
+                existing.Author = resource.Author;
+                existing.Source = resource.Source;
 
                 try
                 {

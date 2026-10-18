@@ -96,5 +96,14 @@ namespace SchoolLibrary.Data.Models
             var query = System.Web.HttpUtility.ParseQueryString(uri.Query);
             return query["v"];
         }
+
+        [Required(ErrorMessage = "Посочете автора на материала.")]
+        [MaxLength(100)]
+        [Display(Name = "Автор")]
+        public string Author { get; set; } = string.Empty;
+
+        [MaxLength(100)]
+        [Display(Name = "Източник")]
+        public string? Source { get; set; }
     }
 }

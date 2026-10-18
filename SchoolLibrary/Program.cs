@@ -65,17 +65,22 @@ namespace SchoolLibrary
                 var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
                 var userManager = services.GetRequiredService<UserManager<IdentityUser>>();
 
-                // Създай ролята ако не съществува
+                // Създай роля Админ, ако не съществува
                 if (!await roleManager.RoleExistsAsync("Admin"))
                 {
                     await roleManager.CreateAsync(new IdentityRole("Admin"));
                 }
 
-                // Първият регистриран user → Admin
-                var firstUser = userManager.Users.OrderBy(u => u.Id).FirstOrDefault();
-                if (firstUser != null && !await userManager.IsInRoleAsync(firstUser, "Admin"))
+                var admins = await userManager.GetUsersInRoleAsync("Admin");
+                //Проверява дали има Админ вече
+                if (admins.Count == 0)
                 {
-                    await userManager.AddToRoleAsync(firstUser, "Admin");
+                // Ако няма Админ, първият регистриран user → Admin
+                    var firstUser = userManager.Users.FirstOrDefault();
+                    if (firstUser != null)
+                    {
+                        await userManager.AddToRoleAsync(firstUser, "Admin");
+                    }
                 }
             }
 
