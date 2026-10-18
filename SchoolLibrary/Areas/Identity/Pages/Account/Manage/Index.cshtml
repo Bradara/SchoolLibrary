@@ -1,0 +1,89 @@
+@page
+@model SchoolLibrary.Areas.Identity.Pages.Account.Manage.IndexModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Профил";
+    //ViewData["ActivePage"] = ManageNavPages.Index;
+}
+
+<h2 class="h4 mb-3">👤 Профил</h2>
+
+@if (!string.IsNullOrEmpty(Model.StatusMessage))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        @Model.StatusMessage
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Затвори"></button>
+    </div>
+}
+
+<div class="row g-4">
+
+    <div class="col-lg-7">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body p-4">
+                <h3 class="h6 text-muted text-uppercase mb-3">Лични данни</h3>
+
+                <form id="profile-form" method="post">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Имейл</label>
+                        <input id="email" value="@Model.Email" class="form-control" disabled />
+                        <div class="form-text">Имейлът се използва за вход в профила.</div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label asp-for="Input.FirstName" class="form-label">Име</label>
+                            <input asp-for="Input.FirstName" class="form-control" autocomplete="given-name" />
+                            <span asp-validation-for="Input.FirstName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-sm-6">
+                            <label asp-for="Input.LastName" class="form-label">Фамилия</label>
+                            <input asp-for="Input.LastName" class="form-control" autocomplete="family-name" />
+                            <span asp-validation-for="Input.LastName" class="text-danger small"></span>
+                        </div>
+                    </div>
+                    <div class="form-text mb-4">Името ви се показва при ресурсите, които добавяте.</div>
+
+                    <button id="update-profile-button" type="submit" class="btn btn-primary px-4">Запази</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card shadow-sm border-0 mb-4">
+            <div class="card-body p-4 text-center">
+                <div class="display-6 mb-1">@Model.ResourceCount</div>
+                <div class="text-muted mb-3">@(Model.ResourceCount == 1 ? "добавен ресурс" : "добавени ресурса")</div>
+                <a class="btn btn-outline-primary btn-sm"
+                   asp-area="" asp-controller="Resources" asp-action="Index"
+                   asp-route-ownerId="@Model.UserId">Моите ресурси</a>
+            </div>
+        </div>
+
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4">
+                <h3 class="h6 text-muted text-uppercase mb-3">Достъп</h3>
+                <p class="mb-3">
+                    Роля:
+                    @if (User.IsInRole("Admin"))
+                    {
+                        <span class="badge bg-primary">Администратор</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary">Потребител</span>
+                    }
+                </p>
+                <a asp-page="./ChangePassword">🔑 Смяна на паролата</a>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

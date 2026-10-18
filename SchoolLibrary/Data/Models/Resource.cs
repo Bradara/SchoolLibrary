@@ -28,7 +28,7 @@ namespace SchoolLibrary.Data.Models
         public GradeLevel? GradeLevel { get; set; }
 
         public string OwnerId { get; set; } = string.Empty;
-        public IdentityUser? Owner { get; set; }
+        public ApplicationUser? Owner { get; set; }
 
         [NotMapped]
         public bool IsEmbeddable => GetEmbedUrl() != null;

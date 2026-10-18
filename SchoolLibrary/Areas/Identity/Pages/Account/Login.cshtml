@@ -1,0 +1,73 @@
+@page
+@model SchoolLibrary.Areas.Identity.Pages.Account.LoginModel
+@{
+    ViewData["Title"] = "Вход";
+}
+
+<div class="row justify-content-center py-4">
+    <div class="col-12 col-sm-10 col-md-7 col-lg-5">
+        <div class="card shadow-sm border-0">
+            <div class="card-body p-4 p-md-5">
+
+                <div class="text-center mb-4">
+                    <div class="display-5 mb-2">📚</div>
+                    <h1 class="h3 mb-1">Вход</h1>
+                    <p class="text-muted mb-0">Влезте в профила си в SchoolLibrary</p>
+                </div>
+
+                <form id="account" method="post" asp-route-returnUrl="@Model.ReturnUrl">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-3" role="alert"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Email" class="form-label">Имейл</label>
+                        <input asp-for="Input.Email" type="email" class="form-control"
+                               autocomplete="username" placeholder="name@example.com" />
+                        <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="Input.Password" class="form-label">Парола</label>
+                        <div class="input-group">
+                            <input asp-for="Input.Password" type="password" class="form-control"
+                                   autocomplete="current-password" />
+                            <button type="button" class="btn btn-outline-secondary js-toggle-password"
+                                    aria-label="Покажи паролата">👁</button>
+                        </div>
+                        <span asp-validation-for="Input.Password" class="text-danger small"></span>
+                    </div>
+
+                    <div class="form-check mb-4">
+                        <input asp-for="Input.RememberMe" class="form-check-input" />
+                        <label asp-for="Input.RememberMe" class="form-check-label">Запомни ме</label>
+                    </div>
+
+                    <button id="login-submit" type="submit" class="btn btn-primary w-100 py-2">Вход</button>
+                </form>
+
+                <hr class="my-4" />
+
+                <p class="text-center mb-0">
+                    Нямате профил?
+                    <a asp-page="./Register" asp-route-returnUrl="@Model.ReturnUrl">Регистрирайте се</a>
+                </p>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.querySelectorAll('.js-toggle-password').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var input = button.parentElement.querySelector('input');
+                var isHidden = input.type === 'password';
+                input.type = isHidden ? 'text' : 'password';
+                button.textContent = isHidden ? '🙈' : '👁';
+                button.setAttribute('aria-label', isHidden ? 'Скрий паролата' : 'Покажи паролата');
+            });
+        });
+    </script>
+}
+

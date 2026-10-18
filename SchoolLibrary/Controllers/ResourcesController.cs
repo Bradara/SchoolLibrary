@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -92,7 +91,7 @@ namespace SchoolLibrary.Controllers
                     .Select(u => new SelectListItem
                     {
                         Value = u.Id,
-                        Text = u.Email!
+                        Text = u.FirstName + " " + u.LastName
                     })
                     .ToListAsync(),
 

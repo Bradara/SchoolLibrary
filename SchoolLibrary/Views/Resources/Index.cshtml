@@ -102,7 +102,7 @@ else
                         </td>
                         <td><span class="badge bg-primary text-primary-emphasis">@item.Category.Name</span></td>
                         <td><span class="badge bg-secondary text-secondary-emphasis">@item.GradeLevel.Name</span></td>
-                        <td class="small text-dark">@item.Owner.Email</td>
+                        <td class="small text-dark">@item.Owner.FullName</td>
                         <td class="small text-info">@item.CreatedOn.ToString("dd.MM.yyyy")</td>
                         <td class="text-end">
                             <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Детайли</a>
