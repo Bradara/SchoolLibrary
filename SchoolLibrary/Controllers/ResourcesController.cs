@@ -169,7 +169,7 @@ namespace SchoolLibrary.Controllers
             }
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (resource.OwnerId != currentUserId)
+            if (resource.OwnerId != currentUserId )
             {
                 return Forbid();
             }
@@ -249,7 +249,7 @@ namespace SchoolLibrary.Controllers
             }
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (resource.OwnerId != currentUserId)
+            if (resource.OwnerId != currentUserId && !User.IsInRole("Admin"))
             {
                 return Forbid();
             }
@@ -269,7 +269,7 @@ namespace SchoolLibrary.Controllers
             }
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (resource.OwnerId != currentUserId)
+            if (resource.OwnerId != currentUserId && !User.IsInRole("Admin"))
             {
                 return Forbid();
             }

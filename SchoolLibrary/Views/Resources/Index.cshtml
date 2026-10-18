@@ -106,7 +106,8 @@ else
                         <td class="small text-info">@item.CreatedOn.ToString("dd.MM.yyyy")</td>
                         <td class="text-end">
                             <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Детайли</a>
-                            @if (User.Identity?.IsAuthenticated == true && item.OwnerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value)
+                            @if (User.Identity?.IsAuthenticated == true && item.OwnerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value 
+                            || User.IsInRole("Admin"))
                             {
                                 <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Редактирай</a>
                                 <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">Изтрий</a>
