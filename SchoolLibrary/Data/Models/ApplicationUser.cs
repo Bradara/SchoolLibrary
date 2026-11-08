@@ -14,6 +14,8 @@ namespace SchoolLibrary.Data.Models
         [MaxLength(50)]
         public string LastName { get; set; } = string.Empty;
 
+        public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
+
         [NotMapped]
         public string FullName => $"{FirstName} {LastName}";
     }

@@ -14,13 +14,13 @@ namespace SchoolLibrary
             // Add services to the container.
             var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-            // Enable retry on failure for SQL Server connection
+            // Enable retry on failure for PostgreSQL connection (database may start after the app in Docker)
             builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(connectionString, sqlOptions =>
-        sqlOptions.EnableRetryOnFailure(
-            maxRetryCount: 6,
-            maxRetryDelay: TimeSpan.FromSeconds(30),
-            errorNumbersToAdd: null)));
+                options.UseNpgsql(connectionString, npgsqlOptions =>
+                    npgsqlOptions.EnableRetryOnFailure(
+                        maxRetryCount: 6,
+                        maxRetryDelay: TimeSpan.FromSeconds(30),
+                        errorCodesToAdd: null)));
 
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
@@ -77,7 +77,7 @@ namespace SchoolLibrary
                 if (admins.Count == 0)
                 {
                 // Ако няма Админ, първият регистриран user → Admin
-                    var firstUser = userManager.Users.FirstOrDefault();
+                    var firstUser = userManager.Users.OrderBy(u => u.CreatedOn).FirstOrDefault();
                     if (firstUser != null)
                     {
                         await userManager.AddToRoleAsync(firstUser, "Admin");

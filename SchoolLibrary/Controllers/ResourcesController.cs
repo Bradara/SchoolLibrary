@@ -38,7 +38,9 @@ namespace SchoolLibrary.Controllers
 
             if (!string.IsNullOrWhiteSpace(searchTitle))
             {
-                query = query.Where(r => r.Title.Contains(searchTitle) || r.Author.Contains(searchTitle));
+                // ILike: case-insensitive search (PostgreSQL LIKE is case-sensitive)
+                var pattern = $"%{searchTitle}%";
+                query = query.Where(r => EF.Functions.ILike(r.Title, pattern) || EF.Functions.ILike(r.Author, pattern));
             }
 
             if (categoryId.HasValue)
@@ -58,13 +60,15 @@ namespace SchoolLibrary.Controllers
 
             if (fromDate.HasValue)
             {
-                query = query.Where(r => r.CreatedOn >= fromDate.Value);
+                // Npgsql (timestamptz) accepts only UTC DateTime values
+                var from = DateTime.SpecifyKind(fromDate.Value, DateTimeKind.Utc);
+                query = query.Where(r => r.CreatedOn >= from);
             }
 
             if (toDate.HasValue)
             {
                 // +1 ден за да включва цялата крайна дата
-                var endOfDay = toDate.Value.AddDays(1);
+                var endOfDay = DateTime.SpecifyKind(toDate.Value.AddDays(1), DateTimeKind.Utc);
                 query = query.Where(r => r.CreatedOn < endOfDay);
             }
 
