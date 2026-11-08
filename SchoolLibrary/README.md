@@ -58,10 +58,10 @@
 
 - [ ] Google OAuth login
 - [ ] Добавянена pagination
+- [ ] Docker �deploy на Oracle OCI - Free Tier(Ampere ARM)
 - [ ] File upload за EPUB и изображения (PDF, DOCX)
 - [ ] Markdown ресурси със server-side рендеринг
 - [ ] Диаграми (Mermaid) и формули (KaTeX) в Markdown
 - [ ] Различни видове ресурси, като тестове, интерактивни упражнения и уроци, H5P, SCORM пакети
 - [ ] Поддръжка на различни роли (учител, ученик, родител)
-- [ ] Docker deploy на Oracle OCI - Free Tier(Ampere ARM) или Azure Free Tier
 - [ ] AI асистент за въпроси към ресурси и помощ за учениците за усвояване на нови знания
