@@ -64,6 +64,29 @@
             <button type="submit" class="btn btn-primary w-150">🔍 </button>
         </div>
     </div>
+    <div class="row g-2 mt-1 align-items-end">
+        <div class="col-md-3">
+            <label class="form-label small" for="sortOrder">Сортиране</label>
+            <select id="sortOrder" name="sortOrder" class="form-select" onchange="this.form.submit()">
+                @{
+                    var sortOptions = new (string Value, string Text)[]
+                    {
+                        ("", "Най-нови първо"),
+                        ("date_asc", "Най-стари първо"),
+                        ("title_asc", "Заглавие (А → Я)"),
+                        ("title_desc", "Заглавие (Я → А)"),
+                        ("author_asc", "Автор (А → Я)"),
+                        ("author_desc", "Автор (Я → А)"),
+                        ("owner_asc", "Публикувал (А → Я)")
+                    };
+                }
+                @foreach (var opt in sortOptions)
+                {
+                    <option value="@opt.Value" selected="@((Model.SortOrder ?? "") == opt.Value)">@opt.Text</option>
+                }
+            </select>
+        </div>
+    </div>
     <div class="mt-2">
         <a asp-action="Index" class="btn btn-sm btn-link">Изчисти филтрите</a>
         <span class="text-muted small ms-3">Намерени: @Model.Resources.Count</span>

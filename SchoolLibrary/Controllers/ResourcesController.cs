@@ -27,7 +27,8 @@ namespace SchoolLibrary.Controllers
     int? gradeLevelId,
     string? ownerId,
     DateTime? fromDate,
-    DateTime? toDate)
+    DateTime? toDate,
+    string? sortOrder)
         {
             // Строй query условно — всеки филтър е optional
             var query = _context.Resources
@@ -73,8 +74,22 @@ namespace SchoolLibrary.Controllers
                 query = query.Where(r => r.CreatedOn < endOfDay);
             }
 
+            // Whitelisted sort keys (anything else falls back to newest first).
+            // ToLower() makes title/author ordering case-insensitive.
+            query = sortOrder switch
+            {
+                "date_asc" => query.OrderBy(r => r.CreatedOn),
+                "title_asc" => query.OrderBy(r => r.Title.ToLower()).ThenByDescending(r => r.CreatedOn),
+                "title_desc" => query.OrderByDescending(r => r.Title.ToLower()).ThenByDescending(r => r.CreatedOn),
+                "author_asc" => query.OrderBy(r => r.Author.ToLower()).ThenByDescending(r => r.CreatedOn),
+                "author_desc" => query.OrderByDescending(r => r.Author.ToLower()).ThenByDescending(r => r.CreatedOn),
+                "owner_asc" => query.OrderBy(r => r.Owner!.FirstName).ThenBy(r => r.Owner!.LastName).ThenByDescending(r => r.CreatedOn),
+                _ => query.OrderByDescending(r => r.CreatedOn)
+            };
+
             var vm = new ResourceIndexViewModel
             {
+                SortOrder = sortOrder,
                 SearchTitle = searchTitle,
                 CategoryId = categoryId,
                 GradeLevelId = gradeLevelId,
@@ -100,9 +115,7 @@ namespace SchoolLibrary.Controllers
                     })
                     .ToListAsync(),
 
-                Resources = await query
-                    .OrderByDescending(r => r.CreatedOn)
-                    .ToListAsync()
+                Resources = await query.ToListAsync()
             };
 
             return View(vm);

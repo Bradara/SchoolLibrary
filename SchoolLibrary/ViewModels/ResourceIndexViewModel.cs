@@ -12,6 +12,7 @@ public class ResourceIndexViewModel
     public string? OwnerId { get; set; }
     public DateTime? FromDate { get; set; }
     public DateTime? ToDate { get; set; }
+    public string? SortOrder { get; set; }
 
     // Данни за падащите менюта
     public List<Category> Categories { get; set; } = new();
