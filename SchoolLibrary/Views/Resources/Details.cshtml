@@ -14,8 +14,14 @@
 <h1>@Model.Title</h1>
 
 <div class="mb-3">
-    <span class="badge bg-primary">@Model.Category.Name</span>
-    <span class="badge bg-secondary">@Model.GradeLevel.Name</span>
+    @foreach (var c in Model.Categories.OrderBy(c => c.Name))
+    {
+        <span class="badge bg-primary">@c.Name</span>
+    }
+    @foreach (var g in Model.GradeLevels.OrderBy(g => g.Number))
+    {
+        <span class="badge bg-secondary">@g.Name</span>
+    }
 </div>
 
 @if (!string.IsNullOrEmpty(Model.Description))

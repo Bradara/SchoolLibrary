@@ -1,0 +1,69 @@
+@model SchoolLibrary.ViewModels.ResourceFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+<div class="form-group mb-3">
+    <label asp-for="Title" class="control-label"></label>
+    <input asp-for="Title" class="form-control" />
+    <span asp-validation-for="Title" class="text-danger"></span>
+</div>
+
+<div class="form-group mb-3">
+    <label asp-for="Author" class="control-label"></label>
+    <input asp-for="Author" class="form-control" />
+    <span asp-validation-for="Author" class="text-danger"></span>
+</div>
+
+<div class="form-group mb-3">
+    <label asp-for="Source" class="control-label"></label>
+    <input asp-for="Source" class="form-control" />
+    <span asp-validation-for="Source" class="text-danger"></span>
+</div>
+
+<div class="form-group mb-3">
+    <label asp-for="Description" class="control-label"></label>
+    <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+    <span asp-validation-for="Description" class="text-danger"></span>
+</div>
+
+<div class="form-group mb-3">
+    <label asp-for="Url" class="control-label"></label>
+    <input asp-for="Url" class="form-control" type="url" placeholder="https://..." />
+    <span asp-validation-for="Url" class="text-danger"></span>
+</div>
+
+<div class="form-group mb-3">
+    <label class="control-label">@Html.DisplayNameFor(m => m.SelectedCategoryIds)</label>
+    <div class="border rounded p-2" style="max-height: 16rem; overflow-y: auto;">
+        <div class="row row-cols-1 row-cols-md-2 g-1">
+            @foreach (var c in Model.AllCategories)
+            {
+                <div class="col">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="SelectedCategoryIds"
+                               value="@c.Id" id="category-@c.Id"
+                               checked="@Model.SelectedCategoryIds.Contains(c.Id)" />
+                        <label class="form-check-label" for="category-@c.Id">@c.Name</label>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    <span asp-validation-for="SelectedCategoryIds" class="text-danger"></span>
+</div>
+
+<div class="form-group mb-3">
+    <label class="control-label">@Html.DisplayNameFor(m => m.SelectedGradeLevelIds)</label>
+    <div class="border rounded p-2">
+        @foreach (var g in Model.AllGradeLevels)
+        {
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="checkbox" name="SelectedGradeLevelIds"
+                       value="@g.Id" id="grade-@g.Id"
+                       checked="@Model.SelectedGradeLevelIds.Contains(g.Id)" />
+                <label class="form-check-label" for="grade-@g.Id">@g.Name</label>
+            </div>
+        }
+    </div>
+    <span asp-validation-for="SelectedGradeLevelIds" class="text-danger"></span>
+</div>

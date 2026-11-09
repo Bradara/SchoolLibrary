@@ -10,22 +10,27 @@ namespace SchoolLibrary.Data.Models
 
         [Required(ErrorMessage = "Заглавието е задължително")]
         [MaxLength(100, ErrorMessage = "Заглавието не може да бъде по-дълго от 100 символа")]
+        [Display(Name = "Заглавие")]
         public string Title { get; set; } = string.Empty;
 
         [MaxLength(1000, ErrorMessage = "Описанието не може да бъде по-дълго от 1000 символа")]
+        [Display(Name = "Описание")]
         public string Description { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "URL адресът е задължителен")]
-        [MaxLength(500, ErrorMessage = "URL адресът не може да бъде по-дълъг от 500 символа")]
+        [Required(ErrorMessage = "Уеб адресът е задължителен")]
+        [MaxLength(500, ErrorMessage = "Уеб адресът не може да бъде по-дълъг от 500 символа")]
+        [Display(Name = "Уеб адрес")]
         public string Url { get; set; } = string.Empty;
 
         public DateTime CreatedOn { get; set; }
 
-        public int CategoryId { get; set; }
-        public Category? Category { get; set; }
+        // Many-to-many: a resource can belong to several subjects and several grades.
+        // EF Core creates the join tables (CategoryResource, GradeLevelResource) by convention.
+        [Display(Name = "Предмети")]
+        public ICollection<Category> Categories { get; set; } = new List<Category>();
 
-        public int GradeLevelId { get; set; }
-        public GradeLevel? GradeLevel { get; set; }
+        [Display(Name = "Класове")]
+        public ICollection<GradeLevel> GradeLevels { get; set; } = new List<GradeLevel>();
 
         public string OwnerId { get; set; } = string.Empty;
         public ApplicationUser? Owner { get; set; }

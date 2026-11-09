@@ -9,7 +9,7 @@ namespace SchoolLibrary.Data.Models
 
         [Required(ErrorMessage = "Името е задължително")]
         [MaxLength(50, ErrorMessage = "Името не може да бъде по-дълго от 50 символа")]
-        [Display(Name = "Име на категория")]
+        [Display(Name = "Име на предмет")]
         public string Name { get; set; } = string.Empty;
 
         public ICollection<Resource> Resources { get; set; } = new List<Resource>();

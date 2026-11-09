@@ -1,23 +1,23 @@
 @model IEnumerable<SchoolLibrary.Data.Models.Category>
 
 @{
-    ViewData["Title"] = "Категории";
+    ViewData["Title"] = "Предмети";
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>Категории</h1>
+    <h1>Предмети</h1>
 
     <partial name="_MessagePartial" />   
 
     @if (User.Identity?.IsAuthenticated == true)
     {
-        <a asp-action="Create" class="btn btn-primary">+ Нова категория</a>
+        <a asp-action="Create" class="btn btn-primary">+ Нов предмет</a>
     }
 </div>
 
 @if (!Model.Any())
 {
-    <div class="alert alert-info text-center py-5">Все още няма категории.</div>
+    <div class="alert alert-info text-center py-5">Все още няма предмети.</div>
 }
 else
 {

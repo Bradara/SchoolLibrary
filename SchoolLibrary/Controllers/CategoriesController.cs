@@ -57,13 +57,13 @@ namespace SchoolLibrary.Controllers
             {
                 if (categoryExist)
                 {
-                    TempData["ErrorMessage"] = $"Категория с име {category.Name} вече съществува.";
+                    TempData["ErrorMessage"] = $"Предмет с име {category.Name} вече съществува.";
                     return RedirectToAction(nameof(Index));
                 }
 
                 _context.Add(category);
                 await _context.SaveChangesAsync();
-                TempData["SuccessMessage"] = $"Създадена е категория {category.Name}.";
+                TempData["SuccessMessage"] = $"Създаден е предмет {category.Name}.";
                 return RedirectToAction(nameof(Index));
             }
             return View(category);
@@ -98,10 +98,10 @@ namespace SchoolLibrary.Controllers
                     if (!CategoryExists(category.Id)) return NotFound();
                     else throw;
                 }
-                TempData["SuccessMessage"] = $"Категория {category.Name} e променена.";
+                TempData["SuccessMessage"] = $"Предмет {category.Name} е променен.";
                 return RedirectToAction(nameof(Index));
             }
-            TempData["SuccessMessage"] = $"Категория {category.Name} e променена.";
+            TempData["SuccessMessage"] = $"Предмет {category.Name} е променен.";
             return View(category);
         }
 
@@ -132,13 +132,13 @@ namespace SchoolLibrary.Controllers
             }
             else if (category.Resources.Any())
             {
-                TempData["ErrorMessage"] = $"Категорията {category.Name} не може да бъде изтрита — има { category.Resources.Count}   свързани ресурса.";
+                TempData["ErrorMessage"] = $"Предметът {category.Name} не може да бъде изтрит — има { category.Resources.Count}   свързани ресурса.";
         return RedirectToAction(nameof(Index));
             }
             
             _context.Categories.Remove(category);
             await _context.SaveChangesAsync();
-            TempData["SuccessMessage"] = $"Категория {category.Name} e изтрита.";
+            TempData["SuccessMessage"] = $"Предмет {category.Name} е изтрит.";
             return RedirectToAction(nameof(Index));
             
         }

@@ -1,0 +1,27 @@
+# Production stack (OCI): only the web app. PostgreSQL already runs as a separate
+# container and is reached through the external "schoolnet" network.
+#   docker network create schoolnet
+#   docker network connect schoolnet postgres
+services:
+  web:
+    build: ./SchoolLibrary
+    image: schoollibrary:latest
+    container_name: schoollibrary
+    restart: unless-stopped
+    env_file: .env                       # ConnectionStrings__DefaultConnection lives here
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      DataProtection__KeysPath: /keys
+    ports:
+      - "127.0.0.1:8080:8080"            # reachable only from the host (nginx proxies to it)
+    volumes:
+      - dp-keys:/keys
+    networks:
+      - schoolnet
+
+volumes:
+  dp-keys:
+
+networks:
+  schoolnet:
+    external: true

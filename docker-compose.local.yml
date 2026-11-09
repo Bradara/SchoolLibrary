@@ -1,0 +1,37 @@
+# Local development stack: web app + its own throwaway PostgreSQL.
+#   docker compose -f docker-compose.local.yml up --build
+# Uses POSTGRES_PASSWORD from .env (see .env.example).
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: schoollib
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: schoollibrary
+    ports:
+      - "127.0.0.1:5433:5432"            # lets `dotnet run` on the host reach this database (5433 avoids clashes)
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U schoollib -d schoollibrary"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build: ./SchoolLibrary
+    depends_on:
+      db:
+        condition: service_healthy       # start the app only after PostgreSQL accepts connections
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=schoollibrary;Username=schoollib;Password=${POSTGRES_PASSWORD}"
+      DataProtection__KeysPath: /keys
+    ports:
+      - "8080:8080"
+    volumes:
+      - dp-keys:/keys
+
+volumes:
+  pgdata:
+  dp-keys:

@@ -31,9 +31,10 @@ namespace SchoolLibrary.Controllers
         {
             // Строй query условно — всеки филтър е optional
             var query = _context.Resources
-                .Include(r => r.Category)
-                .Include(r => r.GradeLevel)
+                .Include(r => r.Categories)
+                .Include(r => r.GradeLevels)
                 .Include(r => r.Owner)
+                .AsSplitQuery()   // avoids a cartesian explosion with two collection includes
                 .AsQueryable();
 
             if (!string.IsNullOrWhiteSpace(searchTitle))
@@ -45,12 +46,12 @@ namespace SchoolLibrary.Controllers
 
             if (categoryId.HasValue)
             {
-                query = query.Where(r => r.CategoryId == categoryId.Value);
+                query = query.Where(r => r.Categories.Any(c => c.Id == categoryId.Value));
             }
 
             if (gradeLevelId.HasValue)
             {
-                query = query.Where(r => r.GradeLevelId == gradeLevelId.Value);
+                query = query.Where(r => r.GradeLevels.Any(g => g.Id == gradeLevelId.Value));
             }
 
             if (!string.IsNullOrEmpty(ownerId))
@@ -117,9 +118,10 @@ namespace SchoolLibrary.Controllers
             }
 
             var resource = await _context.Resources
-                .Include(r => r.Category)
-                .Include(r => r.GradeLevel)
+                .Include(r => r.Categories)
+                .Include(r => r.GradeLevels)
                 .Include(r => r.Owner)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (resource == null)
@@ -131,21 +133,32 @@ namespace SchoolLibrary.Controllers
         }
 
         // GET: Resources/Create
-        public IActionResult Create()
+        public async Task<IActionResult> Create()
         {
-            PopulateDropdowns();
-            return View();
+            var vm = new ResourceFormViewModel();
+            await LoadOptionsAsync(vm);
+            return View(vm);
         }
 
         // POST: Resources/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Title,Description,Url,CategoryId,GradeLevelId, Author, Source")] Resource resource)
+        public async Task<IActionResult> Create(ResourceFormViewModel vm)
         {
+            ValidateSelections(vm);
+
             if (ModelState.IsValid)
             {
-                resource.OwnerId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-                resource.CreatedOn = DateTime.UtcNow;
+                var resource = new Resource
+                {
+                    OwnerId = User.FindFirstValue(ClaimTypes.NameIdentifier)!,
+                    CreatedOn = DateTime.UtcNow
+                };
+                ApplyFormToResource(vm, resource);
+                resource.Categories = await _context.Categories
+                    .Where(c => vm.SelectedCategoryIds.Contains(c.Id)).ToListAsync();
+                resource.GradeLevels = await _context.GradeLevels
+                    .Where(g => vm.SelectedGradeLevelIds.Contains(g.Id)).ToListAsync();
 
                 _context.Add(resource);
                 await _context.SaveChangesAsync();
@@ -153,8 +166,8 @@ namespace SchoolLibrary.Controllers
                 return RedirectToAction(nameof(Index));
             }
 
-            PopulateDropdowns(resource.CategoryId, resource.GradeLevelId);
-            return View(resource);
+            await LoadOptionsAsync(vm);
+            return View(vm);
         }
 
         // GET: Resources/Edit
@@ -165,33 +178,52 @@ namespace SchoolLibrary.Controllers
                 return NotFound();
             }
 
-            var resource = await _context.Resources.FindAsync(id);
+            var resource = await _context.Resources
+                .Include(r => r.Categories)
+                .Include(r => r.GradeLevels)
+                .AsSplitQuery()
+                .FirstOrDefaultAsync(r => r.Id == id);
             if (resource == null)
             {
                 return NotFound();
             }
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (resource.OwnerId != currentUserId )
+            if (resource.OwnerId != currentUserId)
             {
                 return Forbid();
             }
 
-            PopulateDropdowns(resource.CategoryId, resource.GradeLevelId);
-            return View(resource);
+            var vm = new ResourceFormViewModel
+            {
+                Id = resource.Id,
+                Title = resource.Title,
+                Author = resource.Author,
+                Source = resource.Source,
+                Description = resource.Description,
+                Url = resource.Url,
+                SelectedCategoryIds = resource.Categories.Select(c => c.Id).ToList(),
+                SelectedGradeLevelIds = resource.GradeLevels.Select(g => g.Id).ToList()
+            };
+            await LoadOptionsAsync(vm);
+            return View(vm);
         }
 
         // POST: Resources/Edit
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Title,Description,Url,CategoryId,GradeLevelId, Author, Source")] Resource resource)
+        public async Task<IActionResult> Edit(int id, ResourceFormViewModel vm)
         {
-            if (id != resource.Id)
+            if (id != vm.Id)
             {
                 return NotFound();
             }
 
-            var existing = await _context.Resources.FindAsync(id);
+            var existing = await _context.Resources
+                .Include(r => r.Categories)
+                .Include(r => r.GradeLevels)
+                .AsSplitQuery()
+                .FirstOrDefaultAsync(r => r.Id == id);
             if (existing == null)
             {
                 return NotFound();
@@ -203,15 +235,23 @@ namespace SchoolLibrary.Controllers
                 return Forbid();
             }
 
+            ValidateSelections(vm);
+
             if (ModelState.IsValid)
             {
-                existing.Title = resource.Title;
-                existing.Description = resource.Description;
-                existing.Url = resource.Url;
-                existing.CategoryId = resource.CategoryId;
-                existing.GradeLevelId = resource.GradeLevelId;
-                existing.Author = resource.Author;
-                existing.Source = resource.Source;
+                ApplyFormToResource(vm, existing);
+
+                // Replace the selections: EF removes/adds rows in the join tables
+                existing.Categories.Clear();
+                foreach (var c in await _context.Categories.Where(c => vm.SelectedCategoryIds.Contains(c.Id)).ToListAsync())
+                {
+                    existing.Categories.Add(c);
+                }
+                existing.GradeLevels.Clear();
+                foreach (var g in await _context.GradeLevels.Where(g => vm.SelectedGradeLevelIds.Contains(g.Id)).ToListAsync())
+                {
+                    existing.GradeLevels.Add(g);
+                }
 
                 try
                 {
@@ -219,19 +259,19 @@ namespace SchoolLibrary.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ResourceExists(resource.Id))
+                    if (!ResourceExists(vm.Id))
                     {
                         return NotFound();
                     }
                     throw;
                 }
 
-                TempData["SuccessMessage"] = $"Ресурсът {resource.Title} е редактиран успешно.";
+                TempData["SuccessMessage"] = $"Ресурсът {existing.Title} е редактиран успешно.";
                 return RedirectToAction(nameof(Index));
             }
 
-            PopulateDropdowns(resource.CategoryId, resource.GradeLevelId);
-            return View(resource);
+            await LoadOptionsAsync(vm);
+            return View(vm);
         }
 
         // GET: Resources/Delete
@@ -243,9 +283,10 @@ namespace SchoolLibrary.Controllers
             }
 
             var resource = await _context.Resources
-                .Include(r => r.Category)
-                .Include(r => r.GradeLevel)
+                .Include(r => r.Categories)
+                .Include(r => r.GradeLevels)
                 .Include(r => r.Owner)
+                .AsSplitQuery()
                 .FirstOrDefaultAsync(m => m.Id == id);
 
             if (resource == null)
@@ -290,10 +331,31 @@ namespace SchoolLibrary.Controllers
             return _context.Resources.Any(e => e.Id == id);
         }
 
-        private void PopulateDropdowns(int? selectedCategoryId = null, int? selectedGradeId = null)
+        private async Task LoadOptionsAsync(ResourceFormViewModel vm)
         {
-            ViewData["CategoryId"] = new SelectList(_context.Categories, "Id", "Name", selectedCategoryId);
-            ViewData["GradeLevelId"] = new SelectList(_context.GradeLevels, "Id", "Name", selectedGradeId);
+            vm.AllCategories = await _context.Categories.OrderBy(c => c.Name).ToListAsync();
+            vm.AllGradeLevels = await _context.GradeLevels.OrderBy(g => g.Number).ToListAsync();
+        }
+
+        private void ValidateSelections(ResourceFormViewModel vm)
+        {
+            if (vm.SelectedCategoryIds.Count == 0)
+            {
+                ModelState.AddModelError(nameof(vm.SelectedCategoryIds), "Изберете поне един предмет.");
+            }
+            if (vm.SelectedGradeLevelIds.Count == 0)
+            {
+                ModelState.AddModelError(nameof(vm.SelectedGradeLevelIds), "Изберете поне един клас.");
+            }
+        }
+
+        private static void ApplyFormToResource(ResourceFormViewModel vm, Resource resource)
+        {
+            resource.Title = vm.Title;
+            resource.Description = vm.Description ?? string.Empty;
+            resource.Url = vm.Url;
+            resource.Author = vm.Author;
+            resource.Source = vm.Source;
         }
     }
 }

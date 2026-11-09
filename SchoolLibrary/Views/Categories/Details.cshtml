@@ -1,7 +1,7 @@
 @model SchoolLibrary.Data.Models.Category
 
 @{
-    ViewData["Title"] = "Детайли на категория";
+    ViewData["Title"] = "Детайли на предмет";
 }
 
 <h1>@Model.Name</h1>
@@ -15,10 +15,10 @@
     }
 </div>
 
-<h4>Ресурси в тази категория</h4>
+<h4>Ресурси в този предмет</h4>
 @if (Model.Resources == null || !Model.Resources.Any())
 {
-    <div class="alert alert-info">Няма ресурси в тази категория.</div>
+    <div class="alert alert-info">Няма ресурси в този предмет.</div>
 }
 else
 {

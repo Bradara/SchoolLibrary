@@ -16,13 +16,13 @@
     <dt class="col-sm-2">Заглавие</dt>
     <dd class="col-sm-10">@Model.Title</dd>
 
-    <dt class="col-sm-2">Категория</dt>
-    <dd class="col-sm-10">@Model.Category.Name</dd>
+    <dt class="col-sm-2">Предмети</dt>
+    <dd class="col-sm-10">@string.Join(", ", Model.Categories.OrderBy(c => c.Name).Select(c => c.Name))</dd>
 
-    <dt class="col-sm-2">Клас</dt>
-    <dd class="col-sm-10">@Model.GradeLevel.Name</dd>
+    <dt class="col-sm-2">Класове</dt>
+    <dd class="col-sm-10">@string.Join(", ", Model.GradeLevels.OrderBy(g => g.Number).Select(g => g.Name))</dd>
 
-    <dt class="col-sm-2">URL</dt>
+    <dt class="col-sm-2">Уеб адрес</dt>
     <dd class="col-sm-10"><a href="@Model.Url" target="_blank">@Model.Url</a></dd>
 </dl>
 

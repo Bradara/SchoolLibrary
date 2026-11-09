@@ -22,6 +22,36 @@ namespace SchoolLibrary.Data.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("CategoryResource", b =>
+                {
+                    b.Property<int>("CategoriesId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ResourcesId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("CategoriesId", "ResourcesId");
+
+                    b.HasIndex("ResourcesId");
+
+                    b.ToTable("CategoryResource");
+                });
+
+            modelBuilder.Entity("GradeLevelResource", b =>
+                {
+                    b.Property<int>("GradeLevelsId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("ResourcesId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("GradeLevelsId", "ResourcesId");
+
+                    b.HasIndex("ResourcesId");
+
+                    b.ToTable("GradeLevelResource");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -282,9 +312,6 @@ namespace SchoolLibrary.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
-                    b.Property<int>("CategoryId")
-                        .HasColumnType("integer");
-
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("timestamp with time zone");
 
@@ -292,9 +319,6 @@ namespace SchoolLibrary.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
-
-                    b.Property<int>("GradeLevelId")
-                        .HasColumnType("integer");
 
                     b.Property<string>("OwnerId")
                         .IsRequired()
@@ -316,13 +340,39 @@ namespace SchoolLibrary.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("CategoryId");
-
-                    b.HasIndex("GradeLevelId");
-
                     b.HasIndex("OwnerId");
 
                     b.ToTable("Resources");
+                });
+
+            modelBuilder.Entity("CategoryResource", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.Category", null)
+                        .WithMany()
+                        .HasForeignKey("CategoriesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SchoolLibrary.Data.Models.Resource", null)
+                        .WithMany()
+                        .HasForeignKey("ResourcesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("GradeLevelResource", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.GradeLevel", null)
+                        .WithMany()
+                        .HasForeignKey("GradeLevelsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SchoolLibrary.Data.Models.Resource", null)
+                        .WithMany()
+                        .HasForeignKey("ResourcesId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -378,39 +428,13 @@ namespace SchoolLibrary.Data.Migrations
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Resource", b =>
                 {
-                    b.HasOne("SchoolLibrary.Data.Models.Category", "Category")
-                        .WithMany("Resources")
-                        .HasForeignKey("CategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("SchoolLibrary.Data.Models.GradeLevel", "GradeLevel")
-                        .WithMany("Resources")
-                        .HasForeignKey("GradeLevelId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
                     b.HasOne("SchoolLibrary.Data.Models.ApplicationUser", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("Category");
-
-                    b.Navigation("GradeLevel");
-
                     b.Navigation("Owner");
-                });
-
-            modelBuilder.Entity("SchoolLibrary.Data.Models.Category", b =>
-                {
-                    b.Navigation("Resources");
-                });
-
-            modelBuilder.Entity("SchoolLibrary.Data.Models.GradeLevel", b =>
-                {
-                    b.Navigation("Resources");
                 });
 #pragma warning restore 612, 618
         }
