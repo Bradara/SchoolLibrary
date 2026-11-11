@@ -26,7 +26,8 @@ RUN mkdir /keys && chown $APP_UID /keys
 
 COPY --from=build /app/publish ./
 
-ENV ASPNETCORE_URLS=http://+:8080
+# The aspnet:10.0 image already listens on port 8080 (ASPNETCORE_HTTP_PORTS=8080),
+# so no extra ASPNETCORE_URLS is needed. EXPOSE only documents the port.
 EXPOSE 8080
 
 # Never run the app as root inside the container.
