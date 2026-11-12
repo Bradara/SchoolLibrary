@@ -4,9 +4,10 @@
     var compact = Model;
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
+    var area = ViewContext.RouteData.Values["area"]?.ToString();
 
     string Active(string c, string? a = null) =>
-        controller == c && (a == null || action == a) ? "active" : "";
+        area == null && controller == c && (a == null || action == a) ? "active" : "";
 }
 
 <div class="sidebar-inner d-flex flex-column flex-grow-1 @(compact ? "sidebar-compact" : "")">
@@ -38,9 +39,9 @@
         @if (User.IsInRole(Roles.Administrator))
         {
             <li class="nav-item">
-                <a class="nav-link @Active("Categories")" asp-area="" asp-controller="Categories" asp-action="Index"
-                   data-sl-tip="@(compact ? "Предмети" : null)" aria-label="@(compact ? "Предмети" : null)">
-                    <i class="bi bi-tags"></i><span class="nav-label"> Предмети</span>
+                <a class="nav-link @(area == "Admin" ? "active" : "")" asp-area="Admin" asp-controller="Home" asp-action="Index"
+                   data-sl-tip="@(compact ? "Администрация" : null)" aria-label="@(compact ? "Администрация" : null)">
+                    <i class="bi bi-shield-lock"></i><span class="nav-label"> Администрация</span>
                 </a>
             </li>
         }

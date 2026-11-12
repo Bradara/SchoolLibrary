@@ -5,10 +5,9 @@ using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Categories;
 using SchoolLibrary.Services.Common;
 
-namespace SchoolLibrary.Controllers
+namespace SchoolLibrary.Areas.Admin.Controllers
 {
-    [Authorize(Roles = Roles.Administrator)]
-    public class CategoriesController : Controller
+    public class CategoriesController : AdminController
     {
         private readonly ICategoryService _categories;
 

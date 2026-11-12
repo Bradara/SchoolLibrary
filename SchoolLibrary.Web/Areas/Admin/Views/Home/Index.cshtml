@@ -1,0 +1,61 @@
+@model SchoolLibrary.Services.Statistics.DashboardStatistics
+
+@{
+    ViewData["Title"] = "Администрация";
+}
+
+<h1 class="mb-4">Администрация</h1>
+
+<div class="row g-3">
+    <div class="col-6 col-lg-3">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-people fs-2"></i>
+                <div class="fs-3 fw-bold">@Model.Users</div>
+                <div class="text-muted">Потребители</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-collection fs-2"></i>
+                <div class="fs-3 fw-bold">@Model.Resources</div>
+                <div class="text-muted">Ресурси</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card h-100 text-center">
+            <div class="card-body">
+                <i class="bi bi-tags fs-2"></i>
+                <div class="fs-3 fw-bold">@Model.Categories</div>
+                <div class="text-muted">Предмети</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg-3">
+        <div class="card h-100 text-center @(Model.PendingTeachers > 0 ? "border-warning" : "")">
+            <div class="card-body">
+                <i class="bi bi-person-check fs-2"></i>
+                <div class="fs-3 fw-bold">@Model.PendingTeachers</div>
+                <div class="text-muted">Чакащи учители</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="mt-4 d-flex flex-wrap gap-2">
+    <a asp-area="Admin" asp-controller="Categories" asp-action="Index" class="btn btn-outline-primary">
+        <i class="bi bi-tags"></i> Управление на предмети
+    </a>
+    <a asp-area="Admin" asp-controller="Users" asp-action="Index" class="btn btn-outline-primary">
+        <i class="bi bi-people"></i> Потребители
+    </a>
+    @if (Model.PendingTeachers > 0)
+    {
+        <a asp-area="Admin" asp-controller="Users" asp-action="Index" asp-route-pending="true" class="btn btn-warning">
+            <i class="bi bi-person-check"></i> Чакащи учители (@Model.PendingTeachers)
+        </a>
+    }
+</div>
