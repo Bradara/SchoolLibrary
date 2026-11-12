@@ -1,4 +1,5 @@
-@page
+﻿@page
+@using SchoolLibrary.Data.Enums
 @model SchoolLibrary.Areas.Identity.Pages.Account.RegisterModel
 @{
     Layout = "~/Views/Shared/_Layout.cshtml";
@@ -13,7 +14,7 @@
                 <div class="text-center mb-4">
                     <div class="display-5 mb-2">📚</div>
                     <h1 class="h3 mb-1">Регистрация</h1>
-                    <p class="text-muted mb-0">Създайте профил, за да добавяте учебни ресурси</p>
+                    <p class="text-muted mb-0">Създайте профил, за да разглеждате и споделяте учебни ресурси</p>
                 </div>
 
                 <form id="registerForm" method="post" asp-route-returnUrl="@Model.ReturnUrl">
@@ -37,6 +38,24 @@
                         <input asp-for="Input.Email" type="email" class="form-control"
                                autocomplete="username" placeholder="name@example.com" />
                         <span asp-validation-for="Input.Email" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label d-block">Аз съм</label>
+                        <div class="btn-group w-100" role="group" aria-label="Тип профил">
+                            <input type="radio" class="btn-check" asp-for="Input.AccountType" value="@AccountType.Student" id="type-student" />
+                            <label class="btn btn-outline-primary" for="type-student"><i class="bi bi-backpack"></i> Ученик</label>
+
+                            <input type="radio" class="btn-check" asp-for="Input.AccountType" value="@AccountType.Parent" id="type-parent" />
+                            <label class="btn btn-outline-primary" for="type-parent"><i class="bi bi-people"></i> Родител</label>
+
+                            <input type="radio" class="btn-check" asp-for="Input.AccountType" value="@AccountType.Teacher" id="type-teacher" />
+                            <label class="btn btn-outline-primary" for="type-teacher"><i class="bi bi-mortarboard"></i> Учител</label>
+                        </div>
+                        <div class="form-text">
+                            Профилът на учител се активира след потвърждение от администратор. Дотогава имате права на ученик.
+                        </div>
+                        <span asp-validation-for="Input.AccountType" class="text-danger small"></span>
                     </div>
 
                     <div class="mb-3">
