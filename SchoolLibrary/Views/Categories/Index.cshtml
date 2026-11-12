@@ -40,13 +40,18 @@ else
                         <td>
                             @(item.Resources?.Count ?? 0)
                         </td>
-                        <td class="text-end">
-                            <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Детайли</a>
-                            @if (User.Identity?.IsAuthenticated == true)
-                            {
-                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary">Редактирай</a>
-                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger">Изтрий</a>
-                            }
+                        <td class="text-end text-nowrap">
+                            <div class="d-inline-flex gap-1">
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary"
+                                   data-sl-tip="Детайли" data-sl-placement="top" aria-label="Детайли"><i class="bi bi-eye"></i></a>
+                                @if (User.Identity?.IsAuthenticated == true)
+                                {
+                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary"
+                                       data-sl-tip="Редактирай" data-sl-placement="top" aria-label="Редактирай"><i class="bi bi-pencil"></i></a>
+                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger"
+                                       data-sl-tip="Изтрий" data-sl-placement="top" aria-label="Изтрий"><i class="bi bi-trash"></i></a>
+                                }
+                            </div>
                         </td>
                     </tr>
                 }

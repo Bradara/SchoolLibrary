@@ -39,7 +39,7 @@
         document.querySelectorAll('[data-sl-tip]').forEach(function (el) {
             var tip = new bootstrap.Tooltip(el, {
                 title: el.getAttribute('data-sl-tip'),
-                placement: 'right',
+                placement: el.getAttribute('data-sl-placement') || 'right',
                 container: 'body',
                 trigger: 'hover'
             });
