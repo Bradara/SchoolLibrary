@@ -1,0 +1,54 @@
+@{
+    var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
+
+    string Active(string c, string? a = null) =>
+        controller == c && (a == null || action == a) ? "active" : "";
+}
+
+<a class="sidebar-brand text-decoration-none mb-3" asp-area="" asp-controller="Home" asp-action="Index">
+    <i class="bi bi-journal-bookmark-fill"></i> SchoolLibrary
+</a>
+
+<ul class="nav nav-pills flex-column gap-1 mb-auto">
+    <li class="nav-item">
+        <a class="nav-link @Active("Home", "Index")" asp-area="" asp-controller="Home" asp-action="Index">
+            <i class="bi bi-house"></i> Начало
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @Active("Home", "About")" asp-area="" asp-controller="Home" asp-action="About">
+            <i class="bi bi-info-circle"></i> За проекта
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @Active("Resources")" asp-area="" asp-controller="Resources" asp-action="Index">
+            <i class="bi bi-collection"></i> Ресурси
+        </a>
+    </li>
+    @if (User.IsInRole("Admin"))
+    {
+        <li class="nav-item">
+            <a class="nav-link @Active("Categories")" asp-area="" asp-controller="Categories" asp-action="Index">
+                <i class="bi bi-tags"></i> Предмети
+            </a>
+        </li>
+    }
+</ul>
+
+<div class="sidebar-bottom border-top pt-3 mt-3">
+    <partial name="_LoginPartial" />
+
+    <div class="dropup mt-2">
+        <button class="btn btn-outline-secondary w-100 text-start" type="button" data-bs-toggle="dropdown"
+                aria-expanded="false" aria-label="Смяна на цветовата тема">
+            <i class="bi bi-palette"></i> Тема
+        </button>
+        <ul class="dropdown-menu w-100">
+            <li><button type="button" class="dropdown-item" data-theme-choice="light"><i class="bi bi-sun"></i> Светла</button></li>
+            <li><button type="button" class="dropdown-item" data-theme-choice="dark"><i class="bi bi-moon-stars"></i> Тъмна</button></li>
+            <li><button type="button" class="dropdown-item" data-theme-choice="sand"><i class="bi bi-brightness-high"></i> Сахара</button></li>
+            <li><button type="button" class="dropdown-item" data-theme-choice="dracula"><i class="bi bi-droplet-half"></i> Дракула</button></li>
+        </ul>
+    </div>
+</div>

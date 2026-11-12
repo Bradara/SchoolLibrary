@@ -1,0 +1,140 @@
+/*
+  Color themes. The theme is chosen by the data-theme attribute on <html>
+  (light | dark | sand | dracula); data-bs-theme (light/dark) is set next to it
+  so Bootstrap components pick the right base palette.
+*/
+
+/* ---------- Brand color tokens (used by the overrides below) ---------- */
+html {
+  --sl-primary: #0d6efd;
+  --sl-primary-rgb: 13, 110, 253;
+  --sl-primary-hover: #0b5ed7;
+  --sl-on-primary: #fff;
+}
+
+/* ---------- Light: Bootstrap defaults ---------- */
+html[data-theme="light"] {
+  --sl-sidebar-bg: #f1f3f5;
+}
+
+/* ---------- Dark: Bootstrap dark defaults ---------- */
+html[data-theme="dark"] {
+  --sl-sidebar-bg: #1b1e21;
+}
+
+/* ---------- Sand (light base) ---------- */
+html[data-theme="sand"] {
+  --bs-body-bg: #f6efde;
+  --bs-body-bg-rgb: 246, 239, 222;
+  --bs-body-color: #4a3b2a;
+  --bs-body-color-rgb: 74, 59, 42;
+  --bs-emphasis-color: #2b2013;
+  --bs-emphasis-color-rgb: 43, 32, 19;
+  --bs-secondary-color: rgba(74, 59, 42, .75);
+  --bs-secondary-bg: #eadfc4;
+  --bs-secondary-bg-rgb: 234, 223, 196;
+  --bs-tertiary-bg: #efe5cc;
+  --bs-tertiary-bg-rgb: 239, 229, 204;
+  --bs-border-color: #d8c8a4;
+  --bs-link-color: #8f4a17;
+  --bs-link-color-rgb: 143, 74, 23;
+  --bs-link-hover-color: #6f3710;
+  --bs-link-hover-color-rgb: 111, 55, 16;
+  --bs-primary: #a8571a;
+  --bs-primary-rgb: 168, 87, 26;
+  --bs-primary-text-emphasis: #5d300e;
+  --bs-primary-bg-subtle: #f0dcc4;
+  --bs-primary-border-subtle: #dcb98f;
+
+  --sl-primary: #a8571a;
+  --sl-primary-rgb: 168, 87, 26;
+  --sl-primary-hover: #8f4a15;
+  --sl-on-primary: #fff;
+  --sl-sidebar-bg: #ece0c3;
+}
+
+/* ---------- Dracula (dark base) ---------- */
+html[data-theme="dracula"] {
+  --bs-body-bg: #282a36;
+  --bs-body-bg-rgb: 40, 42, 54;
+  --bs-body-color: #f8f8f2;
+  --bs-body-color-rgb: 248, 248, 242;
+  --bs-emphasis-color: #ffffff;
+  --bs-emphasis-color-rgb: 255, 255, 255;
+  --bs-secondary-color: rgba(248, 248, 242, .72);
+  --bs-secondary-bg: #343746;
+  --bs-secondary-bg-rgb: 52, 55, 70;
+  --bs-tertiary-bg: #303241;
+  --bs-tertiary-bg-rgb: 48, 50, 65;
+  --bs-border-color: #44475a;
+  --bs-link-color: #bd93f9;
+  --bs-link-color-rgb: 189, 147, 249;
+  --bs-link-hover-color: #ff79c6;
+  --bs-link-hover-color-rgb: 255, 121, 198;
+  --bs-primary: #bd93f9;
+  --bs-primary-rgb: 189, 147, 249;
+  --bs-primary-text-emphasis: #d6bcfb;
+  --bs-primary-bg-subtle: #3a3556;
+  --bs-primary-border-subtle: #5b4a8a;
+
+  --sl-primary: #bd93f9;
+  --sl-primary-rgb: 189, 147, 249;
+  --sl-primary-hover: #a97df0;
+  --sl-on-primary: #282a36;
+  --sl-sidebar-bg: #21222c;
+}
+
+/* ---------- Bootstrap 5.3 hard-codes some component colors; point them at the theme token ---------- */
+.btn-primary {
+  --bs-btn-color: var(--sl-on-primary);
+  --bs-btn-bg: var(--sl-primary);
+  --bs-btn-border-color: var(--sl-primary);
+  --bs-btn-hover-color: var(--sl-on-primary);
+  --bs-btn-hover-bg: var(--sl-primary-hover);
+  --bs-btn-hover-border-color: var(--sl-primary-hover);
+  --bs-btn-active-color: var(--sl-on-primary);
+  --bs-btn-active-bg: var(--sl-primary-hover);
+  --bs-btn-active-border-color: var(--sl-primary-hover);
+  --bs-btn-disabled-color: var(--sl-on-primary);
+  --bs-btn-disabled-bg: var(--sl-primary);
+  --bs-btn-disabled-border-color: var(--sl-primary);
+  --bs-btn-focus-shadow-rgb: var(--sl-primary-rgb);
+}
+
+.btn-outline-primary {
+  --bs-btn-color: var(--sl-primary);
+  --bs-btn-border-color: var(--sl-primary);
+  --bs-btn-hover-color: var(--sl-on-primary);
+  --bs-btn-hover-bg: var(--sl-primary);
+  --bs-btn-hover-border-color: var(--sl-primary);
+  --bs-btn-active-color: var(--sl-on-primary);
+  --bs-btn-active-bg: var(--sl-primary);
+  --bs-btn-active-border-color: var(--sl-primary);
+  --bs-btn-focus-shadow-rgb: var(--sl-primary-rgb);
+}
+
+.nav-pills {
+  --bs-nav-pills-link-active-bg: var(--sl-primary);
+  --bs-nav-pills-link-active-color: var(--sl-on-primary);
+}
+
+.dropdown-menu {
+  --bs-dropdown-link-active-bg: var(--sl-primary);
+  --bs-dropdown-link-active-color: var(--sl-on-primary);
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--sl-primary);
+  box-shadow: 0 0 0 .25rem rgba(var(--sl-primary-rgb), .25);
+}
+
+.form-check-input:checked {
+  background-color: var(--sl-primary);
+  border-color: var(--sl-primary);
+}
+
+.form-check-input:focus {
+  border-color: var(--sl-primary);
+  box-shadow: 0 0 0 .25rem rgba(var(--sl-primary-rgb), .25);
+}

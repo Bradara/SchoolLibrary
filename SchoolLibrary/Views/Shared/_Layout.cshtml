@@ -1,58 +1,70 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="bg" data-theme="light" data-bs-theme="light">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - SchoolLibrary</title>
+
+    @* Apply the saved theme before the CSS loads, so there is no flash of the wrong theme *@
+    <script>
+        (function () {
+            try {
+                var themes = ['light', 'dark', 'sand', 'dracula'];
+                var t = localStorage.getItem('theme');
+                if (themes.indexOf(t) < 0) {
+                    t = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+                }
+                var root = document.documentElement;
+                root.setAttribute('data-theme', t);
+                root.setAttribute('data-bs-theme', (t === 'dark' || t === 'dracula') ? 'dark' : 'light');
+            } catch (e) { }
+        })();
+    </script>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/themes.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/SchoolLibrary.styles.css" asp-append-version="true" />
 </head>
 <body>
-    <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">SchoolLibrary</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Начало</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-controller="Home" asp-action="About">За проекта</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Resources" asp-action="Index">Ресурси</a>
-                        </li>
-                        @if (User.IsInRole("Admin"))
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link text-dark" asp-area="" asp-controller="Categories" asp-action="Index">
-                                    Предмети
-                                </a>
-                            </li>
-                        }
-                    </ul>
-                    <partial name="_LoginPartial" />
-                </div>
+    <div class="app-shell">
+
+        @* Desktop: fixed sidebar *@
+        <aside class="app-sidebar d-none d-md-flex flex-column">
+            <partial name="_SidebarContent" />
+        </aside>
+
+        @* Mobile: top bar + off-canvas sidebar *@
+        <header class="app-topbar d-md-none">
+            <a class="navbar-brand fw-bold" asp-area="" asp-controller="Home" asp-action="Index">
+                <i class="bi bi-journal-bookmark-fill"></i> SchoolLibrary
+            </a>
+            <button class="btn btn-outline-secondary" type="button" data-bs-toggle="offcanvas"
+                    data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Отвори менюто">
+                <i class="bi bi-list"></i>
+            </button>
+        </header>
+        <div class="offcanvas offcanvas-start app-sidebar-offcanvas" tabindex="-1" id="sidebarMenu" aria-label="Меню">
+            <div class="offcanvas-header">
+                <button type="button" class="btn-close ms-auto" data-bs-dismiss="offcanvas" aria-label="Затвори"></button>
             </div>
-        </nav>
-    </header>
-    <div class="container">
-        <main role="main" class="pb-3">
-            @RenderBody()
-        </main>
+            <div class="offcanvas-body d-flex flex-column pt-0">
+                <partial name="_SidebarContent" />
+            </div>
+        </div>
+
+        <div class="app-content">
+            <main role="main" class="app-main">
+                @RenderBody()
+            </main>
+
+            <footer class="app-footer border-top text-body-secondary">
+                &copy; 2026 - SchoolLibrary - <a asp-area="" asp-controller="Home" asp-action="Privacy">Поверителност</a>
+            </footer>
+        </div>
     </div>
 
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - SchoolLibrary - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>

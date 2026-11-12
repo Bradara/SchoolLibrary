@@ -1,4 +1,35 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+﻿// Color theme switcher. The saved theme is applied earlier by an inline script in <head>
+// (so there is no flash); this code handles clicks and keeps the menu in sync.
+(function () {
+    var root = document.documentElement;
+    var darkThemes = ['dark', 'dracula'];
 
-// Write your JavaScript code.
+    function applyTheme(theme) {
+        root.setAttribute('data-theme', theme);
+        root.setAttribute('data-bs-theme', darkThemes.indexOf(theme) >= 0 ? 'dark' : 'light');
+    }
+
+    function markActive(theme) {
+        document.querySelectorAll('[data-theme-choice]').forEach(function (btn) {
+            var isActive = btn.getAttribute('data-theme-choice') === theme;
+            btn.classList.toggle('active', isActive);
+            if (isActive) {
+                btn.setAttribute('aria-current', 'true');
+            } else {
+                btn.removeAttribute('aria-current');
+            }
+        });
+    }
+
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-theme-choice]');
+        if (!btn) return;
+
+        var theme = btn.getAttribute('data-theme-choice');
+        applyTheme(theme);
+        try { localStorage.setItem('theme', theme); } catch (err) { }
+        markActive(theme);
+    });
+
+    markActive(root.getAttribute('data-theme'));
+})();

@@ -13,7 +13,7 @@
 </div>
 
 <!-- Филтри -->
-<form method="get" class="card card-body bg-light mb-4">
+<form method="get" class="card card-body bg-body-tertiary mb-4">
     <div class="row g-2">
         <div class="col-md-3">
             <label class="form-label small">Търсене по заглавие и автор</label>
@@ -104,7 +104,7 @@ else
 {
     <div class="table-responsive">
         <table class="table table-hover align-middle">
-            <thead class="table-light">
+            <thead>
                 <tr>
                     <th>Заглавие</th>
                     <th>Предмети</th>
@@ -125,8 +125,8 @@ else
                         </td>
                         <td>@foreach (var c in item.Categories.OrderBy(c => c.Name)) { <span class="badge bg-primary text-primary-emphasis">@c.Name</span> }</td>
                         <td>@foreach (var g in item.GradeLevels.OrderBy(g => g.Number)) { <span class="badge bg-secondary text-secondary-emphasis">@g.Name</span> }</td>
-                        <td class="small text-dark">@item.Owner.FullName</td>
-                        <td class="small text-info">@item.CreatedOn.ToString("dd.MM.yyyy")</td>
+                        <td class="small">@item.Owner.FullName</td>
+                        <td class="small text-body-secondary">@item.CreatedOn.ToString("dd.MM.yyyy")</td>
                         <td class="text-end">
                             <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary">Детайли</a>
                             @if (User.Identity?.IsAuthenticated == true && item.OwnerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value 
