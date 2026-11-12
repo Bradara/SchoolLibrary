@@ -24,5 +24,8 @@ public static class Roles
     /// <summary>Name used before the roles were renamed. Kept only to migrate existing databases.</summary>
     public const string LegacyAdmin = "Admin";
 
+    /// <summary>Roles that may add and edit resources (use in [Authorize(Roles = ...)]).</summary>
+    public const string TeacherOrAdministrator = Teacher + "," + Administrator;
+
     public static readonly string[] All = { User, Administrator, Teacher, Student, Parent };
 }

@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
@@ -147,6 +147,7 @@ namespace SchoolLibrary.Controllers
         }
 
         // GET: Resources/Create
+        [Authorize(Roles = Roles.TeacherOrAdministrator)]
         public async Task<IActionResult> Create()
         {
             var vm = new ResourceFormViewModel();
@@ -155,6 +156,7 @@ namespace SchoolLibrary.Controllers
         }
 
         // POST: Resources/Create
+        [Authorize(Roles = Roles.TeacherOrAdministrator)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ResourceFormViewModel vm)
@@ -185,6 +187,7 @@ namespace SchoolLibrary.Controllers
         }
 
         // GET: Resources/Edit
+        [Authorize(Roles = Roles.TeacherOrAdministrator)]
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -224,6 +227,7 @@ namespace SchoolLibrary.Controllers
         }
 
         // POST: Resources/Edit
+        [Authorize(Roles = Roles.TeacherOrAdministrator)]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, ResourceFormViewModel vm)

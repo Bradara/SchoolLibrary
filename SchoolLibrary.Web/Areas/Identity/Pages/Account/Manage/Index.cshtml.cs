@@ -1,4 +1,4 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -29,6 +29,8 @@ namespace SchoolLibrary.Areas.Identity.Pages.Account.Manage
         public string UserId { get; set; } = string.Empty;
 
         public int ResourceCount { get; set; }
+
+        public bool TeacherRequested { get; set; }
 
         [TempData]
         public string? StatusMessage { get; set; }
@@ -99,6 +101,7 @@ namespace SchoolLibrary.Areas.Identity.Pages.Account.Manage
         {
             Email = user.Email ?? string.Empty;
             UserId = user.Id;
+            TeacherRequested = user.TeacherRequested;
             ResourceCount = await _context.Resources.CountAsync(r => r.OwnerId == user.Id);
         }
     }

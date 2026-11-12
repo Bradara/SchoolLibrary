@@ -1,4 +1,4 @@
-@page
+﻿@page
 @model SchoolLibrary.Areas.Identity.Pages.Account.Manage.IndexModel
 @{
     Layout = "_Layout.cshtml";
@@ -68,15 +68,27 @@
                 <h3 class="h6 text-muted text-uppercase mb-3">Достъп</h3>
                 <p class="mb-3">
                     Роля:
-                    @if (User.IsInRole(Roles.Administrator))
+                    @foreach (var (role, label, css) in new[]
                     {
-                        <span class="badge bg-primary">Администратор</span>
-                    }
-                    else
+                        (Roles.Administrator, "Администратор", "bg-primary"),
+                        (Roles.Teacher, "Учител", "bg-success"),
+                        (Roles.Student, "Ученик", "bg-secondary"),
+                        (Roles.Parent, "Родител", "bg-secondary")
+                    })
                     {
-                        <span class="badge bg-secondary">Потребител</span>
+                        if (User.IsInRole(role))
+                        {
+                            <span class="badge @css">@label</span>
+                        }
                     }
                 </p>
+                @if (Model.TeacherRequested)
+                {
+                    <div class="alert alert-info small">
+                        Заявката ви за профил на учител чака потвърждение от администратор.
+                        Дотогава имате права на ученик.
+                    </div>
+                }
                 <a asp-page="./ChangePassword">🔑 Смяна на паролата</a>
             </div>
         </div>

@@ -1,0 +1,15 @@
+@page
+@model SchoolLibrary.Areas.Identity.Pages.Account.AccessDeniedModel
+@{
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    ViewData["Title"] = "Достъпът е отказан";
+}
+
+<div class="text-center py-5">
+    <div class="display-3 mb-3">🚫</div>
+    <h1 class="h3 mb-3">Достъпът е отказан</h1>
+    <p class="text-body-secondary mb-4">
+        Нямате права за това действие. Ако смятате, че това е грешка, свържете се с администратора.
+    </p>
+    <a asp-area="" asp-controller="Home" asp-action="Index" class="btn btn-primary">Към началото</a>
+</div>

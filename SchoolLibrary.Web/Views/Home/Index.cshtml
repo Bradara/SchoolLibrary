@@ -17,7 +17,7 @@
                 Регистрирай се
             </a>
         }
-        else
+        else if (User.CanAddResources())
         {
             <a asp-controller="Resources" asp-action="Create" class="btn btn-outline-primary btn-lg">
                 + Добави ресурс
