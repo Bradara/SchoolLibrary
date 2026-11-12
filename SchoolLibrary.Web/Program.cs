@@ -1,9 +1,9 @@
-using Microsoft.AspNetCore.DataProtection;
+﻿using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
-using SchoolLibrary.Data.Enums;
+using SchoolLibrary.Data.Seeding;
 using SchoolLibrary.Data.Models;
 
 namespace SchoolLibrary
@@ -91,82 +91,10 @@ namespace SchoolLibrary
                 name: "default",
                 pattern: "{controller=Home}/{action=Index}/{id?}");
 
-            // Seed на Admin ролята и първия admin
+            // Apply migrations and seed grades, subjects and roles
             using (var scope = app.Services.CreateScope())
             {
-                var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                db.Database.Migrate();
-
-                // Seed grade levels (5-12) from the Grades enum when the table is empty
-                if (!await db.GradeLevels.AnyAsync())
-                {
-                    db.GradeLevels.AddRange(
-                        Enum.GetValues<Grades>().Select(g => new GradeLevel { Number = (int)g }));
-                    await db.SaveChangesAsync();
-                }
-
-                // Seed default categories (school subjects) when the table is empty
-                if (!await db.Categories.AnyAsync())
-                {
-                    string[] categoryNames =
-                    {
-                        "Български език и литература",
-                        "Английски език",
-                        "Немски език",
-                        "Френски език",
-                        "Руски език",
-                        "Испански език",
-                        "Италиански език",
-                        "Математика",
-                        "Информатика",
-                        "Информационни технологии",
-                        "Компютърно моделиране",
-                        "Компютърно моделиране и информационни технологии",
-                        "Роден край",
-                        "Околен свят",
-                        "Човекът и обществото",
-                        "Човекът и природата",
-                        "История и цивилизации",
-                        "География и икономика",
-                        "Философия",
-                        "Гражданско образование",
-                        "Биология и здравно образование",
-                        "Физика и астрономия",
-                        "Химия и опазване на околната среда",
-                        "Музика",
-                        "Изобразително изкуство",
-                        "Технологии и предприемачество",
-                        "Предприемачество",
-                        "Физическо възпитание и спорт",
-                        "Религия",
-                        "Хореография",
-                        "Друго"
-                    };
-                    db.Categories.AddRange(categoryNames.Select(n => new Category { Name = n }));
-                    await db.SaveChangesAsync();
-                }
-                var services = scope.ServiceProvider;
-
-                var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-                var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-
-                // Създай роля Админ, ако не съществува
-                if (!await roleManager.RoleExistsAsync("Admin"))
-                {
-                    await roleManager.CreateAsync(new IdentityRole("Admin"));
-                }
-
-                var admins = await userManager.GetUsersInRoleAsync("Admin");
-                //Проверява дали има Админ вече
-                if (admins.Count == 0)
-                {
-                // Ако няма Админ, първият регистриран user → Admin
-                    var firstUser = userManager.Users.OrderBy(u => u.CreatedOn).FirstOrDefault();
-                    if (firstUser != null)
-                    {
-                        await userManager.AddToRoleAsync(firstUser, "Admin");
-                    }
-                }
+                await ApplicationDbSeeder.SeedAsync(scope.ServiceProvider);
             }
 
             app.MapRazorPages();

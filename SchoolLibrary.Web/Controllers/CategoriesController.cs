@@ -3,11 +3,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
+using SchoolLibrary.Data.Constants;
 using SchoolLibrary.Data.Models;
 
 namespace SchoolLibrary.Controllers
 {
-    [Authorize(Roles = "Admin")]
+    [Authorize(Roles = Roles.Administrator)]
     public class CategoriesController : Controller
     {
         private readonly ApplicationDbContext _context;

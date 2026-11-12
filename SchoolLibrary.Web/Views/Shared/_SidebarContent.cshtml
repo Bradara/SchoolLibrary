@@ -35,7 +35,7 @@
                 <i class="bi bi-collection"></i><span class="nav-label"> Ресурси</span>
             </a>
         </li>
-        @if (User.IsInRole("Admin"))
+        @if (User.IsInRole(Roles.Administrator))
         {
             <li class="nav-item">
                 <a class="nav-link @Active("Categories")" asp-area="" asp-controller="Categories" asp-action="Index"

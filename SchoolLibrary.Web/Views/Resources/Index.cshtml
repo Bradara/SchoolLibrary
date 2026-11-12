@@ -135,7 +135,7 @@ else
                                     <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary"
                                        data-sl-tip="Редактирай" data-sl-placement="top" aria-label="Редактирай"><i class="bi bi-pencil"></i></a>
                                 }
-                                @if (isOwner || User.IsInRole("Admin"))
+                                @if (isOwner || User.IsInRole(Roles.Administrator))
                                 {
                                     <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger"
                                        data-sl-tip="Изтрий" data-sl-placement="top" aria-label="Изтрий"><i class="bi bi-trash"></i></a>

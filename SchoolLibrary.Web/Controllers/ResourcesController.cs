@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
+using SchoolLibrary.Data.Constants;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.ViewModels;
 using System.Security.Claims;
@@ -308,7 +309,7 @@ namespace SchoolLibrary.Controllers
             }
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (resource.OwnerId != currentUserId && !User.IsInRole("Admin"))
+            if (resource.OwnerId != currentUserId && !User.IsInRole(Roles.Administrator))
             {
                 return Forbid();
             }
@@ -328,7 +329,7 @@ namespace SchoolLibrary.Controllers
             }
 
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (resource.OwnerId != currentUserId && !User.IsInRole("Admin"))
+            if (resource.OwnerId != currentUserId && !User.IsInRole(Roles.Administrator))
             {
                 return Forbid();
             }

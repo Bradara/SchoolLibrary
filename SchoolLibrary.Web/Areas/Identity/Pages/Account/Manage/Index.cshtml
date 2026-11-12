@@ -68,7 +68,7 @@
                 <h3 class="h6 text-muted text-uppercase mb-3">Достъп</h3>
                 <p class="mb-3">
                     Роля:
-                    @if (User.IsInRole("Admin"))
+                    @if (User.IsInRole(Roles.Administrator))
                     {
                         <span class="badge bg-primary">Администратор</span>
                     }

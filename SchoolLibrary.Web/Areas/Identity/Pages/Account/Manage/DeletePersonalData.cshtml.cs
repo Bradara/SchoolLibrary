@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using SchoolLibrary.Data.Constants;
 using SchoolLibrary.Data.Models;
 
 namespace SchoolLibrary.Areas.Identity.Pages.Account.Manage
@@ -10,7 +11,7 @@ namespace SchoolLibrary.Areas.Identity.Pages.Account.Manage
     // and does not let the last administrator delete their account.
     public class DeletePersonalDataModel : PageModel
     {
-        private const string AdminRole = "Admin";
+        private const string AdminRole = Roles.Administrator;
 
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly SignInManager<ApplicationUser> _signInManager;
