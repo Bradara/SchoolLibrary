@@ -1,0 +1,48 @@
+@page
+@model DeletePersonalDataModel
+@{
+    ViewData["Title"] = "Изтриване на профила";
+    ViewData["ActivePage"] = "DeletePersonalData";
+}
+
+<h2 class="h4 text-danger mb-3">Изтриване на профила</h2>
+
+<div class="alert alert-warning">
+    <p class="mb-2"><strong>Действието е необратимо.</strong></p>
+    <ul class="mb-0">
+        <li>Името, фамилията, имейлът и паролата ви ще бъдат изтрити.</li>
+        <li>Ресурсите, които сте добавили, <strong>остават</strong> в каталога, за да са полезни и на другите.
+            Авторът им си остава записан в полето „Автор“, а на мястото на публикуващия ще пише „Изтрит потребител“.</li>
+        <li>Ще бъдете изведени от системата. Ако поискате да ползвате сайта отново, трябва да се регистрирате наново.</li>
+    </ul>
+</div>
+
+@if (Model.IsLastAdmin)
+{
+    <div class="alert alert-danger">
+        Вие сте единственият администратор, затова не можете да изтриете профила си.
+        Първо дайте ролята на друг потребител.
+    </div>
+}
+else
+{
+    <form method="post" class="col-md-6 px-0">
+        <div asp-validation-summary="ModelOnly" class="text-danger" role="alert"></div>
+
+        @if (Model.RequirePassword)
+        {
+            <div class="mb-3">
+                <label asp-for="Input.Password" class="form-label">Потвърдете с паролата си</label>
+                <input asp-for="Input.Password" class="form-control" autocomplete="current-password" />
+                <span asp-validation-for="Input.Password" class="text-danger"></span>
+            </div>
+        }
+
+        <button type="submit" class="btn btn-danger">Изтрий профила ми</button>
+        <a asp-page="./Index" class="btn btn-secondary">Отказ</a>
+    </form>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

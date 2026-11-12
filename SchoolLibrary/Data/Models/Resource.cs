@@ -32,7 +32,8 @@ namespace SchoolLibrary.Data.Models
         [Display(Name = "Класове")]
         public ICollection<GradeLevel> GradeLevels { get; set; } = new List<GradeLevel>();
 
-        public string OwnerId { get; set; } = string.Empty;
+        // Null when the author deleted their account: the resource stays in the catalog
+        public string? OwnerId { get; set; }
         public ApplicationUser? Owner { get; set; }
 
         [NotMapped]

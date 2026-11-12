@@ -321,7 +321,6 @@ namespace SchoolLibrary.Data.Migrations
                         .HasColumnType("character varying(1000)");
 
                     b.Property<string>("OwnerId")
-                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("Source")
@@ -431,8 +430,7 @@ namespace SchoolLibrary.Data.Migrations
                     b.HasOne("SchoolLibrary.Data.Models.ApplicationUser", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.SetNull);
 
                     b.Navigation("Owner");
                 });
