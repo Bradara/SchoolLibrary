@@ -9,7 +9,7 @@ WORKDIR /src
 
 # Copy only the project file first: this layer (restore) is cached
 # and re-run only when the dependencies change, not on every code edit.
-COPY SchoolLibrary.csproj ./
+COPY SchoolLibrary.Web.csproj ./
 RUN dotnet restore -a $TARGETARCH
 
 COPY . ./
@@ -33,4 +33,4 @@ EXPOSE 8080
 # Never run the app as root inside the container.
 USER $APP_UID
 
-ENTRYPOINT ["dotnet", "SchoolLibrary.dll"]
+ENTRYPOINT ["dotnet", "SchoolLibrary.Web.dll"]

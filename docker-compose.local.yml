@@ -19,7 +19,7 @@ services:
       retries: 10
 
   web:
-    build: ./SchoolLibrary
+    build: ./SchoolLibrary.Web
     depends_on:
       db:
         condition: service_healthy       # start the app only after PostgreSQL accepts connections

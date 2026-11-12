@@ -4,7 +4,7 @@
 #   docker network connect schoolnet postgres
 services:
   web:
-    build: ./SchoolLibrary
+    build: ./SchoolLibrary.Web
     image: schoollibrary:latest
     container_name: schoollibrary
     restart: unless-stopped

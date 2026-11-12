@@ -41,10 +41,10 @@
 1. Задай connection string с user secrets (стойността не се записва в repo-то):
 
    ```
-   dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=schoollibrary;Username=...;Password=..." --project SchoolLibrary
+   dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=schoollibrary;Username=...;Password=..." --project SchoolLibrary.Web
    ```
 
-2. Стартирай: `dotnet run --project SchoolLibrary`. Миграциите се прилагат автоматично при старт и се добавят начални данни (класове 5–12, предмети).
+2. Стартирай: `dotnet run --project SchoolLibrary.Web`. Миграциите се прилагат автоматично при старт и се добавят начални данни (класове 5–12, предмети).
 
 ## Деплой (Docker + nginx)
 

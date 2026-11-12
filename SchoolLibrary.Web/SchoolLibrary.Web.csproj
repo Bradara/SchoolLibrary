@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>SchoolLibrary</RootNamespace>
     <UserSecretsId>aspnet-SchoolLibrary-a05b9947-18df-4adc-91bd-8f5c27732eed</UserSecretsId>
   </PropertyGroup>
 
