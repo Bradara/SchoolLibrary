@@ -1,4 +1,6 @@
-﻿@using Microsoft.AspNetCore.Identity
+﻿@* Model: true = compact (icons only with a tooltip), false = icons + text *@
+@model bool
+@using Microsoft.AspNetCore.Identity
 @using SchoolLibrary.Data.Models
 @inject SignInManager<ApplicationUser> SignInManager
 
@@ -6,14 +8,18 @@
 @if (SignInManager.IsSignedIn(User))
 {
     <li class="nav-item">
-        <a class="nav-link text-truncate" asp-area="Identity" asp-page="/Account/Manage/Index" title="Моят профил">
-            <i class="bi bi-person-circle"></i> @User.Identity?.Name
+        <a class="nav-link text-truncate" asp-area="Identity" asp-page="/Account/Manage/Index"
+           title="@(Model ? null : "Моят профил")"
+           data-sl-tip="@(Model ? "Моят профил: " + User.Identity?.Name : null)"
+           aria-label="@(Model ? "Моят профил" : null)">
+            <i class="bi bi-person-circle"></i><span class="nav-label"> @User.Identity?.Name</span>
         </a>
     </li>
     <li class="nav-item">
         <form asp-area="Identity" asp-page="/Account/Logout" asp-route-returnUrl="@Url.Action("Index", "Home", new { area = "" })">
-            <button type="submit" class="nav-link btn btn-link w-100 text-start">
-                <i class="bi bi-box-arrow-right"></i> Изход
+            <button type="submit" class="nav-link btn btn-link w-100 @(Model ? "" : "text-start")"
+                    data-sl-tip="@(Model ? "Изход" : null)" aria-label="@(Model ? "Изход" : null)">
+                <i class="bi bi-box-arrow-right"></i><span class="nav-label"> Изход</span>
             </button>
         </form>
     </li>
@@ -21,10 +27,16 @@
 else
 {
     <li class="nav-item">
-        <a class="nav-link" asp-area="Identity" asp-page="/Account/Register"><i class="bi bi-person-plus"></i> Регистрация</a>
+        <a class="nav-link" asp-area="Identity" asp-page="/Account/Register"
+           data-sl-tip="@(Model ? "Регистрация" : null)" aria-label="@(Model ? "Регистрация" : null)">
+            <i class="bi bi-person-plus"></i><span class="nav-label"> Регистрация</span>
+        </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link" asp-area="Identity" asp-page="/Account/Login"><i class="bi bi-box-arrow-in-right"></i> Вход</a>
+        <a class="nav-link" asp-area="Identity" asp-page="/Account/Login"
+           data-sl-tip="@(Model ? "Вход" : null)" aria-label="@(Model ? "Вход" : null)">
+            <i class="bi bi-box-arrow-in-right"></i><span class="nav-label"> Вход</span>
+        </a>
     </li>
 }
 </ul>

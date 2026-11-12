@@ -5,24 +5,24 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>📚 Учебни ресурси</h1>
+    <h1>📚 Учебни ресурси <small class="fs-6 text-body-secondary">(намерени: @Model.Resources.Count)</small></h1>
     @if (User.Identity?.IsAuthenticated == true)
     {
         <a asp-action="Create" class="btn btn-primary">+ Нов ресурс</a>
     }
 </div>
 
-<!-- Филтри -->
-<form method="get" class="card card-body bg-body-tertiary mb-4">
-    <div class="row g-2">
-        <div class="col-md-3">
-            <label class="form-label small">Търсене по заглавие и автор</label>
-            <input name="searchTitle" value="@Model.SearchTitle" class="form-control"
-                   placeholder="Напиши ключова дума..." />
+<!-- Филтри и сортиране -->
+<form method="get" class="card card-body bg-body-tertiary py-2 mb-4">
+    <div class="d-flex flex-wrap gap-2 align-items-end">
+        <div class="filter-field filter-field-wide">
+            <label class="form-label small mb-1" for="searchTitle">Търсене</label>
+            <input id="searchTitle" name="searchTitle" value="@Model.SearchTitle" class="form-control"
+                   placeholder="Заглавие или автор..." />
         </div>
-        <div class="col-md-2">
-            <label class="form-label small">Предмет</label>
-            <select name="categoryId" class="form-select">
+        <div class="filter-field">
+            <label class="form-label small mb-1" for="categoryId">Предмет</label>
+            <select id="categoryId" name="categoryId" class="form-select">
                 <option value="">Всички</option>
                 @foreach (var c in Model.Categories)
                 {
@@ -30,9 +30,9 @@
                 }
             </select>
         </div>
-        <div class="col-md-2">
-            <label class="form-label small">Клас</label>
-            <select name="gradeLevelId" class="form-select">
+        <div class="filter-field">
+            <label class="form-label small mb-1" for="gradeLevelId">Клас</label>
+            <select id="gradeLevelId" name="gradeLevelId" class="form-select">
                 <option value="">Всички</option>
                 @foreach (var g in Model.GradeLevels)
                 {
@@ -40,9 +40,9 @@
                 }
             </select>
         </div>
-        <div class="col-md-2">
-            <label class="form-label small">Публикуващ</label>
-            <select name="ownerId" class="form-select">
+        <div class="filter-field">
+            <label class="form-label small mb-1" for="ownerId">Публикуващ</label>
+            <select id="ownerId" name="ownerId" class="form-select">
                 <option value="">Всички</option>
                 @foreach (var o in Model.Owners)
                 {
@@ -50,23 +50,18 @@
                 }
             </select>
         </div>
-        <div class="col-md-1">
-            <label class="form-label small">От дата</label>
-            <input type="date" name="fromDate"
+        <div class="filter-field filter-field-date">
+            <label class="form-label small mb-1" for="fromDate">От дата</label>
+            <input id="fromDate" type="date" name="fromDate"
                    value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" class="form-control" />
         </div>
-        <div class="col-md-1">
-            <label class="form-label small">До дата</label>
-            <input type="date" name="toDate"
+        <div class="filter-field filter-field-date">
+            <label class="form-label small mb-1" for="toDate">До дата</label>
+            <input id="toDate" type="date" name="toDate"
                    value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" class="form-control" />
         </div>
-        <div class="col-md-1 d-flex align-items-end">
-            <button type="submit" class="btn btn-primary w-150">🔍 </button>
-        </div>
-    </div>
-    <div class="row g-2 mt-1 align-items-end">
-        <div class="col-md-3">
-            <label class="form-label small" for="sortOrder">Сортиране</label>
+        <div class="filter-field">
+            <label class="form-label small mb-1" for="sortOrder">Сортиране</label>
             <select id="sortOrder" name="sortOrder" class="form-select" onchange="this.form.submit()">
                 @{
                     var sortOptions = new (string Value, string Text)[]
@@ -86,10 +81,10 @@
                 }
             </select>
         </div>
-    </div>
-    <div class="mt-2">
-        <a asp-action="Index" class="btn btn-sm btn-link">Изчисти филтрите</a>
-        <span class="text-muted small ms-3">Намерени: @Model.Resources.Count</span>
+        <div class="d-flex gap-1">
+            <button type="submit" class="btn btn-primary" title="Търси" aria-label="Търси"><i class="bi bi-search"></i></button>
+            <a asp-action="Index" class="btn btn-outline-secondary" title="Изчисти филтрите" aria-label="Изчисти филтрите"><i class="bi bi-x-lg"></i></a>
+        </div>
     </div>
 </form>
 

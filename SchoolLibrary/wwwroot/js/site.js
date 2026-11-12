@@ -32,4 +32,18 @@
     });
 
     markActive(root.getAttribute('data-theme'));
+
+    // Tooltips for the icon-only sidebar. Uses data-sl-tip (not data-bs-toggle) so the same
+    // element can also be a dropdown toggle.
+    if (window.bootstrap) {
+        document.querySelectorAll('[data-sl-tip]').forEach(function (el) {
+            var tip = new bootstrap.Tooltip(el, {
+                title: el.getAttribute('data-sl-tip'),
+                placement: 'right',
+                container: 'body',
+                trigger: 'hover'
+            });
+            el.addEventListener('click', function () { tip.hide(); });
+        });
+    }
 })();

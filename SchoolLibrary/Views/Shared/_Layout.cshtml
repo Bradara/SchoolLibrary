@@ -32,7 +32,7 @@
 
         @* Desktop: fixed sidebar *@
         <aside class="app-sidebar d-none d-md-flex flex-column">
-            <partial name="_SidebarContent" />
+            <partial name="_SidebarContent" model="@true" />
         </aside>
 
         @* Mobile: top bar + off-canvas sidebar *@
@@ -50,7 +50,7 @@
                 <button type="button" class="btn-close ms-auto" data-bs-dismiss="offcanvas" aria-label="Затвори"></button>
             </div>
             <div class="offcanvas-body d-flex flex-column pt-0">
-                <partial name="_SidebarContent" />
+                <partial name="_SidebarContent" model="@false" />
             </div>
         </div>
 

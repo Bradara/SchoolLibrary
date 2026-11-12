@@ -1,4 +1,7 @@
+@* Model: true = compact (icons only, text shown as a tooltip on hover); false = full (icons + text, used in the mobile menu) *@
+@model bool
 @{
+    var compact = Model;
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
     var action = ViewContext.RouteData.Values["action"]?.ToString();
 
@@ -6,49 +9,58 @@
         controller == c && (a == null || action == a) ? "active" : "";
 }
 
-<a class="sidebar-brand text-decoration-none mb-3" asp-area="" asp-controller="Home" asp-action="Index">
-    <i class="bi bi-journal-bookmark-fill"></i> SchoolLibrary
-</a>
+<div class="sidebar-inner d-flex flex-column flex-grow-1 @(compact ? "sidebar-compact" : "")">
 
-<ul class="nav nav-pills flex-column gap-1 mb-auto">
-    <li class="nav-item">
-        <a class="nav-link @Active("Home", "Index")" asp-area="" asp-controller="Home" asp-action="Index">
-            <i class="bi bi-house"></i> Начало
-        </a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link @Active("Home", "About")" asp-area="" asp-controller="Home" asp-action="About">
-            <i class="bi bi-info-circle"></i> За проекта
-        </a>
-    </li>
-    <li class="nav-item">
-        <a class="nav-link @Active("Resources")" asp-area="" asp-controller="Resources" asp-action="Index">
-            <i class="bi bi-collection"></i> Ресурси
-        </a>
-    </li>
-    @if (User.IsInRole("Admin"))
-    {
+    <a class="sidebar-brand text-decoration-none mb-3 @(compact ? "text-center" : "")" asp-area="" asp-controller="Home" asp-action="Index"
+       data-sl-tip="@(compact ? "SchoolLibrary" : null)" aria-label="@(compact ? "SchoolLibrary" : null)">
+        <i class="bi bi-journal-bookmark-fill"></i><span class="nav-label"> SchoolLibrary</span>
+    </a>
+
+    <ul class="nav nav-pills flex-column gap-1 mb-auto">
         <li class="nav-item">
-            <a class="nav-link @Active("Categories")" asp-area="" asp-controller="Categories" asp-action="Index">
-                <i class="bi bi-tags"></i> Предмети
+            <a class="nav-link @Active("Home", "Index")" asp-area="" asp-controller="Home" asp-action="Index"
+               data-sl-tip="@(compact ? "Начало" : null)" aria-label="@(compact ? "Начало" : null)">
+                <i class="bi bi-house"></i><span class="nav-label"> Начало</span>
             </a>
         </li>
-    }
-</ul>
+        <li class="nav-item">
+            <a class="nav-link @Active("Home", "About")" asp-area="" asp-controller="Home" asp-action="About"
+               data-sl-tip="@(compact ? "За проекта" : null)" aria-label="@(compact ? "За проекта" : null)">
+                <i class="bi bi-info-circle"></i><span class="nav-label"> За проекта</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @Active("Resources")" asp-area="" asp-controller="Resources" asp-action="Index"
+               data-sl-tip="@(compact ? "Ресурси" : null)" aria-label="@(compact ? "Ресурси" : null)">
+                <i class="bi bi-collection"></i><span class="nav-label"> Ресурси</span>
+            </a>
+        </li>
+        @if (User.IsInRole("Admin"))
+        {
+            <li class="nav-item">
+                <a class="nav-link @Active("Categories")" asp-area="" asp-controller="Categories" asp-action="Index"
+                   data-sl-tip="@(compact ? "Предмети" : null)" aria-label="@(compact ? "Предмети" : null)">
+                    <i class="bi bi-tags"></i><span class="nav-label"> Предмети</span>
+                </a>
+            </li>
+        }
+    </ul>
 
-<div class="sidebar-bottom border-top pt-3 mt-3">
-    <partial name="_LoginPartial" />
+    <div class="sidebar-bottom border-top pt-3 mt-3">
+        <partial name="_LoginPartial" model="@compact" />
 
-    <div class="dropup mt-2">
-        <button class="btn btn-outline-secondary w-100 text-start" type="button" data-bs-toggle="dropdown"
-                aria-expanded="false" aria-label="Смяна на цветовата тема">
-            <i class="bi bi-palette"></i> Тема
-        </button>
-        <ul class="dropdown-menu w-100">
-            <li><button type="button" class="dropdown-item" data-theme-choice="light"><i class="bi bi-sun"></i> Светла</button></li>
-            <li><button type="button" class="dropdown-item" data-theme-choice="dark"><i class="bi bi-moon-stars"></i> Тъмна</button></li>
-            <li><button type="button" class="dropdown-item" data-theme-choice="sand"><i class="bi bi-brightness-high"></i> Сахара</button></li>
-            <li><button type="button" class="dropdown-item" data-theme-choice="dracula"><i class="bi bi-droplet-half"></i> Дракула</button></li>
-        </ul>
+        <div class="@(compact ? "dropend" : "dropup") mt-2">
+            <button class="btn btn-outline-secondary w-100 @(compact ? "" : "text-start")" type="button" data-bs-toggle="dropdown"
+                    aria-expanded="false" aria-label="Смяна на цветовата тема"
+                    data-sl-tip="@(compact ? "Тема" : null)">
+                <i class="bi bi-palette"></i><span class="nav-label"> Тема</span>
+            </button>
+            <ul class="dropdown-menu">
+                <li><button type="button" class="dropdown-item" data-theme-choice="light"><i class="bi bi-sun"></i> Светла</button></li>
+                <li><button type="button" class="dropdown-item" data-theme-choice="dark"><i class="bi bi-moon-stars"></i> Тъмна</button></li>
+                <li><button type="button" class="dropdown-item" data-theme-choice="sand"><i class="bi bi-brightness-high"></i> Сахара</button></li>
+                <li><button type="button" class="dropdown-item" data-theme-choice="dracula"><i class="bi bi-droplet-half"></i> Дракула</button></li>
+            </ul>
+        </div>
     </div>
 </div>
