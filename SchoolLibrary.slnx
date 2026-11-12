@@ -1,4 +1,6 @@
 <Solution>
   <Project Path="SchoolLibrary.Data/SchoolLibrary.Data.csproj" />
+  <Project Path="SchoolLibrary.Services/SchoolLibrary.Services.csproj" />
+  <Project Path="SchoolLibrary.Tests/SchoolLibrary.Tests.csproj" />
   <Project Path="SchoolLibrary.Web/SchoolLibrary.Web.csproj" />
 </Solution>

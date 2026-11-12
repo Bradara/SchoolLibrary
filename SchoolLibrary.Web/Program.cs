@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
 using SchoolLibrary.Data.Seeding;
 using SchoolLibrary.Data.Models;
+using SchoolLibrary.Services;
 
 namespace SchoolLibrary
 {
@@ -57,6 +58,7 @@ namespace SchoolLibrary
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
             builder.Services.AddControllersWithViews();
+            builder.Services.AddApplicationServices();
 
             var app = builder.Build();
 

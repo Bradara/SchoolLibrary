@@ -10,6 +10,7 @@ WORKDIR /src
 # Copy only the project files first: this layer (restore) is cached
 # and re-run only when the dependencies change, not on every code edit.
 COPY SchoolLibrary.Data/SchoolLibrary.Data.csproj SchoolLibrary.Data/
+COPY SchoolLibrary.Services/SchoolLibrary.Services.csproj SchoolLibrary.Services/
 COPY SchoolLibrary.Web/SchoolLibrary.Web.csproj SchoolLibrary.Web/
 RUN dotnet restore SchoolLibrary.Web/SchoolLibrary.Web.csproj -a $TARGETARCH
 
