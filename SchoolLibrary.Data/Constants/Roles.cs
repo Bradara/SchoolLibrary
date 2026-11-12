@@ -27,5 +27,8 @@ public static class Roles
     /// <summary>Roles that may add and edit resources (use in [Authorize(Roles = ...)]).</summary>
     public const string TeacherOrAdministrator = Teacher + "," + Administrator;
 
-    public static readonly string[] All = { User, Administrator, Teacher, Student, Parent };
+    /// <summary>Roles an administrator can give or take away (User is always kept).</summary>
+    public static readonly string[] Assignable = { Administrator, Teacher, Student, Parent };
+
+    public static readonly string[] All ={ User, Administrator, Teacher, Student, Parent };
 }

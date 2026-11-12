@@ -55,16 +55,16 @@ namespace SchoolLibrary.Areas.Admin.Controllers
             return Report(result, $"Заявката на {result.Value?.FullName} е отхвърлена.");
         }
 
-        // POST: Admin/Users/SetAdministrator
+        // POST: Admin/Users/SetRole
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SetAdministrator(string id, bool makeAdministrator)
+        public async Task<IActionResult> SetRole(string id, string role, bool enabled)
         {
             var currentUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
-            var result = await _users.SetAdministratorAsync(id, makeAdministrator, currentUserId);
-            var message = makeAdministrator
-                ? $"{result.Value?.FullName} е администратор."
-                : $"{result.Value?.FullName} вече не е администратор.";
+            var result = await _users.SetRoleAsync(id, role, enabled, currentUserId);
+            var message = enabled
+                ? $"{result.Value?.FullName}: добавена е роля „{RoleNames.Label(role)}“."
+                : $"{result.Value?.FullName}: премахната е роля „{RoleNames.Label(role)}“.";
             return Report(result, message);
         }
 

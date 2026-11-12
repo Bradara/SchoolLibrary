@@ -99,32 +99,41 @@ public class UserService : IUserService
         return ServiceResult<UserListItem>.Success(await ToItemAsync(user));
     }
 
-    public async Task<ServiceResult<UserListItem>> SetAdministratorAsync(string userId, bool isAdministrator, string currentUserId)
+    public async Task<ServiceResult<UserListItem>> SetRoleAsync(string userId, string role, bool enabled, string currentUserId)
     {
+        if (!Roles.Assignable.Contains(role))
+        {
+            return ServiceResult<UserListItem>.Failure(ServiceError.Invalid, "Ролята не може да се променя.");
+        }
+
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
         if (user == null)
         {
             return ServiceResult<UserListItem>.Failure(ServiceError.NotFound, "Потребителят не е намерен.");
         }
 
-        if (!isAdministrator && userId == currentUserId)
+        if (!enabled && role == Roles.Administrator && userId == currentUserId)
         {
             return ServiceResult<UserListItem>.Failure(ServiceError.Forbidden, "Не можете да премахнете собствената си администраторска роля.");
         }
 
-        var adminRoleId = await GetRoleIdAsync(Roles.Administrator);
-        if (adminRoleId == null)
+        var roleId = await GetRoleIdAsync(role);
+        if (roleId == null)
         {
-            return ServiceResult<UserListItem>.Failure(ServiceError.Invalid, "Ролята „Администратор“ не съществува.");
+            return ServiceResult<UserListItem>.Failure(ServiceError.Invalid, "Ролята не съществува.");
         }
 
-        if (isAdministrator)
+        if (enabled)
         {
-            await AddToRoleAsync(user.Id, adminRoleId);
+            await AddToRoleAsync(user.Id, roleId);
+            if (role == Roles.Teacher)
+            {
+                user.TeacherRequested = false;
+            }
         }
         else
         {
-            await RemoveFromRoleAsync(user.Id, Roles.Administrator);
+            await RemoveFromRoleAsync(user.Id, role);
         }
 
         await _context.SaveChangesAsync();

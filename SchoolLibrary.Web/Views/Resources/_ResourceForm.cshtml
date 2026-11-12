@@ -32,37 +32,30 @@
     <span asp-validation-for="Url" class="text-danger"></span>
 </div>
 
+@* Toggle buttons: a hidden checkbox (btn-check) posts the value, the label is the visible button *@
 <div class="form-group mb-3">
     <label class="control-label">@Html.DisplayNameFor(m => m.SelectedCategoryIds)</label>
-    <div class="border rounded p-2" style="max-height: 16rem; overflow-y: auto;">
-        <div class="row row-cols-1 row-cols-md-2 g-1">
-            @foreach (var c in Model.AllCategories)
-            {
-                <div class="col">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="SelectedCategoryIds"
-                               value="@c.Id" id="category-@c.Id"
-                               checked="@Model.SelectedCategoryIds.Contains(c.Id)" />
-                        <label class="form-check-label" for="category-@c.Id">@c.Name</label>
-                    </div>
-                </div>
-            }
-        </div>
+    <div class="border rounded p-2 d-flex flex-wrap gap-2" style="max-height: 16rem; overflow-y: auto;">
+        @foreach (var c in Model.AllCategories)
+        {
+            <input class="btn-check" type="checkbox" name="SelectedCategoryIds" autocomplete="off"
+                   value="@c.Id" id="category-@c.Id"
+                   checked="@Model.SelectedCategoryIds.Contains(c.Id)" />
+            <label class="btn btn-sm btn-outline-primary" for="category-@c.Id">@c.Name</label>
+        }
     </div>
     <span asp-validation-for="SelectedCategoryIds" class="text-danger"></span>
 </div>
 
 <div class="form-group mb-3">
     <label class="control-label">@Html.DisplayNameFor(m => m.SelectedGradeLevelIds)</label>
-    <div class="border rounded p-2">
+    <div class="border rounded p-2 d-flex flex-wrap gap-2">
         @foreach (var g in Model.AllGradeLevels)
         {
-            <div class="form-check form-check-inline">
-                <input class="form-check-input" type="checkbox" name="SelectedGradeLevelIds"
-                       value="@g.Id" id="grade-@g.Id"
-                       checked="@Model.SelectedGradeLevelIds.Contains(g.Id)" />
-                <label class="form-check-label" for="grade-@g.Id">@g.Name</label>
-            </div>
+            <input class="btn-check" type="checkbox" name="SelectedGradeLevelIds" autocomplete="off"
+                   value="@g.Id" id="grade-@g.Id"
+                   checked="@Model.SelectedGradeLevelIds.Contains(g.Id)" />
+            <label class="btn btn-sm btn-outline-primary" for="grade-@g.Id">@g.Name</label>
         }
     </div>
     <span asp-validation-for="SelectedGradeLevelIds" class="text-danger"></span>

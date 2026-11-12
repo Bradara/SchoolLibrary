@@ -182,54 +182,92 @@ public class UserServiceTests
         Assert.Equal(ServiceError.Invalid, (await _service.RejectTeacherAsync("s1")).Error);
     }
 
-    // ---- SetAdministratorAsync ----
+    // ---- SetRoleAsync ----
 
-    [Fact]
-    public async Task SetAdministratorAsync_Grant_AddsRoleOnce()
+    [Theory]
+    [InlineData(Roles.Administrator)]
+    [InlineData(Roles.Teacher)]
+    [InlineData(Roles.Student)]
+    [InlineData(Roles.Parent)]
+    public async Task SetRoleAsync_Grant_AddsRoleOnce(string role)
     {
         await AddUserAsync("u1", roles: Roles.User);
 
-        await _service.SetAdministratorAsync("u1", true, "admin");
-        var again = await _service.SetAdministratorAsync("u1", true, "admin");
+        await _service.SetRoleAsync("u1", role, true, "admin");
+        var again = await _service.SetRoleAsync("u1", role, true, "admin");
 
         Assert.True(again.Succeeded);
-        Assert.Single(RolesOf("u1"), Roles.Administrator);
+        Assert.Single(RolesOf("u1"), role);
+        Assert.Contains(Roles.User, RolesOf("u1"));
     }
 
     [Fact]
-    public async Task SetAdministratorAsync_Revoke_RemovesRole()
+    public async Task SetRoleAsync_Revoke_RemovesOnlyThatRole()
     {
-        await AddUserAsync("u1", roles: new[] { Roles.User, Roles.Administrator });
+        await AddUserAsync("u1", roles: new[] { Roles.User, Roles.Student, Roles.Parent });
 
-        var result = await _service.SetAdministratorAsync("u1", false, "admin");
+        var result = await _service.SetRoleAsync("u1", Roles.Parent, false, "admin");
 
         Assert.True(result.Succeeded);
-        Assert.Equal(new[] { Roles.User }, RolesOf("u1"));
+        Assert.Equal(new[] { Roles.Student, Roles.User }, result.Value!.Roles);
     }
 
     [Fact]
-    public async Task SetAdministratorAsync_RevokeOwnRole_ReturnsForbidden()
+    public async Task SetRoleAsync_GrantTeacher_ClearsPendingRequest()
+    {
+        await AddUserAsync("u1", teacherRequested: true, roles: Roles.Student);
+
+        await _service.SetRoleAsync("u1", Roles.Teacher, true, "admin");
+
+        Assert.False(_context.Users.Single().TeacherRequested);
+    }
+
+    [Fact]
+    public async Task SetRoleAsync_RevokeOwnAdministrator_ReturnsForbidden()
     {
         await AddUserAsync("me", roles: Roles.Administrator);
 
-        var result = await _service.SetAdministratorAsync("me", false, "me");
+        var result = await _service.SetRoleAsync("me", Roles.Administrator, false, "me");
 
         Assert.Equal(ServiceError.Forbidden, result.Error);
         Assert.Contains(Roles.Administrator, RolesOf("me"));
     }
 
     [Fact]
-    public async Task SetAdministratorAsync_UnknownUser_ReturnsNotFound()
+    public async Task SetRoleAsync_RevokeOwnOtherRole_Succeeds()
     {
-        Assert.Equal(ServiceError.NotFound, (await _service.SetAdministratorAsync("x", true, "admin")).Error);
+        await AddUserAsync("me", roles: new[] { Roles.Administrator, Roles.Teacher });
+
+        var result = await _service.SetRoleAsync("me", Roles.Teacher, false, "me");
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData(Roles.User)]
+    [InlineData("Hacker")]
+    [InlineData("")]
+    public async Task SetRoleAsync_NotAssignableRole_ReturnsInvalid(string role)
+    {
+        await AddUserAsync("u1");
+
+        var result = await _service.SetRoleAsync("u1", role, true, "admin");
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
     }
 
     [Fact]
-    public async Task SetAdministratorAsync_MissingRole_ReturnsInvalid()
+    public async Task SetRoleAsync_UnknownUser_ReturnsNotFound()
     {
-        _context.Roles.Remove(_context.Roles.Single(r => r.Name == Roles.Administrator));
+        Assert.Equal(ServiceError.NotFound, (await _service.SetRoleAsync("x", Roles.Student, true, "admin")).Error);
+    }
+
+    [Fact]
+    public async Task SetRoleAsync_MissingRoleInDatabase_ReturnsInvalid()
+    {
+        _context.Roles.Remove(_context.Roles.Single(r => r.Name == Roles.Parent));
         await AddUserAsync("u1");
 
-        Assert.Equal(ServiceError.Invalid, (await _service.SetAdministratorAsync("u1", true, "admin")).Error);
+        Assert.Equal(ServiceError.Invalid, (await _service.SetRoleAsync("u1", Roles.Parent, true, "admin")).Error);
     }
 }

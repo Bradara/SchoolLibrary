@@ -3,13 +3,13 @@
 @{
     ViewData["Title"] = "Потребители";
 
-    string RoleLabel(string role) => role switch
+    string RoleIcon(string role) => role switch
     {
-        Roles.Administrator => "Администратор",
-        Roles.Teacher => "Учител",
-        Roles.Student => "Ученик",
-        Roles.Parent => "Родител",
-        _ => role
+        Roles.Administrator => "bi-shield-lock",
+        Roles.Teacher => "bi-person-workspace",
+        Roles.Student => "bi-mortarboard",
+        Roles.Parent => "bi-person-heart",
+        _ => "bi-person"
     };
 
     Dictionary<string, string?> RouteFor(int page) => new()
@@ -62,14 +62,13 @@ else
             <tbody>
                 @foreach (var user in Model.Users)
                 {
-                    var isAdmin = user.Roles.Contains(Roles.Administrator);
-                    <tr>
+                                    <tr>
                         <td class="fw-bold">@user.FullName</td>
                         <td>@user.Email</td>
                         <td>
                             @foreach (var role in user.Roles.Where(r => r != Roles.User))
                             {
-                                <span class="badge text-bg-secondary">@RoleLabel(role)</span>
+                                <span class="badge text-bg-secondary">@RoleNames.Label(role)</span>
                             }
                             @if (user.TeacherRequested)
                             {
@@ -90,18 +89,19 @@ else
                                                 data-sl-tip="Отхвърли заявката" data-sl-placement="top" aria-label="Отхвърли заявката"><i class="bi bi-x-lg"></i></button>
                                     </form>
                                 }
-                                @if (isAdmin && user.Id != Model.CurrentUserId)
+                                @foreach (var role in Roles.Assignable)
                                 {
-                                    <form asp-action="SetAdministrator" asp-route-id="@user.Id" asp-route-makeAdministrator="false" method="post">
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary"
-                                                data-sl-tip="Премахни администратор" data-sl-placement="top" aria-label="Премахни администратор"><i class="bi bi-shield-minus"></i></button>
-                                    </form>
-                                }
-                                else if (!isAdmin)
-                                {
-                                    <form asp-action="SetAdministrator" asp-route-id="@user.Id" asp-route-makeAdministrator="true" method="post">
-                                        <button type="submit" class="btn btn-sm btn-outline-primary"
-                                                data-sl-tip="Направи администратор" data-sl-placement="top" aria-label="Направи администратор"><i class="bi bi-shield-plus"></i></button>
+                                    var has = user.Roles.Contains(role);
+                                    var own = role == Roles.Administrator && user.Id == Model.CurrentUserId;
+                                    var tip = own
+                                        ? "Не можете да премахнете собствената си администраторска роля"
+                                        : (has ? $"Премахни роля „{RoleNames.Label(role)}“" : $"Добави роля „{RoleNames.Label(role)}“");
+                                    <form asp-action="SetRole" asp-route-id="@user.Id" asp-route-role="@role" asp-route-enabled="@(!has)" method="post">
+                                        <button type="submit" class="btn btn-sm @(has ? "btn-primary" : "btn-outline-secondary")"
+                                                disabled="@own" aria-pressed="@(has ? "true" : "false")"
+                                                data-sl-tip="@tip" data-sl-placement="top" aria-label="@tip">
+                                            <i class="bi @RoleIcon(role)"></i>
+                                        </button>
                                     </form>
                                 }
                             </div>

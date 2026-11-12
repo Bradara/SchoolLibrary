@@ -31,6 +31,9 @@ public interface IUserService
     /// <summary>Clears the teacher request; the user stays a student.</summary>
     Task<ServiceResult<UserListItem>> RejectTeacherAsync(string userId);
 
-    /// <summary>Adds or removes the Administrator role. Nobody can remove it from themselves.</summary>
-    Task<ServiceResult<UserListItem>> SetAdministratorAsync(string userId, bool isAdministrator, string currentUserId);
+    /// <summary>
+    /// Adds or removes one of the assignable roles (Administrator, Teacher, Student, Parent).
+    /// Nobody can remove the Administrator role from themselves. Giving the Teacher role clears a pending request.
+    /// </summary>
+    Task<ServiceResult<UserListItem>> SetRoleAsync(string userId, string role, bool enabled, string currentUserId);
 }
