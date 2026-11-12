@@ -6,7 +6,7 @@
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>📚 Учебни ресурси <small class="fs-6 text-body-secondary">(намерени: @Model.Resources.Count)</small></h1>
+    <h1>📚 Учебни ресурси <small class="fs-6 text-body-secondary">(намерени: @Model.TotalCount)</small></h1>
     @if (User.CanAddResources())
     {
         <a asp-action="Create" class="btn btn-primary">+ Нов ресурс</a>
@@ -67,18 +67,18 @@
                 @{
                     var sortOptions = new (string Value, string Text)[]
                     {
-                        ("", "Най-нови първо"),
-                        ("date_asc", "Най-стари първо"),
-                        ("title_asc", "Заглавие (А → Я)"),
-                        ("title_desc", "Заглавие (Я → А)"),
-                        ("author_asc", "Автор (А → Я)"),
-                        ("author_desc", "Автор (Я → А)"),
-                        ("owner_asc", "Публикувал (А → Я)")
+                        ("DateDesc", "Най-нови първо"),
+                        ("DateAsc", "Най-стари първо"),
+                        ("TitleAsc", "Заглавие (А → Я)"),
+                        ("TitleDesc", "Заглавие (Я → А)"),
+                        ("AuthorAsc", "Автор (А → Я)"),
+                        ("AuthorDesc", "Автор (Я → А)"),
+                        ("OwnerAsc", "Публикувал (А → Я)")
                     };
                 }
                 @foreach (var opt in sortOptions)
                 {
-                    <option value="@opt.Value" selected="@((Model.SortOrder ?? "") == opt.Value)">@opt.Text</option>
+                    <option value="@opt.Value" selected="@(Model.SortOrder.ToString() == opt.Value)">@opt.Text</option>
                 }
             </select>
         </div>
@@ -147,4 +147,6 @@ else
             </tbody>
         </table>
     </div>
+
+    <partial name="_Pager" model="Model" />
 }

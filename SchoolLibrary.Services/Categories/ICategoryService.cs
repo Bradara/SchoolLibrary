@@ -9,6 +9,9 @@ public interface ICategoryService
     /// <summary>All subjects ordered by name, each with its resources loaded.</summary>
     Task<IReadOnlyList<Category>> GetAllAsync();
 
+    /// <summary>All subjects ordered by name, without their resources (for drop-downs and checkbox lists).</summary>
+    Task<IReadOnlyList<Category>> GetOptionsAsync();
+
     /// <summary>A subject without its resources, or null when it does not exist.</summary>
     Task<Category?> GetByIdAsync(int id);
 

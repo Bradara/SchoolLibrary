@@ -6,7 +6,8 @@ public enum ServiceError
     None,
     NotFound,
     Conflict,
-    Invalid
+    Invalid,
+    Forbidden
 }
 
 /// <summary>

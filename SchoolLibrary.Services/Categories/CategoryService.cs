@@ -24,6 +24,14 @@ public class CategoryService : ICategoryService
             .ToListAsync();
     }
 
+    public async Task<IReadOnlyList<Category>> GetOptionsAsync()
+    {
+        return await _context.Categories
+            .AsNoTracking()
+            .OrderBy(c => c.Name)
+            .ToListAsync();
+    }
+
     public async Task<Category?> GetByIdAsync(int id)
     {
         return await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);

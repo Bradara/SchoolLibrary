@@ -54,6 +54,17 @@ public class CategoryServiceTests
         Assert.Empty(result);
     }
 
+    [Fact]
+    public async Task GetOptionsAsync_ReturnsCategoriesOrderedByName()
+    {
+        await AddCategoryAsync("Физика");
+        await AddCategoryAsync("Анатомия");
+
+        var result = await _service.GetOptionsAsync();
+
+        Assert.Equal(new[] { "Анатомия", "Физика" }, result.Select(c => c.Name));
+    }
+
     // ---- GetByIdAsync / GetWithResourcesAsync ----
 
     [Fact]
