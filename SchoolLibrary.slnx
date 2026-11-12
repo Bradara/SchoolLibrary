@@ -1,3 +1,4 @@
 <Solution>
+  <Project Path="SchoolLibrary.Data/SchoolLibrary.Data.csproj" />
   <Project Path="SchoolLibrary.Web/SchoolLibrary.Web.csproj" />
 </Solution>

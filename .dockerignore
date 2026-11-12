@@ -2,6 +2,12 @@
 **/obj/
 **/.vs/
 **/.git/
+.git
+.claude
+.config
+.vscode
+scripts
+*.md
 **/.env
 **/*.user
 Dockerfile

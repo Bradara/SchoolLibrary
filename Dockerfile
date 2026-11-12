@@ -7,13 +7,15 @@ FROM --platform=$BUILDPLATFORM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 ARG TARGETARCH
 WORKDIR /src
 
-# Copy only the project file first: this layer (restore) is cached
+# Copy only the project files first: this layer (restore) is cached
 # and re-run only when the dependencies change, not on every code edit.
-COPY SchoolLibrary.Web.csproj ./
-RUN dotnet restore -a $TARGETARCH
+COPY SchoolLibrary.Data/SchoolLibrary.Data.csproj SchoolLibrary.Data/
+COPY SchoolLibrary.Web/SchoolLibrary.Web.csproj SchoolLibrary.Web/
+RUN dotnet restore SchoolLibrary.Web/SchoolLibrary.Web.csproj -a $TARGETARCH
 
+# Now copy the sources (everything not listed in .dockerignore) and publish the web project.
 COPY . ./
-RUN dotnet publish -c Release -a $TARGETARCH --no-restore -o /app/publish /p:UseAppHost=false
+RUN dotnet publish SchoolLibrary.Web/SchoolLibrary.Web.csproj -c Release -a $TARGETARCH --no-restore -o /app/publish -p:UseAppHost=false
 
 # ---------- Stage 2: runtime ----------
 # The runtime image has no SDK, so the final image is much smaller.
