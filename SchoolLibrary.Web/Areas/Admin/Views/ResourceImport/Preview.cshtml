@@ -1,0 +1,46 @@
+@model SchoolLibrary.Areas.Admin.Models.ResourceImportViewModel
+
+@{
+    ViewData["Title"] = "Преглед на импорта";
+    var preview = Model.Preview;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Администрация</a></li>
+        <li class="breadcrumb-item"><a asp-action="Index">Импорт на ресурси</a></li>
+        <li class="breadcrumb-item active">Преглед</li>
+    </ol>
+</nav>
+
+<h1 class="mb-3">Преглед на импорта</h1>
+<p class="text-body-secondary">Файл: <strong>@Model.FileName</strong></p>
+
+@if (preview.HasFileError)
+{
+    <div class="alert alert-danger">@preview.FileError</div>
+    <a asp-action="Index" class="btn btn-outline-secondary">← Качи друг файл</a>
+}
+else
+{
+    <partial name="_Summary" model="preview" />
+
+    <partial name="_RowsTable" model="preview.Rows" />
+
+    <div class="d-flex gap-2 mt-3">
+        @if (preview.NewCount > 0)
+        {
+            <form asp-action="Import" method="post">
+                <input type="hidden" name="csvText" value="@Model.CsvText" />
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check2-circle"></i> Импортирай @preview.NewCount @(preview.NewCount == 1 ? "ресурс" : "ресурса")
+                </button>
+            </form>
+        }
+        else
+        {
+            <div class="alert alert-info mb-0 py-2">Няма нови ресурси за импортиране.</div>
+        }
+        <a asp-action="Index" class="btn btn-outline-secondary">Отказ</a>
+    </div>
+}

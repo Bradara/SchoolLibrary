@@ -1,0 +1,83 @@
+@model SchoolLibrary.Areas.Admin.Models.ResourceImportIndexViewModel
+
+@{
+    ViewData["Title"] = "Импорт на ресурси";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Администрация</a></li>
+        <li class="breadcrumb-item active">Импорт на ресурси</li>
+    </ol>
+</nav>
+
+<h1 class="mb-3">Импорт на свободни ресурси</h1>
+
+<partial name="_MessagePartial" />
+
+<div class="row g-4">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-body">
+                <h2 class="h5">1. Качете CSV файл</h2>
+                <p class="text-body-secondary small">
+                    Ще видите преглед на всеки ред. Нищо не се записва, докато не потвърдите.
+                </p>
+                <form asp-action="Preview" method="post" enctype="multipart/form-data">
+                    <div class="mb-3">
+                        <label for="file" class="form-label">Файл (.csv)</label>
+                        <input id="file" name="file" type="file" accept=".csv,text/csv" class="form-control" required />
+                    </div>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-eye"></i> Преглед</button>
+                    <a asp-action="Template" class="btn btn-outline-secondary"><i class="bi bi-download"></i> Шаблон (CSV)</a>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card h-100">
+            <div class="card-body">
+                <h2 class="h5">Формат на файла</h2>
+                <ul class="small mb-2">
+                    <li>Колоните са разделени с <code>;</code>, а кодирането е UTF-8 (в Excel: „CSV UTF-8“).</li>
+                    <li>Задължителни колони: <code>title</code>, <code>author</code>, <code>url</code>, <code>license</code>, <code>subjects</code>, <code>grades</code>.</li>
+                    <li>По желание: <code>source</code>, <code>description</code>.</li>
+                    <li>Няколко предмета или класа в една клетка се разделят с <code>|</code>, например <code>Математика|Информатика</code> и <code>5|6|7</code>.</li>
+                    <li>Най-много 500 реда. Ресурси, чийто линк вече съществува, се пропускат.</li>
+                    <li>Примерният ред в шаблона използва адрес <code>example.com</code>. Заменете го, преди да импортирате.</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mt-1">
+    <div class="col-lg-6">
+        <h2 class="h5">Лицензи (колона <code>license</code>)</h2>
+        <div class="d-flex flex-wrap gap-1">
+            @foreach (var name in Model.Licenses)
+            {
+                <span class="badge text-bg-secondary fw-normal">@name</span>
+            }
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <h2 class="h5">Класове (колона <code>grades</code>)</h2>
+        <div class="d-flex flex-wrap gap-1">
+            @foreach (var grade in Model.Grades)
+            {
+                <span class="badge text-bg-secondary fw-normal">@grade</span>
+            }
+        </div>
+    </div>
+    <div class="col-12">
+        <h2 class="h5">Предмети (колона <code>subjects</code>)</h2>
+        <div class="d-flex flex-wrap gap-1">
+            @foreach (var name in Model.Subjects)
+            {
+                <span class="badge text-bg-primary fw-normal">@name</span>
+            }
+        </div>
+    </div>
+</div>

@@ -1,0 +1,44 @@
+@* Every row of the file with its status: used by the preview and by the result *@
+@using SchoolLibrary.Services.Resources
+@model IReadOnlyList<ResourceImportRow>
+
+<div class="table-responsive">
+    <table class="table table-sm table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Ред</th>
+                <th>Статус</th>
+                <th>Заглавие</th>
+                <th>Линк</th>
+                <th>Бележка</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Model)
+            {
+                var (badge, label) = row.Status switch
+                {
+                    ResourceImportRowStatus.New => ("text-bg-success", "Нов"),
+                    ResourceImportRowStatus.Imported => ("text-bg-success", "Импортиран"),
+                    ResourceImportRowStatus.Duplicate => ("text-bg-warning", "Дубликат"),
+                    _ => ("text-bg-danger", "Грешка")
+                };
+
+                <tr>
+                    <td class="text-body-secondary">@row.LineNumber</td>
+                    <td><span class="badge @badge">@label</span></td>
+                    <td>@row.Title</td>
+                    <td class="small text-break">@row.Url</td>
+                    <td class="small">
+                        @row.Message
+                        @if (row.DuplicateOfId.HasValue)
+                        {
+                            <a asp-area="" asp-controller="Resources" asp-action="Details" asp-route-id="@row.DuplicateOfId"
+                               target="_blank" rel="noopener">Виж ресурса</a>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

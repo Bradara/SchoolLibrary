@@ -1,0 +1,38 @@
+@model SchoolLibrary.Areas.Admin.Models.ResourceImportViewModel
+
+@{
+    ViewData["Title"] = "Резултат от импорта";
+    var result = Model.Preview;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Администрация</a></li>
+        <li class="breadcrumb-item"><a asp-action="Index">Импорт на ресурси</a></li>
+        <li class="breadcrumb-item active">Резултат</li>
+    </ol>
+</nav>
+
+<h1 class="mb-3">Резултат от импорта</h1>
+
+@if (result.HasFileError)
+{
+    <div class="alert alert-danger">@result.FileError</div>
+}
+else
+{
+    <div class="alert @(result.ImportedCount > 0 ? "alert-success" : "alert-info")">
+        Импортирани са <strong>@result.ImportedCount</strong> от @result.Rows.Count реда.
+    </div>
+
+    <partial name="_Summary" model="result" />
+
+    <partial name="_RowsTable" model="result.Rows" />
+}
+
+<div class="d-flex gap-2 mt-3">
+    <a asp-area="" asp-controller="Resources" asp-action="Index" asp-route-kind="External" class="btn btn-primary">
+        <i class="bi bi-globe2"></i> Към свободните ресурси
+    </a>
+    <a asp-action="Index" class="btn btn-outline-secondary">Нов импорт</a>
+</div>

@@ -1,0 +1,37 @@
+@* Counts of rows by status; the "imported" card is shown only after an import *@
+@using SchoolLibrary.Services.Resources
+@model ResourceImportPreview
+
+<div class="row g-3 mb-3">
+    @if (Model.ImportedCount > 0)
+    {
+        <div class="col-6 col-md-3">
+            <div class="card text-center border-success"><div class="card-body py-2">
+                <div class="fs-3 fw-bold">@Model.ImportedCount</div><div class="text-muted small">Импортирани</div>
+            </div></div>
+        </div>
+    }
+    else
+    {
+        <div class="col-6 col-md-3">
+            <div class="card text-center @(Model.NewCount > 0 ? "border-success" : "")"><div class="card-body py-2">
+                <div class="fs-3 fw-bold">@Model.NewCount</div><div class="text-muted small">Нови</div>
+            </div></div>
+        </div>
+    }
+    <div class="col-6 col-md-3">
+        <div class="card text-center @(Model.DuplicateCount > 0 ? "border-warning" : "")"><div class="card-body py-2">
+            <div class="fs-3 fw-bold">@Model.DuplicateCount</div><div class="text-muted small">Дубликати (пропускат се)</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center @(Model.InvalidCount > 0 ? "border-danger" : "")"><div class="card-body py-2">
+            <div class="fs-3 fw-bold">@Model.InvalidCount</div><div class="text-muted small">Грешки (пропускат се)</div>
+        </div></div>
+    </div>
+    <div class="col-6 col-md-3">
+        <div class="card text-center"><div class="card-body py-2">
+            <div class="fs-3 fw-bold">@Model.Rows.Count</div><div class="text-muted small">Общо редове</div>
+        </div></div>
+    </div>
+</div>
