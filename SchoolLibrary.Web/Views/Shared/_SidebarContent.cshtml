@@ -54,6 +54,15 @@
                 <i class="bi bi-mortarboard"></i><span class="nav-label"> Уроци</span>
             </a>
         </li>
+        @if (User.Identity?.IsAuthenticated == true)
+        {
+            <li class="nav-item">
+                <a class="nav-link @Active("Favorites")" asp-area="" asp-controller="Favorites" asp-action="Index"
+                   data-sl-tip="@(compact ? "Любими" : null)" aria-label="@(compact ? "Любими" : null)">
+                    <i class="bi bi-heart"></i><span class="nav-label"> Любими</span>
+                </a>
+            </li>
+        }
         @if (User.IsInRole(Roles.Administrator))
         {
             <li class="nav-item">

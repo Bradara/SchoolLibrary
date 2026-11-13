@@ -26,6 +26,9 @@ public class ResourceIndexViewModel
     // Резултата от филтрирането (текущата страница)
     public IReadOnlyList<Resource> Resources { get; set; } = new List<Resource>();
 
+    // Ресурсите от текущата страница, които потребителят е добавил в любими
+    public IReadOnlySet<int> FavoriteIds { get; set; } = new HashSet<int>();
+
     // Странициране
     public int Page { get; set; } = 1;
     public int TotalPages { get; set; }

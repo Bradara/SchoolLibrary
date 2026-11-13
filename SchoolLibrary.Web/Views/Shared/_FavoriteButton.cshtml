@@ -1,0 +1,15 @@
+@* The heart: adds or removes a favorite with a form post, then comes back to the same page.
+   Later optimization: submit with fetch() and only swap the icon (no page reload). *@
+@model SchoolLibrary.ViewModels.FavoriteButtonModel
+@{
+    var label = Model.IsFavorite ? "Премахни от любими" : "Добави в любими";
+}
+
+<form asp-area="" asp-controller="Favorites" asp-action="@(Model.IsFavorite ? "Remove" : "Add")" method="post" class="d-inline">
+    <input type="hidden" name="resourceId" value="@Model.ResourceId" />
+    <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
+    <button type="submit" class="btn btn-sm @(Model.IsFavorite ? "btn-danger" : "btn-outline-danger")"
+            data-sl-tip="@label" data-sl-placement="top" aria-label="@label">
+        <i class="bi @(Model.IsFavorite ? "bi-heart-fill" : "bi-heart")"></i>
+    </button>
+</form>

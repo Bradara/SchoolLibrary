@@ -286,6 +286,24 @@ namespace SchoolLibrary.Data.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.Favorite", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ResourceId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId", "ResourceId");
+
+                    b.HasIndex("ResourceId");
+
+                    b.ToTable("Favorites");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.GradeLevel", b =>
                 {
                     b.Property<int>("Id")
@@ -383,7 +401,8 @@ namespace SchoolLibrary.Data.Migrations
 
                     b.HasIndex("LicenseId");
 
-                    b.HasIndex("NormalizedUrl");
+                    b.HasIndex("NormalizedUrl")
+                        .IsUnique();
 
                     b.HasIndex("OwnerId");
 
@@ -469,6 +488,25 @@ namespace SchoolLibrary.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("SchoolLibrary.Data.Models.Favorite", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.Resource", "Resource")
+                        .WithMany()
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SchoolLibrary.Data.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Resource", b =>

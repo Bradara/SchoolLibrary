@@ -1,40 +1,41 @@
-@model SchoolLibrary.Data.Models.Resource
+@using SchoolLibrary.ViewModels
+@model ResourceDetailsViewModel
 
 @{
-    ViewData["Title"] = Model.Title;
+    ViewData["Title"] = Model.Resource.Title;
 }
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-action="Index" asp-route-kind="@Model.Kind">@(Model.Kind == SchoolLibrary.Data.Enums.ResourceKind.External ? "Свободни ресурси" : "Уроци")</a></li>
-        <li class="breadcrumb-item active">@Model.Title</li>
+        <li class="breadcrumb-item"><a asp-action="Index" asp-route-kind="@Model.Resource.Kind">@(Model.Resource.Kind == SchoolLibrary.Data.Enums.ResourceKind.External ? "Свободни ресурси" : "Уроци")</a></li>
+        <li class="breadcrumb-item active">@Model.Resource.Title</li>
     </ol>
 </nav>
 
-<h1>@Model.Title</h1>
+<h1>@Model.Resource.Title</h1>
 
 <div class="mb-3">
-    <span class="badge text-bg-info">@(Model.Kind == SchoolLibrary.Data.Enums.ResourceKind.External ? "Свободен ресурс" : "Урок")</span>
-    @foreach (var c in Model.Categories.OrderBy(c => c.Name))
+    <span class="badge text-bg-info">@(Model.Resource.Kind == SchoolLibrary.Data.Enums.ResourceKind.External ? "Свободен ресурс" : "Урок")</span>
+    @foreach (var c in Model.Resource.Categories.OrderBy(c => c.Name))
     {
         <span class="badge bg-primary">@c.Name</span>
     }
-    @foreach (var g in Model.GradeLevels.OrderBy(g => g.Number))
+    @foreach (var g in Model.Resource.GradeLevels.OrderBy(g => g.Number))
     {
         <span class="badge bg-secondary">@g.Name</span>
     }
 </div>
 
-@if (!string.IsNullOrEmpty(Model.Description))
+@if (!string.IsNullOrEmpty(Model.Resource.Description))
 {
-    <p class="lead">@Model.Description</p>
+    <p class="lead">@Model.Resource.Description</p>
 }
 
-@if (Model.IsEmbeddable)
+@if (Model.Resource.IsEmbeddable)
 {
     <div class="ratio ratio-16x9 mb-4 sl-embed">
-        <iframe src="@Model.EmbedUrl"
-                title="@Model.Title"
+        <iframe src="@Model.Resource.EmbedUrl"
+                title="@Model.Resource.Title"
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen
                 loading="lazy"
@@ -42,50 +43,62 @@
         </iframe>
     </div>
 
-    <a href="@Model.Url" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">
+    <a href="@Model.Resource.Url" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">
         Отвори в нов таб ↗
     </a>
 }
 else
 {
-    <a href="@Model.Url" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
+    <a href="@Model.Resource.Url" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
         Отвори ресурса ↗
     </a>
 }
 
+<div class="mt-3 d-flex align-items-center gap-2">
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <partial name="_FavoriteButton"
+                 model="new FavoriteButtonModel(Model.Resource.Id, Model.IsFavorite, Context.Request.Path + Context.Request.QueryString)" />
+    }
+    <span class="text-body-secondary small">
+        <i class="bi bi-heart-fill text-danger"></i>
+        @Model.FavoriteCount @(Model.FavoriteCount == 1 ? "потребител е добавил" : "потребители са добавили") в любими
+    </span>
+</div>
+
 <hr />
 
 <div class="text-muted small">
-    <div>Автор: <strong>@Model.Author</strong></div>
-    <div>Източник: <strong>@Model.Source</strong></div>
+    <div>Автор: <strong>@Model.Resource.Author</strong></div>
+    <div>Източник: <strong>@Model.Resource.Source</strong></div>
     <div>
         Лиценз:
-        @if (Model.License == null)
+        @if (Model.Resource.License == null)
         {
             <strong>Не е посочен</strong>
         }
-        else if (!string.IsNullOrEmpty(Model.License.Url))
+        else if (!string.IsNullOrEmpty(Model.Resource.License.Url))
         {
-            <a href="@Model.License.Url" target="_blank" rel="noopener noreferrer"><strong>@Model.License.Name</strong></a>
+            <a href="@Model.Resource.License.Url" target="_blank" rel="noopener noreferrer"><strong>@Model.Resource.License.Name</strong></a>
         }
         else
         {
-            <strong>@Model.License.Name</strong>
+            <strong>@Model.Resource.License.Name</strong>
         }
     </div>
-    <div>Публикувал: <strong>@Model.PublisherName()</strong></div>
-    <div>Дата: @Model.CreatedOn.ToString("dd.MM.yyyy HH:mm")</div>
+    <div>Публикувал: <strong>@Model.Resource.PublisherName()</strong></div>
+    <div>Дата: @Model.Resource.CreatedOn.ToString("dd.MM.yyyy HH:mm")</div>
 </div>
 
 @{
     var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
     var isAdministrator = User.IsInRole(SchoolLibrary.Data.Constants.Roles.Administrator);
 }
-@if (User.Identity?.IsAuthenticated == true && SchoolLibrary.Services.Resources.ResourcePermissions.CanEdit(Model, userId, isAdministrator))
+@if (User.Identity?.IsAuthenticated == true && SchoolLibrary.Services.Resources.ResourcePermissions.CanEdit(Model.Resource, userId, isAdministrator))
 {
     <div class="mt-4">
-        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary">Редактирай</a>
-        <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">Изтрий</a>
+        <a asp-action="Edit" asp-route-id="@Model.Resource.Id" class="btn btn-outline-primary">Редактирай</a>
+        <a asp-action="Delete" asp-route-id="@Model.Resource.Id" class="btn btn-outline-danger">Изтрий</a>
     </div>
 }
 

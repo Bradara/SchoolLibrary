@@ -5,6 +5,7 @@ using SchoolLibrary.Data.Constants;
 using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Services.Categories;
 using SchoolLibrary.Services.Common;
+using SchoolLibrary.Services.Favorites;
 using SchoolLibrary.Services.GradeLevels;
 using SchoolLibrary.Services.Licenses;
 using SchoolLibrary.Services.Resources;
@@ -20,20 +21,25 @@ namespace SchoolLibrary.Controllers
         private readonly ICategoryService _categories;
         private readonly IGradeLevelService _gradeLevels;
         private readonly ILicenseService _licenses;
+        private readonly IFavoriteService _favorites;
 
         public ResourcesController(
             IResourceService resources,
             ICategoryService categories,
             IGradeLevelService gradeLevels,
-            ILicenseService licenses)
+            ILicenseService licenses,
+            IFavoriteService favorites)
         {
             _resources = resources;
             _categories = categories;
             _gradeLevels = gradeLevels;
             _licenses = licenses;
+            _favorites = favorites;
         }
 
         private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+        private bool IsSignedIn => User.Identity?.IsAuthenticated == true;
 
         private bool IsAdministrator => User.IsInRole(Roles.Administrator);
 
@@ -65,6 +71,11 @@ namespace SchoolLibrary.Controllers
 
             var owners = await _resources.GetOwnersAsync();
 
+            // The hearts of the page: only signed-in users have favorites
+            var favoriteIds = IsSignedIn
+                ? await _favorites.GetFavoriteIdsAsync(CurrentUserId, result.Items.Select(r => r.Id))
+                : new HashSet<int>();
+
             var vm = new ResourceIndexViewModel
             {
                 Kind = kind,
@@ -81,6 +92,7 @@ namespace SchoolLibrary.Controllers
                 Owners = owners.Select(o => new SelectListItem { Value = o.Id, Text = o.FullName }).ToList(),
 
                 Resources = result.Items,
+                FavoriteIds = favoriteIds,
                 Page = result.Page,
                 TotalPages = result.TotalPages,
                 TotalCount = result.TotalCount
@@ -104,7 +116,12 @@ namespace SchoolLibrary.Controllers
                 return NotFound();
             }
 
-            return View(resource);
+            return View(new ResourceDetailsViewModel
+            {
+                Resource = resource,
+                IsFavorite = IsSignedIn && await _favorites.IsFavoriteAsync(CurrentUserId, resource.Id),
+                FavoriteCount = await _favorites.CountAsync(resource.Id)
+            });
         }
 
         // GET: Resources/Create
