@@ -100,6 +100,16 @@ namespace SchoolLibrary.Data.Models
                     return Url;
                 }
 
+                // Доверени сайтове със свободно съдържание, които позволяват вграждане.
+                // Страниците им не завършват на .html, затова се разпознават по домейна.
+                if (IsTrustedEmbedHost(host))
+                {
+                    // Страница по http в https рамка би била блокирана от браузъра
+                    return Url.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                        ? "https://" + Url["http://".Length..]
+                        : Url;
+                }
+
                 return null;
             }
             catch
@@ -107,6 +117,20 @@ namespace SchoolLibrary.Data.Models
                 return null;
             }
         }
+
+        // Проверени на 13.11.2026: не пращат X-Frame-Options и frame-ancestors.
+        // Добавяйте домейн тук само след като сте проверили, че страниците му се показват в рамка.
+        public static readonly string[] TrustedEmbedDomains =
+        {
+            "wikisource.org",
+            "wikibooks.org",
+            "gutenberg.org"
+        };
+
+        // Самият домейн или негов поддомейн (bg.wikisource.org), но не evilwikisource.org
+        // и не wikisource.org.evil.com
+        private static bool IsTrustedEmbedHost(string host) =>
+            TrustedEmbedDomains.Any(d => host == d || host.EndsWith("." + d));
 
         private static string? ExtractYouTubeId(Uri uri)
         {
