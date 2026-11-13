@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using SchoolLibrary.Data.Constants;
 using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Services.Categories;
+using SchoolLibrary.Services.Comments;
 using SchoolLibrary.Services.Common;
 using SchoolLibrary.Services.Favorites;
 using SchoolLibrary.Services.GradeLevels;
@@ -22,19 +23,22 @@ namespace SchoolLibrary.Controllers
         private readonly IGradeLevelService _gradeLevels;
         private readonly ILicenseService _licenses;
         private readonly IFavoriteService _favorites;
+        private readonly ICommentService _comments;
 
         public ResourcesController(
             IResourceService resources,
             ICategoryService categories,
             IGradeLevelService gradeLevels,
             ILicenseService licenses,
-            IFavoriteService favorites)
+            IFavoriteService favorites,
+            ICommentService comments)
         {
             _resources = resources;
             _categories = categories;
             _gradeLevels = gradeLevels;
             _licenses = licenses;
             _favorites = favorites;
+            _comments = comments;
         }
 
         private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -103,7 +107,7 @@ namespace SchoolLibrary.Controllers
 
         // GET: Resources/Details
         [AllowAnonymous]
-        public async Task<IActionResult> Details(int? id)
+        public async Task<IActionResult> Details(int? id, int commentPage = 1)
         {
             if (id == null)
             {
@@ -116,11 +120,19 @@ namespace SchoolLibrary.Controllers
                 return NotFound();
             }
 
+            var comments = await _comments.GetForResourceAsync(resource.Id, commentPage);
+
             return View(new ResourceDetailsViewModel
             {
                 Resource = resource,
                 IsFavorite = IsSignedIn && await _favorites.IsFavoriteAsync(CurrentUserId, resource.Id),
-                FavoriteCount = await _favorites.CountAsync(resource.Id)
+                FavoriteCount = await _favorites.CountAsync(resource.Id),
+                Comments = comments.Items,
+                CommentPage = comments.Page,
+                CommentTotalPages = comments.TotalPages,
+                CommentTotal = comments.TotalCount,
+                CommentError = TempData["CommentError"] as string,
+                CommentDraft = TempData["CommentDraft"] as string
             });
         }
 

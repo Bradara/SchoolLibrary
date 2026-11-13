@@ -286,6 +286,38 @@ namespace SchoolLibrary.Data.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.Comment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AuthorId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("ResourceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Text")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AuthorId");
+
+                    b.HasIndex("ResourceId", "CreatedOn");
+
+                    b.ToTable("Comments");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Favorite", b =>
                 {
                     b.Property<string>("UserId")
@@ -488,6 +520,25 @@ namespace SchoolLibrary.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("SchoolLibrary.Data.Models.Comment", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.ApplicationUser", "Author")
+                        .WithMany()
+                        .HasForeignKey("AuthorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SchoolLibrary.Data.Models.Resource", "Resource")
+                        .WithMany()
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Author");
+
+                    b.Navigation("Resource");
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Favorite", b =>

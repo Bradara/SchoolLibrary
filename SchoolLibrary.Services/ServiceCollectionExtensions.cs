@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using SchoolLibrary.Services.Categories;
+using SchoolLibrary.Services.Comments;
 using SchoolLibrary.Services.Favorites;
 using SchoolLibrary.Services.GradeLevels;
 using SchoolLibrary.Services.Licenses;
@@ -15,6 +16,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddApplicationServices(this IServiceCollection services)
     {
         services.AddScoped<ICategoryService, CategoryService>();
+        services.AddScoped<ICommentService, CommentService>();
         services.AddScoped<IFavoriteService, FavoriteService>();
         services.AddScoped<IGradeLevelService, GradeLevelService>();
         services.AddScoped<ILicenseService, LicenseService>();

@@ -1,0 +1,98 @@
+@* Comments under a resource: the list (newest first), a form for signed-in users, a pager *@
+@using SchoolLibrary.Data.Constants
+@using SchoolLibrary.Services.Comments
+@using SchoolLibrary.ViewModels
+@model ResourceDetailsViewModel
+
+@{
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var isAdministrator = User.IsInRole(Roles.Administrator);
+}
+
+<section id="comments" class="mt-5">
+    <h2 class="h4 mb-3">Коментари <small class="fs-6 text-body-secondary">(@Model.CommentTotal)</small></h2>
+
+    @if (User.Identity?.IsAuthenticated == true)
+    {
+        <form asp-controller="Comments" asp-action="Add" method="post" class="mb-4">
+            <input type="hidden" name="resourceId" value="@Model.Resource.Id" />
+            @if (!string.IsNullOrEmpty(Model.CommentError))
+            {
+                <div class="alert alert-danger py-2">@Model.CommentError</div>
+            }
+            <label for="comment-text" class="visually-hidden">Коментар</label>
+            <textarea id="comment-text" name="text" class="form-control" rows="3" required
+                      maxlength="@CommentService.TextMaxLength"
+                      placeholder="Напишете коментар...">@Model.CommentDraft</textarea>
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <span class="small text-body-secondary">До @CommentService.TextMaxLength символа</span>
+                <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-chat-dots"></i> Коментирай</button>
+            </div>
+        </form>
+    }
+    else
+    {
+        <p class="text-body-secondary">
+            <a asp-area="Identity" asp-page="/Account/Login" asp-route-returnUrl="@(Context.Request.Path + Context.Request.QueryString)">Влезте</a>,
+            за да коментирате.
+        </p>
+    }
+
+    @if (Model.Comments.Count == 0)
+    {
+        <p class="text-body-secondary">Все още няма коментари.</p>
+    }
+    else
+    {
+        @foreach (var comment in Model.Comments)
+        {
+            <div class="card mb-2">
+                <div class="card-body py-2">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="small text-body-secondary">
+                            <strong>@comment.Author.FullName</strong>
+                            · @comment.CreatedOn.ToString("dd.MM.yyyy HH:mm")
+                        </div>
+                        @if (CommentPermissions.CanDelete(comment, userId, isAdministrator))
+                        {
+                            <form asp-controller="Comments" asp-action="Delete" method="post"
+                                  onsubmit="return confirm('Да изтрия ли коментара?');">
+                                <input type="hidden" name="id" value="@comment.Id" />
+                                <input type="hidden" name="commentPage" value="@Model.CommentPage" />
+                                <button type="submit" class="btn btn-sm btn-outline-danger"
+                                        data-sl-tip="Изтрий коментара" data-sl-placement="top" aria-label="Изтрий коментара">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                        }
+                    </div>
+                    @* pre-line keeps the line breaks the author typed; Razor encodes the text *@
+                    <div class="text-break" style="white-space: pre-line;">@comment.Text</div>
+                </div>
+            </div>
+        }
+
+        @if (Model.CommentTotalPages > 1)
+        {
+            <nav aria-label="Страници с коментари" class="mt-3">
+                <ul class="pagination pagination-sm justify-content-center flex-wrap">
+                    <li class="page-item @(Model.CommentPage == 1 ? "disabled" : "")">
+                        <a class="page-link" asp-action="Details" asp-route-id="@Model.Resource.Id"
+                           asp-route-commentPage="@(Model.CommentPage - 1)" asp-fragment="comments" aria-label="Предишна"><i class="bi bi-chevron-left"></i></a>
+                    </li>
+                    @for (var p = 1; p <= Model.CommentTotalPages; p++)
+                    {
+                        <li class="page-item @(p == Model.CommentPage ? "active" : "")" @(p == Model.CommentPage ? "aria-current=page" : "")>
+                            <a class="page-link" asp-action="Details" asp-route-id="@Model.Resource.Id"
+                               asp-route-commentPage="@p" asp-fragment="comments">@p</a>
+                        </li>
+                    }
+                    <li class="page-item @(Model.CommentPage == Model.CommentTotalPages ? "disabled" : "")">
+                        <a class="page-link" asp-action="Details" asp-route-id="@Model.Resource.Id"
+                           asp-route-commentPage="@(Model.CommentPage + 1)" asp-fragment="comments" aria-label="Следваща"><i class="bi bi-chevron-right"></i></a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+</section>

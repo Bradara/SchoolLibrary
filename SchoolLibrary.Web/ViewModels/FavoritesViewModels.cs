@@ -23,4 +23,14 @@ public class ResourceDetailsViewModel
 
     /// <summary>How many users saved the resource.</summary>
     public int FavoriteCount { get; set; }
+
+    // The comments under the resource (one page, newest first)
+    public IReadOnlyList<Comment> Comments { get; set; } = new List<Comment>();
+    public int CommentPage { get; set; } = 1;
+    public int CommentTotalPages { get; set; }
+    public int CommentTotal { get; set; }
+
+    // Shown again after a comment was refused, so the user does not lose the text
+    public string? CommentError { get; set; }
+    public string? CommentDraft { get; set; }
 }

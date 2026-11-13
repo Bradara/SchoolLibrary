@@ -40,6 +40,23 @@ namespace SchoolLibrary.Data
                 .HasForeignKey(f => f.ResourceId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Comments go away with their resource and with their author's account
+            builder.Entity<Comment>()
+                .HasOne(c => c.Resource)
+                .WithMany()
+                .HasForeignKey(c => c.ResourceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Comment>()
+                .HasOne(c => c.Author)
+                .WithMany()
+                .HasForeignKey(c => c.AuthorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // The comments of one resource are always read newest first
+            builder.Entity<Comment>()
+                .HasIndex(c => new { c.ResourceId, c.CreatedOn });
+
             // One resource per link. PostgreSQL allows several NULLs in a unique index,
             // so resources that were not backfilled yet do not clash
             builder.Entity<Resource>()
@@ -64,5 +81,6 @@ namespace SchoolLibrary.Data
         public DbSet<GradeLevel> GradeLevels { get; set; }
         public DbSet<License> Licenses { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
+        public DbSet<Comment> Comments { get; set; }
     }
 }
