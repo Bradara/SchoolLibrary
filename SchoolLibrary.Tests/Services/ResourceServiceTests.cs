@@ -838,6 +838,34 @@ public class ResourceServiceTests
     // ---------- UpdateAsync ----------
 
     [Fact]
+    public async Task UpdateAsync_UnknownSubject_ReturnsInvalidAndKeepsData()
+    {
+        var resource = await AddResourceAsync("Дроби");
+        var input = ValidInput();
+        input.Title = "Променено";
+        input.CategoryIds = new List<int> { 999 };
+
+        var result = await _service.UpdateAsync(resource.Id, input, _ivan.Id, isAdministrator: false);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        Assert.Contains("несъществуващ предмет", result.Message);
+        Assert.Equal("Дроби", _context.Resources.Single().Title);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_UnknownLicense_ReturnsInvalidAndKeepsData()
+    {
+        var resource = await AddResourceAsync("Дроби");
+        var input = ValidInput();
+        input.LicenseId = 999;
+
+        var result = await _service.UpdateAsync(resource.Id, input, _ivan.Id, isAdministrator: false);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        Assert.Contains("несъществуващ лиценз", result.Message);
+    }
+
+    [Fact]
     public async Task UpdateAsync_Owner_ChangesFieldsAndReplacesSelections()
     {
         var resource = await AddResourceAsync("Стар", owner: _ivan, category: _math, grade: _grade5);

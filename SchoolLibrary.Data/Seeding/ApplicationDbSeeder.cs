@@ -64,10 +64,22 @@ public static class ApplicationDbSeeder
         ("Свободен за образователна употреба", "Публикуван от институция за свободно образователно ползване.", null)
     };
 
+    /// <summary>Applies the migrations, then seeds the reference data and the roles.</summary>
     public static async Task SeedAsync(IServiceProvider services)
     {
         var db = services.GetRequiredService<ApplicationDbContext>();
         await db.Database.MigrateAsync();
+
+        await SeedDataAsync(services);
+    }
+
+    /// <summary>
+    /// Everything <see cref="SeedAsync"/> does except migrating. A separate method so that it can be
+    /// run (and tested) on a database that cannot migrate, like the in-memory one.
+    /// </summary>
+    public static async Task SeedDataAsync(IServiceProvider services)
+    {
+        var db = services.GetRequiredService<ApplicationDbContext>();
 
         await SeedGradeLevelsAsync(db);
         await SeedCategoriesAsync(db);
