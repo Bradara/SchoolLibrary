@@ -15,14 +15,17 @@ public interface IResourceService
     /// <summary>A resource with its subjects, grades and owner, or null when it does not exist.</summary>
     Task<Resource?> GetDetailsAsync(int id);
 
+    /// <summary>The resource that already uses this link (in any spelling), or null when the link is new.</summary>
+    Task<Resource?> FindByUrlAsync(string url);
+
     /// <summary>Loads a resource for editing. Only its owner may edit it.</summary>
     Task<ServiceResult<Resource>> GetForEditAsync(int id, string userId);
 
     /// <summary>Loads a resource for deleting. Its owner or an administrator may delete it.</summary>
     Task<ServiceResult<Resource>> GetForDeleteAsync(int id, string userId, bool isAdministrator);
 
-    /// <summary>Validates the input and creates a resource owned by <paramref name="ownerId"/>.</summary>
-    Task<ServiceResult<Resource>> CreateAsync(ResourceInput input, string ownerId);
+    /// <summary>Validates the input and creates a resource owned by <paramref name="ownerId"/> (null for imported resources).</summary>
+    Task<ServiceResult<Resource>> CreateAsync(ResourceInput input, string? ownerId);
 
     /// <summary>Validates the input and updates the resource. Only its owner may update it.</summary>
     Task<ServiceResult<Resource>> UpdateAsync(int id, ResourceInput input, string userId);

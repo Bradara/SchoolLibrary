@@ -10,4 +10,8 @@
     <ProjectReference Include="..\SchoolLibrary.Data\SchoolLibrary.Data.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
+  </ItemGroup>
+
 </Project>

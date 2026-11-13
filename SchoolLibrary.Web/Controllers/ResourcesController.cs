@@ -131,7 +131,7 @@ namespace SchoolLibrary.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                ModelState.AddModelError(string.Empty, result.Message!);
+                await AddFailureAsync(vm, result);
             }
 
             await LoadOptionsAsync(vm);
@@ -193,12 +193,12 @@ namespace SchoolLibrary.Controllers
                     return RedirectToAction(nameof(Index));
                 }
 
-                if (result.Error != ServiceError.Invalid)
+                if (result.Error != ServiceError.Invalid && result.Error != ServiceError.Conflict)
                 {
                     return ToActionResult(result);
                 }
 
-                ModelState.AddModelError(string.Empty, result.Message!);
+                await AddFailureAsync(vm, result);
             }
 
             await LoadOptionsAsync(vm);
@@ -244,6 +244,17 @@ namespace SchoolLibrary.Controllers
             ServiceError.Forbidden => Forbid(),
             _ => BadRequest(result.Message)
         };
+
+        // Shows the failure on the form; for a duplicate link also remembers which resource already has it
+        private async Task AddFailureAsync(ResourceFormViewModel vm, ServiceResult result)
+        {
+            ModelState.AddModelError(string.Empty, result.Message!);
+
+            if (result.Error == ServiceError.Conflict)
+            {
+                vm.DuplicateOfId = (await _resources.FindByUrlAsync(vm.Url))?.Id;
+            }
+        }
 
         private static ResourceInput ToInput(ResourceFormViewModel vm) => new()
         {

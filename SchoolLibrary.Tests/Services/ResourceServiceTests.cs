@@ -629,6 +629,123 @@ public class ResourceServiceTests
         Assert.True(result.Succeeded);
     }
 
+    // ---------- duplicate links ----------
+
+    [Fact]
+    public async Task CreateAsync_SavesNormalizedUrl()
+    {
+        var input = ValidInput();
+        input.Url = "http://www.example.com/drobi/?utm_source=mail";
+
+        var result = await _service.CreateAsync(input, _ivan.Id);
+
+        Assert.Equal("https://example.com/drobi", result.Value!.NormalizedUrl);
+        Assert.Equal("http://www.example.com/drobi/?utm_source=mail", result.Value.Url);
+    }
+
+    [Fact]
+    public async Task CreateAsync_SameLinkInAnotherSpelling_ReturnsConflictAndSavesNothing()
+    {
+        await _service.CreateAsync(ValidInput(), _ivan.Id);
+        var input = ValidInput();
+        input.Title = "Друго заглавие";
+        input.Url = "http://www.example.com/drobi/#top";
+
+        var result = await _service.CreateAsync(input, _maria.Id);
+
+        Assert.Equal(ServiceError.Conflict, result.Error);
+        Assert.Contains("вече съществува", result.Message);
+        Assert.Single(_context.Resources);
+    }
+
+    [Fact]
+    public async Task CreateAsync_DifferentLink_IsAccepted()
+    {
+        await _service.CreateAsync(ValidInput(), _ivan.Id);
+        var input = ValidInput();
+        input.Url = "https://example.com/umnozhenie";
+
+        var result = await _service.CreateAsync(input, _ivan.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, _context.Resources.Count());
+    }
+
+    [Fact]
+    public async Task CreateAsync_SameYouTubeVideoInAnotherForm_IsDuplicate()
+    {
+        var first = ValidInput();
+        first.Url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+        await _service.CreateAsync(first, _ivan.Id);
+        var second = ValidInput();
+        second.Url = "https://youtu.be/dQw4w9WgXcQ";
+
+        var result = await _service.CreateAsync(second, _ivan.Id);
+
+        Assert.Equal(ServiceError.Conflict, result.Error);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_KeepingOwnLink_IsNotADuplicate()
+    {
+        var created = await _service.CreateAsync(ValidInput(), _ivan.Id);
+        var input = ValidInput();
+        input.Title = "Нов заглавие";
+
+        var result = await _service.UpdateAsync(created.Value!.Id, input, _ivan.Id);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ToLinkOfAnotherResource_ReturnsConflictAndKeepsData()
+    {
+        await _service.CreateAsync(ValidInput(), _ivan.Id);
+        var other = ValidInput();
+        other.Url = "https://example.com/umnozhenie";
+        var second = await _service.CreateAsync(other, _ivan.Id);
+        var input = ValidInput();
+        input.Title = "Променено";
+
+        var result = await _service.UpdateAsync(second.Value!.Id, input, _ivan.Id);
+
+        Assert.Equal(ServiceError.Conflict, result.Error);
+        Assert.Equal("https://example.com/umnozhenie", _context.Resources.Single(r => r.Id == second.Value.Id).Url);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ChangingLink_UpdatesNormalizedUrl()
+    {
+        var created = await _service.CreateAsync(ValidInput(), _ivan.Id);
+        var input = ValidInput();
+        input.Url = "https://www.example.com/novo/";
+
+        await _service.UpdateAsync(created.Value!.Id, input, _ivan.Id);
+
+        Assert.Equal("https://example.com/novo", _context.Resources.Single().NormalizedUrl);
+    }
+
+    [Fact]
+    public async Task FindByUrlAsync_FindsResourceByAnySpellingOfTheLink()
+    {
+        var created = await _service.CreateAsync(ValidInput(), _ivan.Id);
+
+        var found = await _service.FindByUrlAsync("http://WWW.example.com/drobi/");
+
+        Assert.Equal(created.Value!.Id, found!.Id);
+    }
+
+    [Theory]
+    [InlineData("https://example.com/neizvestno")]
+    [InlineData("not a url")]
+    [InlineData("")]
+    public async Task FindByUrlAsync_UnknownOrInvalidLink_ReturnsNull(string url)
+    {
+        await _service.CreateAsync(ValidInput(), _ivan.Id);
+
+        Assert.Null(await _service.FindByUrlAsync(url));
+    }
+
     // ---------- UpdateAsync ----------
 
     [Fact]

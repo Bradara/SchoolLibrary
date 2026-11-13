@@ -24,6 +24,10 @@ namespace SchoolLibrary.Data
                 .HasForeignKey(r => r.OwnerId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Not unique yet: old resources may share a link, so the index becomes unique in a later migration
+            builder.Entity<Resource>()
+                .HasIndex(r => r.NormalizedUrl);
+
             // A license in use cannot be deleted
             builder.Entity<Resource>()
                 .HasOne(r => r.License)

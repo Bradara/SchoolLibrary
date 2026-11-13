@@ -2,6 +2,10 @@
 @model SchoolLibrary.ViewModels.ResourceFormViewModel
 
 <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+@if (Model.DuplicateOfId.HasValue)
+{
+    <p><a asp-action="Details" asp-route-id="@Model.DuplicateOfId" target="_blank">Виж съществуващия материал →</a></p>
+}
 
 <div class="form-group mb-3">
     <label asp-for="Kind" class="control-label"></label>

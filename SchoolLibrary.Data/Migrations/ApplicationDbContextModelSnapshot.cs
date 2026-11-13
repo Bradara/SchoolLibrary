@@ -358,6 +358,10 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<int?>("LicenseId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("NormalizedUrl")
+                        .HasMaxLength(600)
+                        .HasColumnType("character varying(600)");
+
                     b.Property<string>("OwnerId")
                         .HasColumnType("text");
 
@@ -378,6 +382,8 @@ namespace SchoolLibrary.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("LicenseId");
+
+                    b.HasIndex("NormalizedUrl");
 
                     b.HasIndex("OwnerId");
 

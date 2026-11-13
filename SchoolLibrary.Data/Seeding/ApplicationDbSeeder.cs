@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using SchoolLibrary.Data.Common;
 using SchoolLibrary.Data.Constants;
 using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
@@ -70,6 +72,7 @@ public static class ApplicationDbSeeder
         await SeedGradeLevelsAsync(db);
         await SeedCategoriesAsync(db);
         await SeedLicensesAsync(db);
+        await BackfillNormalizedUrlsAsync(db, services.GetService<ILoggerFactory>()?.CreateLogger(nameof(ApplicationDbSeeder)));
 
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
         var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
@@ -117,6 +120,33 @@ public static class ApplicationDbSeeder
 
         db.Licenses.AddRange(missing);
         await db.SaveChangesAsync();
+    }
+
+    // Fills the normalized link of resources added before the column existed and reports shared links
+    private static async Task BackfillNormalizedUrlsAsync(ApplicationDbContext db, ILogger? logger)
+    {
+        var pending = await db.Resources.Where(r => r.NormalizedUrl == null).ToListAsync();
+        if (pending.Count > 0)
+        {
+            foreach (var resource in pending)
+            {
+                // A link that cannot be normalized is kept as it was typed
+                resource.NormalizedUrl = UrlNormalizer.Normalize(resource.Url) ?? resource.Url;
+            }
+
+            await db.SaveChangesAsync();
+        }
+
+        var duplicates = await db.Resources
+            .GroupBy(r => r.NormalizedUrl)
+            .Where(g => g.Count() > 1)
+            .Select(g => new { Url = g.Key, Ids = g.Select(r => r.Id).ToList() })
+            .ToListAsync();
+
+        foreach (var duplicate in duplicates)
+        {
+            logger?.LogWarning("Resources {Ids} share the link {Url}", string.Join(", ", duplicate.Ids), duplicate.Url);
+        }
     }
 
     private static async Task SeedRolesAsync(RoleManager<IdentityRole> roleManager)

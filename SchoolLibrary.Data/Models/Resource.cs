@@ -23,6 +23,11 @@ namespace SchoolLibrary.Data.Models
         [Display(Name = "Уеб адрес")]
         public string Url { get; set; } = string.Empty;
 
+        // The link in a canonical form (see UrlNormalizer), used to find duplicates.
+        // Null only until the startup backfill fills it for resources added before this column existed.
+        [MaxLength(600)]
+        public string? NormalizedUrl { get; set; }
+
         public DateTime CreatedOn { get; set; }
 
         [Display(Name = "Вид")]

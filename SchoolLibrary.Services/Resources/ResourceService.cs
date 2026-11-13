@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
+using SchoolLibrary.Data.Common;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
 
@@ -14,6 +15,7 @@ public class ResourceService : IResourceService
     public const int UrlMaxLength = 500;
 
     private const string NotFoundMessage = "Ресурсът не е намерен.";
+    private const string DuplicateMessage = "Този материал вече съществува в библиотеката.";
     private const string ForbiddenMessage = "Нямате права за това действие.";
 
     private readonly ApplicationDbContext _context;
@@ -69,6 +71,20 @@ public class ResourceService : IResourceService
             .FirstOrDefaultAsync(r => r.Id == id);
     }
 
+    public async Task<Resource?> FindByUrlAsync(string url)
+    {
+        var normalized = UrlNormalizer.Normalize(url);
+        if (normalized == null)
+        {
+            return null;
+        }
+
+        return await _context.Resources
+            .AsNoTracking()
+            .OrderBy(r => r.Id)
+            .FirstOrDefaultAsync(r => r.NormalizedUrl == normalized);
+    }
+
     public async Task<ServiceResult<Resource>> GetForEditAsync(int id, string userId)
     {
         var resource = await GetDetailsAsync(id);
@@ -102,12 +118,17 @@ public class ResourceService : IResourceService
         return ServiceResult<Resource>.Success(resource);
     }
 
-    public async Task<ServiceResult<Resource>> CreateAsync(ResourceInput input, string ownerId)
+    public async Task<ServiceResult<Resource>> CreateAsync(ResourceInput input, string? ownerId)
     {
         var validation = Validate(input);
         if (validation != null)
         {
             return ServiceResult<Resource>.Failure(ServiceError.Invalid, validation);
+        }
+
+        if (await IsDuplicateAsync(input.Url, excludeId: null))
+        {
+            return ServiceResult<Resource>.Failure(ServiceError.Conflict, DuplicateMessage);
         }
 
         var resource = new Resource
@@ -152,6 +173,11 @@ public class ResourceService : IResourceService
             return ServiceResult<Resource>.Failure(ServiceError.Invalid, validation);
         }
 
+        if (await IsDuplicateAsync(input.Url, excludeId: id))
+        {
+            return ServiceResult<Resource>.Failure(ServiceError.Conflict, DuplicateMessage);
+        }
+
         var error = await ApplyInputAsync(resource, input);
         if (error != null)
         {
@@ -180,6 +206,13 @@ public class ResourceService : IResourceService
         await _context.SaveChangesAsync();
 
         return ServiceResult<Resource>.Success(resource);
+    }
+
+    private async Task<bool> IsDuplicateAsync(string url, int? excludeId)
+    {
+        var normalized = UrlNormalizer.Normalize(url);
+        return normalized != null
+            && await _context.Resources.AnyAsync(r => r.NormalizedUrl == normalized && r.Id != excludeId);
     }
 
     private static bool CanDelete(Resource resource, string userId, bool isAdministrator) =>
@@ -248,7 +281,8 @@ public class ResourceService : IResourceService
             _ => query.OrderByDescending(r => r.CreatedOn).ThenBy(r => r.Id)
         };
 
-    private static string? Validate(ResourceInput input)
+    // Also used by the CSV import, so a file row must pass the same rules as the form
+    internal static string? Validate(ResourceInput input)
     {
         if (string.IsNullOrWhiteSpace(input.Title))
         {
@@ -343,6 +377,7 @@ public class ResourceService : IResourceService
         resource.Source = string.IsNullOrWhiteSpace(input.Source) ? null : input.Source.Trim();
         resource.Description = input.Description?.Trim() ?? string.Empty;
         resource.Url = input.Url.Trim();
+        resource.NormalizedUrl = UrlNormalizer.Normalize(resource.Url);
         resource.License = license;
         resource.Kind = input.Kind;
 

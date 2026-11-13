@@ -46,6 +46,9 @@ public class ResourceFormViewModel
     [Display(Name = "Класове")]
     public List<int> SelectedGradeLevelIds { get; set; } = new();
 
+    // Set by the controller when the link is already in the library, to offer a link to that resource
+    public int? DuplicateOfId { get; set; }
+
     // All available options, filled by the controller (not posted back)
     public List<Category> AllCategories { get; set; } = new();
     public List<GradeLevel> AllGradeLevels { get; set; } = new();

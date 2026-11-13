@@ -17,6 +17,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGradeLevelService, GradeLevelService>();
         services.AddScoped<ILicenseService, LicenseService>();
         services.AddScoped<IResourceService, ResourceService>();
+        services.AddScoped<IResourceImportService, ResourceImportService>();
         services.AddScoped<IStatisticsService, StatisticsService>();
         services.AddScoped<IUserService, UserService>();
 
