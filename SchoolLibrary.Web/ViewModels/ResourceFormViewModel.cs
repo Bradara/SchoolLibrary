@@ -31,6 +31,10 @@ public class ResourceFormViewModel
     [Display(Name = "Уеб адрес")]
     public string Url { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Изберете лиценз")]
+    [Display(Name = "Лиценз")]
+    public int? LicenseId { get; set; }
+
     // Ids of the ticked checkboxes
     [Display(Name = "Предмети")]
     public List<int> SelectedCategoryIds { get; set; } = new();
@@ -41,4 +45,5 @@ public class ResourceFormViewModel
     // All available options, filled by the controller (not posted back)
     public List<Category> AllCategories { get; set; } = new();
     public List<GradeLevel> AllGradeLevels { get; set; } = new();
+    public List<License> AllLicenses { get; set; } = new();
 }

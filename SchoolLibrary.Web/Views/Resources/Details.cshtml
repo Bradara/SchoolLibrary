@@ -57,6 +57,21 @@ else
 <div class="text-muted small">
     <div>Автор: <strong>@Model.Author</strong></div>
     <div>Източник: <strong>@Model.Source</strong></div>
+    <div>
+        Лиценз:
+        @if (Model.License == null)
+        {
+            <strong>Не е посочен</strong>
+        }
+        else if (!string.IsNullOrEmpty(Model.License.Url))
+        {
+            <a href="@Model.License.Url" target="_blank" rel="noopener noreferrer"><strong>@Model.License.Name</strong></a>
+        }
+        else
+        {
+            <strong>@Model.License.Name</strong>
+        }
+    </div>
     <div>Публикувал: <strong>@(Model.Owner?.FullName ?? "Изтрит потребител")</strong></div>
     <div>Дата: @Model.CreatedOn.ToString("dd.MM.yyyy HH:mm")</div>
 </div>

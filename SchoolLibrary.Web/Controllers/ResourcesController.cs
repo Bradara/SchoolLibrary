@@ -5,6 +5,7 @@ using SchoolLibrary.Data.Constants;
 using SchoolLibrary.Services.Categories;
 using SchoolLibrary.Services.Common;
 using SchoolLibrary.Services.GradeLevels;
+using SchoolLibrary.Services.Licenses;
 using SchoolLibrary.Services.Resources;
 using SchoolLibrary.ViewModels;
 using System.Security.Claims;
@@ -17,15 +18,18 @@ namespace SchoolLibrary.Controllers
         private readonly IResourceService _resources;
         private readonly ICategoryService _categories;
         private readonly IGradeLevelService _gradeLevels;
+        private readonly ILicenseService _licenses;
 
         public ResourcesController(
             IResourceService resources,
             ICategoryService categories,
-            IGradeLevelService gradeLevels)
+            IGradeLevelService gradeLevels,
+            ILicenseService licenses)
         {
             _resources = resources;
             _categories = categories;
             _gradeLevels = gradeLevels;
+            _licenses = licenses;
         }
 
         private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -154,6 +158,7 @@ namespace SchoolLibrary.Controllers
                 Source = resource.Source,
                 Description = resource.Description,
                 Url = resource.Url,
+                LicenseId = resource.LicenseId,
                 SelectedCategoryIds = resource.Categories.Select(c => c.Id).ToList(),
                 SelectedGradeLevelIds = resource.GradeLevels.Select(g => g.Id).ToList()
             };
@@ -242,6 +247,7 @@ namespace SchoolLibrary.Controllers
             Source = vm.Source,
             Description = vm.Description,
             Url = vm.Url,
+            LicenseId = vm.LicenseId,
             CategoryIds = vm.SelectedCategoryIds,
             GradeLevelIds = vm.SelectedGradeLevelIds
         };
@@ -250,6 +256,7 @@ namespace SchoolLibrary.Controllers
         {
             vm.AllCategories = (await _categories.GetOptionsAsync()).ToList();
             vm.AllGradeLevels = (await _gradeLevels.GetAllAsync()).ToList();
+            vm.AllLicenses = (await _licenses.GetOptionsAsync()).ToList();
         }
 
         // Keeps the error next to the checkbox groups; the service validates the same rules again

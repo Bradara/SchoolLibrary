@@ -352,6 +352,9 @@ namespace SchoolLibrary.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<int?>("LicenseId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("OwnerId")
                         .HasColumnType("text");
 
@@ -370,6 +373,8 @@ namespace SchoolLibrary.Data.Migrations
                         .HasColumnType("character varying(500)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("LicenseId");
 
                     b.HasIndex("OwnerId");
 
@@ -459,10 +464,17 @@ namespace SchoolLibrary.Data.Migrations
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Resource", b =>
                 {
+                    b.HasOne("SchoolLibrary.Data.Models.License", "License")
+                        .WithMany()
+                        .HasForeignKey("LicenseId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SchoolLibrary.Data.Models.ApplicationUser", "Owner")
                         .WithMany()
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("License");
 
                     b.Navigation("Owner");
                 });

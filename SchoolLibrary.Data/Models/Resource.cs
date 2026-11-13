@@ -36,6 +36,11 @@ namespace SchoolLibrary.Data.Models
         public string? OwnerId { get; set; }
         public ApplicationUser? Owner { get; set; }
 
+        // Null only for resources added before licenses existed; new resources must have one
+        [Display(Name = "Лиценз")]
+        public int? LicenseId { get; set; }
+        public License? License { get; set; }
+
         [NotMapped]
         public bool IsEmbeddable => GetEmbedUrl() != null;
 

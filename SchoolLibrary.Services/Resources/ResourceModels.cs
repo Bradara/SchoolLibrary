@@ -54,6 +54,8 @@ public class ResourceInput
 
     public string Url { get; set; } = string.Empty;
 
+    public int? LicenseId { get; set; }
+
     public List<int> CategoryIds { get; set; } = new();
 
     public List<int> GradeLevelIds { get; set; } = new();

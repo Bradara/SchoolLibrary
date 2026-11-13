@@ -105,6 +105,7 @@ else
                     <th>Заглавие</th>
                     <th>Предмети</th>
                     <th>Класове</th>
+                    <th>Лиценз</th>
                     <th>Публикувал</th>
                     <th>Дата</th>
                     <th class="text-end">Действия</th>
@@ -121,6 +122,7 @@ else
                         </td>
                         <td>@foreach (var c in item.Categories.OrderBy(c => c.Name)) { <span class="badge bg-primary text-primary-emphasis">@c.Name</span> }</td>
                         <td>@foreach (var g in item.GradeLevels.OrderBy(g => g.Number)) { <span class="badge bg-secondary text-secondary-emphasis">@g.Name</span> }</td>
+                        <td class="small">@(item.License?.Name ?? "—")</td>
                         <td class="small">@(item.Owner?.FullName ?? "Изтрит потребител")</td>
                         <td class="small text-body-secondary">@item.CreatedOn.ToString("dd.MM.yyyy")</td>
                         <td class="text-end text-nowrap">

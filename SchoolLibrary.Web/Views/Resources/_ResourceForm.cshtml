@@ -32,6 +32,15 @@
     <span asp-validation-for="Url" class="text-danger"></span>
 </div>
 
+<div class="form-group mb-3">
+    <label asp-for="LicenseId" class="control-label"></label>
+    <select asp-for="LicenseId" class="form-select"
+            asp-items="@(new SelectList(Model.AllLicenses, "Id", "Name", Model.LicenseId))">
+        <option value="">— изберете лиценз —</option>
+    </select>
+    <span asp-validation-for="LicenseId" class="text-danger"></span>
+</div>
+
 @* Toggle buttons: a hidden checkbox (btn-check) posts the value, the label is the visible button *@
 <div class="form-group mb-3">
     <label class="control-label">@Html.DisplayNameFor(m => m.SelectedCategoryIds)</label>

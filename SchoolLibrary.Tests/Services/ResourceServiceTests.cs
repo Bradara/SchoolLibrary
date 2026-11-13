@@ -16,6 +16,7 @@ public class ResourceServiceTests
     private readonly Category _music;
     private readonly GradeLevel _grade5;
     private readonly GradeLevel _grade6;
+    private readonly License _license;
 
     public ResourceServiceTests()
     {
@@ -27,6 +28,8 @@ public class ResourceServiceTests
         _music = AddCategory("Музика");
         _grade5 = AddGrade(5);
         _grade6 = AddGrade(6);
+        _license = new License { Name = "CC BY 4.0" };
+        _context.Licenses.Add(_license);
         _context.SaveChanges();
     }
 
@@ -83,6 +86,7 @@ public class ResourceServiceTests
         Source = "Учебник",
         Description = "Урок по дроби",
         Url = "https://example.com/drobi",
+        LicenseId = _license.Id,
         CategoryIds = new List<int> { _math.Id },
         GradeLevelIds = new List<int> { _grade5.Id }
     };
@@ -462,6 +466,16 @@ public class ResourceServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_ValidInput_SavesLicenseAndLoadsItInDetails()
+    {
+        var result = await _service.CreateAsync(ValidInput(), _ivan.Id);
+
+        Assert.Equal(_license.Id, result.Value!.LicenseId);
+        var details = await _service.GetDetailsAsync(result.Value.Id);
+        Assert.Equal("CC BY 4.0", details!.License!.Name);
+    }
+
+    [Fact]
     public async Task CreateAsync_TrimsTextAndNormalizesOptionalFields()
     {
         var input = ValidInput();
@@ -510,6 +524,8 @@ public class ResourceServiceTests
         yield return new object[] { (Action<ResourceInput>)(i => i.Url = "ftp://example.com/file"), "http://" };
         yield return new object[] { (Action<ResourceInput>)(i => i.Url = "not a url"), "http://" };
         yield return new object[] { (Action<ResourceInput>)(i => i.Url = "/relative/path"), "http://" };
+        yield return new object[] { (Action<ResourceInput>)(i => i.LicenseId = null), "Изберете лиценз" };
+        yield return new object[] { (Action<ResourceInput>)(i => i.LicenseId = 999), "несъществуващ лиценз" };
         yield return new object[] { (Action<ResourceInput>)(i => i.CategoryIds = new List<int>()), "предмет" };
         yield return new object[] { (Action<ResourceInput>)(i => i.GradeLevelIds = new List<int>()), "клас" };
         yield return new object[] { (Action<ResourceInput>)(i => i.CategoryIds = new List<int> { 999 }), "несъществуващ предмет" };

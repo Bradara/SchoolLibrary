@@ -24,6 +24,13 @@ namespace SchoolLibrary.Data
                 .HasForeignKey(r => r.OwnerId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // A license in use cannot be deleted
+            builder.Entity<Resource>()
+                .HasOne(r => r.License)
+                .WithMany()
+                .HasForeignKey(r => r.LicenseId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // Two licenses with the same name would be confusing in the drop-down
             builder.Entity<License>()
                 .HasIndex(l => l.Name)

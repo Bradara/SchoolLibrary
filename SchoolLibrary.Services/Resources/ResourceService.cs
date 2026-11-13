@@ -37,6 +37,7 @@ public class ResourceService : IResourceService
             .Include(r => r.Categories)
             .Include(r => r.GradeLevels)
             .Include(r => r.Owner)
+            .Include(r => r.License)
             .AsSplitQuery()
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -63,6 +64,7 @@ public class ResourceService : IResourceService
             .Include(r => r.Categories)
             .Include(r => r.GradeLevels)
             .Include(r => r.Owner)
+            .Include(r => r.License)
             .AsSplitQuery()
             .FirstOrDefaultAsync(r => r.Id == id);
     }
@@ -289,6 +291,11 @@ public class ResourceService : IResourceService
             return "Уеб адресът трябва да започва с http:// или https://.";
         }
 
+        if (input.LicenseId == null)
+        {
+            return "Изберете лиценз.";
+        }
+
         if (input.CategoryIds.Count == 0)
         {
             return "Изберете поне един предмет.";
@@ -319,11 +326,18 @@ public class ResourceService : IResourceService
             return "Избран е несъществуващ клас.";
         }
 
+        var license = await _context.Licenses.FirstOrDefaultAsync(l => l.Id == input.LicenseId);
+        if (license == null)
+        {
+            return "Избран е несъществуващ лиценз.";
+        }
+
         resource.Title = input.Title.Trim();
         resource.Author = input.Author.Trim();
         resource.Source = string.IsNullOrWhiteSpace(input.Source) ? null : input.Source.Trim();
         resource.Description = input.Description?.Trim() ?? string.Empty;
         resource.Url = input.Url.Trim();
+        resource.License = license;
 
         resource.Categories.Clear();
         foreach (var category in categories)
