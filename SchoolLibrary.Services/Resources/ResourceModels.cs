@@ -1,3 +1,5 @@
+using SchoolLibrary.Data.Enums;
+
 namespace SchoolLibrary.Services.Resources;
 
 /// <summary>Order of the resource list. The names are used as values in the query string.</summary>
@@ -20,6 +22,9 @@ public class ResourceFilter
 
     /// <summary>Text looked for in the title and the author, ignoring case.</summary>
     public string? SearchText { get; set; }
+
+    /// <summary>Only lessons or only free resources; null shows both.</summary>
+    public ResourceKind? Kind { get; set; }
 
     public int? CategoryId { get; set; }
 
@@ -55,6 +60,8 @@ public class ResourceInput
     public string Url { get; set; } = string.Empty;
 
     public int? LicenseId { get; set; }
+
+    public ResourceKind Kind { get; set; } = ResourceKind.Lesson;
 
     public List<int> CategoryIds { get; set; } = new();
 

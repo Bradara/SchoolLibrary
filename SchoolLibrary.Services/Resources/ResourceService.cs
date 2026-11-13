@@ -194,6 +194,12 @@ public class ResourceService : IResourceService
             query = query.Where(r => r.Title.ToLower().Contains(term) || r.Author.ToLower().Contains(term));
         }
 
+        if (filter.Kind.HasValue)
+        {
+            var kind = filter.Kind.Value;
+            query = query.Where(r => r.Kind == kind);
+        }
+
         if (filter.CategoryId.HasValue)
         {
             var categoryId = filter.CategoryId.Value;
@@ -338,6 +344,7 @@ public class ResourceService : IResourceService
         resource.Description = input.Description?.Trim() ?? string.Empty;
         resource.Url = input.Url.Trim();
         resource.License = license;
+        resource.Kind = input.Kind;
 
         resource.Categories.Clear();
         foreach (var category in categories)

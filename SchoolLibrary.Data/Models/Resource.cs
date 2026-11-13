@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Identity;
+using SchoolLibrary.Data.Enums;
 
 namespace SchoolLibrary.Data.Models
 {
@@ -23,6 +24,9 @@ namespace SchoolLibrary.Data.Models
         public string Url { get; set; } = string.Empty;
 
         public DateTime CreatedOn { get; set; }
+
+        [Display(Name = "Вид")]
+        public ResourceKind Kind { get; set; } = ResourceKind.Lesson;
 
         // Many-to-many: a resource can belong to several subjects and several grades.
         // EF Core creates the join tables (CategoryResource, GradeLevelResource) by convention.

@@ -352,6 +352,9 @@ namespace SchoolLibrary.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)");
 
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
                     b.Property<int?>("LicenseId")
                         .HasColumnType("integer");
 

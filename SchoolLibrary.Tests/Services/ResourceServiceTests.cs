@@ -1,4 +1,5 @@
 using SchoolLibrary.Data;
+using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
 using SchoolLibrary.Services.Resources;
@@ -62,7 +63,8 @@ public class ResourceServiceTests
         ApplicationUser? owner = null,
         Category? category = null,
         GradeLevel? grade = null,
-        DateTime? createdOn = null)
+        DateTime? createdOn = null,
+        ResourceKind kind = ResourceKind.Lesson)
     {
         var resource = new Resource
         {
@@ -70,7 +72,8 @@ public class ResourceServiceTests
             Author = author,
             Url = "https://example.com",
             OwnerId = (owner ?? _ivan).Id,
-            CreatedOn = createdOn ?? DateTime.UtcNow
+            CreatedOn = createdOn ?? DateTime.UtcNow,
+            Kind = kind
         };
         resource.Categories.Add(category ?? _math);
         resource.GradeLevels.Add(grade ?? _grade5);
@@ -151,6 +154,41 @@ public class ResourceServiceTests
         var result = await _service.SearchAsync(new ResourceFilter { SearchText = "   " });
 
         Assert.Equal(2, result.TotalCount);
+    }
+
+    [Fact]
+    public async Task SearchAsync_KindFilter_ReturnsOnlyThatSection()
+    {
+        await AddResourceAsync("Урок", kind: ResourceKind.Lesson);
+        await AddResourceAsync("Свободен", kind: ResourceKind.External);
+
+        var lessons = await _service.SearchAsync(new ResourceFilter { Kind = ResourceKind.Lesson });
+        var external = await _service.SearchAsync(new ResourceFilter { Kind = ResourceKind.External });
+
+        Assert.Equal(new[] { "Урок" }, lessons.Items.Select(r => r.Title));
+        Assert.Equal(new[] { "Свободен" }, external.Items.Select(r => r.Title));
+    }
+
+    [Fact]
+    public async Task SearchAsync_WithoutKindFilter_ReturnsBothSections()
+    {
+        await AddResourceAsync("Урок", kind: ResourceKind.Lesson);
+        await AddResourceAsync("Свободен", kind: ResourceKind.External);
+
+        var result = await _service.SearchAsync(new ResourceFilter());
+
+        Assert.Equal(2, result.TotalCount);
+    }
+
+    [Fact]
+    public async Task SearchAsync_KindFilter_CombinesWithTextSearch()
+    {
+        await AddResourceAsync("Дроби урок", kind: ResourceKind.Lesson);
+        await AddResourceAsync("Дроби свободен", kind: ResourceKind.External);
+
+        var result = await _service.SearchAsync(new ResourceFilter { Kind = ResourceKind.External, SearchText = "дроби" });
+
+        Assert.Equal(new[] { "Дроби свободен" }, result.Items.Select(r => r.Title));
     }
 
     [Fact]
@@ -473,6 +511,37 @@ public class ResourceServiceTests
         Assert.Equal(_license.Id, result.Value!.LicenseId);
         var details = await _service.GetDetailsAsync(result.Value.Id);
         Assert.Equal("CC BY 4.0", details!.License!.Name);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithoutKind_CreatesLesson()
+    {
+        var result = await _service.CreateAsync(ValidInput(), _ivan.Id);
+
+        Assert.Equal(ResourceKind.Lesson, result.Value!.Kind);
+    }
+
+    [Fact]
+    public async Task CreateAsync_ExternalKind_IsSaved()
+    {
+        var input = ValidInput();
+        input.Kind = ResourceKind.External;
+
+        var result = await _service.CreateAsync(input, _ivan.Id);
+
+        Assert.Equal(ResourceKind.External, _context.Resources.Single(r => r.Id == result.Value!.Id).Kind);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_CanMoveResourceToAnotherSection()
+    {
+        var resource = await AddResourceAsync("Дроби");
+        var input = ValidInput();
+        input.Kind = ResourceKind.External;
+
+        await _service.UpdateAsync(resource.Id, input, _ivan.Id);
+
+        Assert.Equal(ResourceKind.External, _context.Resources.Single().Kind);
     }
 
     [Fact]

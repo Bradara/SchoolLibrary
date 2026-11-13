@@ -1,3 +1,4 @@
+using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 using System.ComponentModel.DataAnnotations;
 
@@ -30,6 +31,9 @@ public class ResourceFormViewModel
     [MaxLength(500, ErrorMessage = "Уеб адресът не може да бъде по-дълъг от 500 символа")]
     [Display(Name = "Уеб адрес")]
     public string Url { get; set; } = string.Empty;
+
+    [Display(Name = "Вид")]
+    public ResourceKind Kind { get; set; } = ResourceKind.Lesson;
 
     [Required(ErrorMessage = "Изберете лиценз")]
     [Display(Name = "Лиценз")]

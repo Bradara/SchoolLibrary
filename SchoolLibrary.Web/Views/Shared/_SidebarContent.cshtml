@@ -8,6 +8,12 @@
 
     string Active(string c, string? a = null) =>
         area == null && controller == c && (a == null || action == a) ? "active" : "";
+
+    // The resource sections share one action and differ by the "kind" query value
+    var kind = Context.Request.Query["kind"].ToString();
+    var onResources = area == null && controller == "Resources";
+    string ActiveKind(string value) => onResources && action == "Index" && kind == value ? "active" : "";
+    string ActiveAllResources() => onResources && (action != "Index" || kind == "") ? "active" : "";
 }
 
 <div class="sidebar-inner d-flex flex-column flex-grow-1 @(compact ? "sidebar-compact" : "")">
@@ -31,9 +37,21 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link @Active("Resources")" asp-area="" asp-controller="Resources" asp-action="Index"
+            <a class="nav-link @ActiveAllResources()" asp-area="" asp-controller="Resources" asp-action="Index"
                data-sl-tip="@(compact ? "Ресурси" : null)" aria-label="@(compact ? "Ресурси" : null)">
                 <i class="bi bi-collection"></i><span class="nav-label"> Ресурси</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @ActiveKind("External")" asp-area="" asp-controller="Resources" asp-action="Index" asp-route-kind="External"
+               data-sl-tip="@(compact ? "Свободни ресурси" : null)" aria-label="@(compact ? "Свободни ресурси" : null)">
+                <i class="bi bi-globe2"></i><span class="nav-label"> Свободни ресурси</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @ActiveKind("Lesson")" asp-area="" asp-controller="Resources" asp-action="Index" asp-route-kind="Lesson"
+               data-sl-tip="@(compact ? "Уроци" : null)" aria-label="@(compact ? "Уроци" : null)">
+                <i class="bi bi-mortarboard"></i><span class="nav-label"> Уроци</span>
             </a>
         </li>
         @if (User.IsInRole(Roles.Administrator))

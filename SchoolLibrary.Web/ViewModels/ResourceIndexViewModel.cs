@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Mvc.Rendering;
+using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Resources;
 
@@ -7,6 +8,8 @@ namespace SchoolLibrary.ViewModels;
 public class ResourceIndexViewModel
 {
     // Филтри (входни полета от формата)
+    // null = all resources, otherwise one section of the library
+    public ResourceKind? Kind { get; set; }
     public string? SearchTitle { get; set; }
     public int? CategoryId { get; set; }
     public int? GradeLevelId { get; set; }

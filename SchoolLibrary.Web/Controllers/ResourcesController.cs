@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using SchoolLibrary.Data.Constants;
+using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Services.Categories;
 using SchoolLibrary.Services.Common;
 using SchoolLibrary.Services.GradeLevels;
@@ -37,6 +38,7 @@ namespace SchoolLibrary.Controllers
         // GET: Resources
         [AllowAnonymous]
         public async Task<IActionResult> Index(
+            ResourceKind? kind,
             string? searchTitle,
             int? categoryId,
             int? gradeLevelId,
@@ -48,6 +50,7 @@ namespace SchoolLibrary.Controllers
         {
             var result = await _resources.SearchAsync(new ResourceFilter
             {
+                Kind = kind,
                 SearchText = searchTitle,
                 CategoryId = categoryId,
                 GradeLevelId = gradeLevelId,
@@ -62,6 +65,7 @@ namespace SchoolLibrary.Controllers
 
             var vm = new ResourceIndexViewModel
             {
+                Kind = kind,
                 SearchTitle = searchTitle,
                 CategoryId = categoryId,
                 GradeLevelId = gradeLevelId,
@@ -103,9 +107,9 @@ namespace SchoolLibrary.Controllers
 
         // GET: Resources/Create
         [Authorize(Roles = Roles.TeacherOrAdministrator)]
-        public async Task<IActionResult> Create()
+        public async Task<IActionResult> Create(ResourceKind kind = ResourceKind.Lesson)
         {
-            var vm = new ResourceFormViewModel();
+            var vm = new ResourceFormViewModel { Kind = kind };
             await LoadOptionsAsync(vm);
             return View(vm);
         }
@@ -158,6 +162,7 @@ namespace SchoolLibrary.Controllers
                 Source = resource.Source,
                 Description = resource.Description,
                 Url = resource.Url,
+                Kind = resource.Kind,
                 LicenseId = resource.LicenseId,
                 SelectedCategoryIds = resource.Categories.Select(c => c.Id).ToList(),
                 SelectedGradeLevelIds = resource.GradeLevels.Select(g => g.Id).ToList()
@@ -247,6 +252,7 @@ namespace SchoolLibrary.Controllers
             Source = vm.Source,
             Description = vm.Description,
             Url = vm.Url,
+            Kind = vm.Kind,
             LicenseId = vm.LicenseId,
             CategoryIds = vm.SelectedCategoryIds,
             GradeLevelIds = vm.SelectedGradeLevelIds

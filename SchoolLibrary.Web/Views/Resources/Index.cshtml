@@ -1,20 +1,31 @@
 ﻿@model SchoolLibrary.ViewModels.ResourceIndexViewModel
 
+@using SchoolLibrary.Data.Enums
 @{
-    ViewData["Title"] = "Ресурси";
+    var (heading, newLabel) = Model.Kind switch
+    {
+        ResourceKind.External => ("🌐 Свободни ресурси", "+ Нов свободен ресурс"),
+        ResourceKind.Lesson => ("🎓 Уроци", "+ Нов урок"),
+        _ => ("📚 Учебни ресурси", "+ Нов ресурс")
+    };
+    ViewData["Title"] = heading[3..];
     var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
 
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>📚 Учебни ресурси <small class="fs-6 text-body-secondary">(намерени: @Model.TotalCount)</small></h1>
+    <h1>@heading <small class="fs-6 text-body-secondary">(намерени: @Model.TotalCount)</small></h1>
     @if (User.CanAddResources())
     {
-        <a asp-action="Create" class="btn btn-primary">+ Нов ресурс</a>
+        <a asp-action="Create" asp-route-kind="@(Model.Kind ?? ResourceKind.Lesson)" class="btn btn-primary">@newLabel</a>
     }
 </div>
 
 <!-- Филтри и сортиране -->
 <form method="get" class="card card-body bg-body-tertiary py-2 mb-4">
+    @if (Model.Kind.HasValue)
+    {
+        <input type="hidden" name="kind" value="@Model.Kind" />
+    }
     <div class="d-flex flex-wrap gap-2 align-items-end">
         <div class="filter-field filter-field-wide">
             <label class="form-label small mb-1" for="searchTitle">Търсене</label>
