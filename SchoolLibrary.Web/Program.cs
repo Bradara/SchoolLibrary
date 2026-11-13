@@ -101,6 +101,24 @@ namespace SchoolLibrary
             using (var scope = app.Services.CreateScope())
             {
                 await ApplicationDbSeeder.SeedAsync(scope.ServiceProvider);
+
+                // Demo accounts and data: never in Production (OCI, Docker), only on a developer machine
+                // and only when switched on, e.g. with user secrets (Seed:DemoData, Seed:DemoPassword)
+                if (app.Environment.IsDevelopment() && app.Configuration.GetValue<bool>("Seed:DemoData"))
+                {
+                    var demoPassword = app.Configuration["Seed:DemoPassword"];
+                    if (string.IsNullOrWhiteSpace(demoPassword))
+                    {
+                        app.Logger.LogWarning("Seed:DemoData is on, but Seed:DemoPassword is not set. The demo data was not added.");
+                    }
+                    else
+                    {
+                        var demo = await DemoDataSeeder.SeedAsync(scope.ServiceProvider, demoPassword);
+                        app.Logger.LogInformation(
+                            "Demo data: {Users} users, {Lessons} lessons, {Comments} comments, {Favorites} favorites, {Reports} reports added.",
+                            demo.Users, demo.Lessons, demo.Comments, demo.Favorites, demo.Reports);
+                    }
+                }
             }
 
             app.MapRazorPages();
