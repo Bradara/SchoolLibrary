@@ -52,14 +52,22 @@ namespace SchoolLibrary.Areas.Identity.Pages.Account
             if (ModelState.IsValid)
             {
                 var result = await _signInManager.PasswordSignInAsync(
-                    Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+                    Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: true);
 
                 if (result.Succeeded)
                 {
                     return LocalRedirect(ReturnUrl);
                 }
 
-                ModelState.AddModelError(string.Empty, "Невалиден имейл или парола.");
+                if (result.IsLockedOut)
+                {
+                    ModelState.AddModelError(string.Empty,
+                        "Профилът е заключен за кратко заради много неуспешни опита. Опитайте отново след 5 минути.");
+                }
+                else
+                {
+                    ModelState.AddModelError(string.Empty, "Невалиден имейл или парола.");
+                }
             }
 
             return Page();

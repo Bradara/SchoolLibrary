@@ -50,6 +50,17 @@ namespace SchoolLibrary.Data.Models
         public int? LicenseId { get; set; }
         public License? License { get; set; }
 
+        /// <summary>
+        /// The address for a link (href), or null when it is not an http(s) address. A "javascript:" or
+        /// "data:" address that got into the database must never become a clickable link.
+        /// </summary>
+        [NotMapped]
+        public string? SafeUrl => IsHttpUrl(Url) ? Url : null;
+
+        private static bool IsHttpUrl(string? url) =>
+            Uri.TryCreate(url, UriKind.Absolute, out var uri)
+            && (uri.Scheme == Uri.UriSchemeHttp || uri.Scheme == Uri.UriSchemeHttps);
+
         [NotMapped]
         public bool IsEmbeddable => GetEmbedUrl() != null;
 
@@ -63,6 +74,11 @@ namespace SchoolLibrary.Data.Models
             try
             {
                 var uri = new Uri(Url);
+
+                // "javascript:...//a.pdf" ends like a PDF link: without this check it would be put into
+                // an iframe and run script on this site
+                if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps) return null;
+
                 var host = uri.Host.ToLowerInvariant();
 
                 // YouTube

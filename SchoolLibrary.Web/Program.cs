@@ -1,8 +1,10 @@
 ﻿using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
+using SchoolLibrary.Middleware;
 using SchoolLibrary.Data.Seeding;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services;
@@ -54,16 +56,28 @@ namespace SchoolLibrary
             builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
             builder.Services
-                .AddDefaultIdentity<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = false)
+                .AddDefaultIdentity<ApplicationUser>(options =>
+                {
+                    options.SignIn.RequireConfirmedAccount = false;
+
+                    // Too many wrong passwords lock the account for a few minutes (guessing passwords gets slow)
+                    options.Lockout.AllowedForNewUsers = true;
+                    options.Lockout.MaxFailedAccessAttempts = 5;
+                    options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
+                })
                 .AddRoles<IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>();
-            builder.Services.AddControllersWithViews();
+            builder.Services.AddControllersWithViews(options =>
+                options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
             builder.Services.AddApplicationServices();
 
             var app = builder.Build();
 
             // Must run first so Request.Scheme / RemoteIpAddress reflect the original client request.
             app.UseForwardedHeaders();
+
+            // Protective headers on every response (framing, content type sniffing, referrer)
+            app.UseSecurityHeaders();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())

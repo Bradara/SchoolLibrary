@@ -23,7 +23,16 @@
     <dd class="col-sm-10">@string.Join(", ", Model.GradeLevels.OrderBy(g => g.Number).Select(g => g.Name))</dd>
 
     <dt class="col-sm-2">Уеб адрес</dt>
-    <dd class="col-sm-10"><a href="@Model.Url" target="_blank">@Model.Url</a></dd>
+    <dd class="col-sm-10">
+        @if (Model.SafeUrl != null)
+        {
+            <a href="@Model.SafeUrl" target="_blank" rel="noopener noreferrer">@Model.Url</a>
+        }
+        else
+        {
+            @Model.Url
+        }
+    </dd>
 </dl>
 
 <form asp-action="Delete" method="post">

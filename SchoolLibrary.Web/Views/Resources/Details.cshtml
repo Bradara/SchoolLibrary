@@ -45,15 +45,19 @@
         </iframe>
     </div>
 
-    <a href="@Model.Resource.Url" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">
+    <a href="@Model.Resource.SafeUrl" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">
         Отвори в нов таб ↗
+    </a>
+}
+else if (Model.Resource.SafeUrl != null)
+{
+    <a href="@Model.Resource.SafeUrl" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
+        Отвори ресурса ↗
     </a>
 }
 else
 {
-    <a href="@Model.Resource.Url" target="_blank" rel="noopener noreferrer" class="btn btn-primary btn-lg">
-        Отвори ресурса ↗
-    </a>
+    <div class="alert alert-warning">Адресът на този ресурс не е валиден.</div>
 }
 
 <div class="mt-3 d-flex align-items-center gap-2">

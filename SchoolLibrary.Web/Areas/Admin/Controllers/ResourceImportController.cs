@@ -13,6 +13,9 @@ namespace SchoolLibrary.Areas.Admin.Controllers
         // Far above what the 512 KB text limit allows, so only huge uploads are refused before reading
         private const long MaxUploadBytes = 2 * 1024 * 1024;
 
+        // The whole request (file or posted text plus the form fields): refused by the server beyond this
+        private const int MaxRequestBytes = 3 * 1024 * 1024;
+
         private readonly IResourceImportService _import;
         private readonly ICategoryService _categories;
         private readonly ILicenseService _licenses;
@@ -44,6 +47,7 @@ namespace SchoolLibrary.Areas.Admin.Controllers
         // POST: Admin/ResourceImport/Preview
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequestSizeLimit(MaxRequestBytes)]
         public async Task<IActionResult> Preview(IFormFile? file)
         {
             if (file == null || file.Length == 0)
@@ -76,6 +80,7 @@ namespace SchoolLibrary.Areas.Admin.Controllers
         // POST: Admin/ResourceImport/Import
         [HttpPost]
         [ValidateAntiForgeryToken]
+        [RequestSizeLimit(MaxRequestBytes)]
         public async Task<IActionResult> Import(string? csvText)
         {
             if (string.IsNullOrWhiteSpace(csvText))
