@@ -82,6 +82,15 @@ public class ResourceServiceTests
         return resource;
     }
 
+    // An imported free resource: nobody owns it
+    private async Task<Resource> AddOwnerlessResourceAsync(string title = "Свободен")
+    {
+        var resource = await AddResourceAsync(title, kind: ResourceKind.External);
+        resource.OwnerId = null;
+        await _context.SaveChangesAsync();
+        return resource;
+    }
+
     private ResourceInput ValidInput() => new()
     {
         Title = "Дроби",
@@ -434,7 +443,7 @@ public class ResourceServiceTests
     {
         var resource = await AddResourceAsync("Дроби", owner: _ivan);
 
-        var result = await _service.GetForEditAsync(resource.Id, _ivan.Id);
+        var result = await _service.GetForEditAsync(resource.Id, _ivan.Id, isAdministrator: false);
 
         Assert.True(result.Succeeded);
         Assert.Equal(resource.Id, result.Value!.Id);
@@ -445,7 +454,7 @@ public class ResourceServiceTests
     {
         var resource = await AddResourceAsync("Дроби", owner: _ivan);
 
-        var result = await _service.GetForEditAsync(resource.Id, _maria.Id);
+        var result = await _service.GetForEditAsync(resource.Id, _maria.Id, isAdministrator: false);
 
         Assert.Equal(ServiceError.Forbidden, result.Error);
     }
@@ -453,7 +462,7 @@ public class ResourceServiceTests
     [Fact]
     public async Task GetForEditAsync_UnknownId_ReturnsNotFound()
     {
-        var result = await _service.GetForEditAsync(999, _ivan.Id);
+        var result = await _service.GetForEditAsync(999, _ivan.Id, isAdministrator: false);
 
         Assert.Equal(ServiceError.NotFound, result.Error);
     }
@@ -481,6 +490,86 @@ public class ResourceServiceTests
         var result = await _service.GetForDeleteAsync(999, _ivan.Id, true);
 
         Assert.Equal(ServiceError.NotFound, result.Error);
+    }
+
+    // ---------- resources without an owner ----------
+
+    [Fact]
+    public async Task GetForEditAsync_AdministratorOnResourceWithoutOwner_Succeeds()
+    {
+        var resource = await AddOwnerlessResourceAsync();
+
+        var result = await _service.GetForEditAsync(resource.Id, _ivan.Id, isAdministrator: true);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task GetForEditAsync_TeacherOnResourceWithoutOwner_IsForbidden()
+    {
+        var resource = await AddOwnerlessResourceAsync();
+
+        var result = await _service.GetForEditAsync(resource.Id, _ivan.Id, isAdministrator: false);
+
+        Assert.Equal(ServiceError.Forbidden, result.Error);
+    }
+
+    [Fact]
+    public async Task GetForEditAsync_AdministratorOnAnotherUsersResource_IsStillForbidden()
+    {
+        var resource = await AddResourceAsync("Чужд", owner: _maria);
+
+        var result = await _service.GetForEditAsync(resource.Id, _ivan.Id, isAdministrator: true);
+
+        Assert.Equal(ServiceError.Forbidden, result.Error);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_AdministratorOnResourceWithoutOwner_ChangesItAndKeepsItOwnerless()
+    {
+        var resource = await AddOwnerlessResourceAsync();
+        var input = ValidInput();
+        input.Title = "Поправено заглавие";
+        input.Kind = ResourceKind.External;
+
+        var result = await _service.UpdateAsync(resource.Id, input, _ivan.Id, isAdministrator: true);
+
+        Assert.True(result.Succeeded);
+        var saved = _context.Resources.Single();
+        Assert.Equal("Поправено заглавие", saved.Title);
+        Assert.Null(saved.OwnerId);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_TeacherOnResourceWithoutOwner_IsForbiddenAndChangesNothing()
+    {
+        var resource = await AddOwnerlessResourceAsync("Непроменен");
+
+        var result = await _service.UpdateAsync(resource.Id, ValidInput(), _ivan.Id, isAdministrator: false);
+
+        Assert.Equal(ServiceError.Forbidden, result.Error);
+        Assert.Equal("Непроменен", _context.Resources.Single().Title);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_AdministratorOnAnotherUsersResource_IsStillForbidden()
+    {
+        var resource = await AddResourceAsync("Чужд", owner: _maria);
+
+        var result = await _service.UpdateAsync(resource.Id, ValidInput(), _ivan.Id, isAdministrator: true);
+
+        Assert.Equal(ServiceError.Forbidden, result.Error);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_AdministratorOnResourceWithoutOwner_Succeeds()
+    {
+        var resource = await AddOwnerlessResourceAsync();
+
+        var result = await _service.DeleteAsync(resource.Id, _ivan.Id, isAdministrator: true);
+
+        Assert.True(result.Succeeded);
+        Assert.Empty(_context.Resources);
     }
 
     // ---------- CreateAsync ----------
@@ -539,7 +628,7 @@ public class ResourceServiceTests
         var input = ValidInput();
         input.Kind = ResourceKind.External;
 
-        await _service.UpdateAsync(resource.Id, input, _ivan.Id);
+        await _service.UpdateAsync(resource.Id, input, _ivan.Id, isAdministrator: false);
 
         Assert.Equal(ResourceKind.External, _context.Resources.Single().Kind);
     }
@@ -692,7 +781,7 @@ public class ResourceServiceTests
         var input = ValidInput();
         input.Title = "Нов заглавие";
 
-        var result = await _service.UpdateAsync(created.Value!.Id, input, _ivan.Id);
+        var result = await _service.UpdateAsync(created.Value!.Id, input, _ivan.Id, isAdministrator: false);
 
         Assert.True(result.Succeeded);
     }
@@ -707,7 +796,7 @@ public class ResourceServiceTests
         var input = ValidInput();
         input.Title = "Променено";
 
-        var result = await _service.UpdateAsync(second.Value!.Id, input, _ivan.Id);
+        var result = await _service.UpdateAsync(second.Value!.Id, input, _ivan.Id, isAdministrator: false);
 
         Assert.Equal(ServiceError.Conflict, result.Error);
         Assert.Equal("https://example.com/umnozhenie", _context.Resources.Single(r => r.Id == second.Value.Id).Url);
@@ -720,7 +809,7 @@ public class ResourceServiceTests
         var input = ValidInput();
         input.Url = "https://www.example.com/novo/";
 
-        await _service.UpdateAsync(created.Value!.Id, input, _ivan.Id);
+        await _service.UpdateAsync(created.Value!.Id, input, _ivan.Id, isAdministrator: false);
 
         Assert.Equal("https://example.com/novo", _context.Resources.Single().NormalizedUrl);
     }
@@ -757,7 +846,7 @@ public class ResourceServiceTests
         input.CategoryIds = new List<int> { _music.Id };
         input.GradeLevelIds = new List<int> { _grade6.Id };
 
-        var result = await _service.UpdateAsync(resource.Id, input, _ivan.Id);
+        var result = await _service.UpdateAsync(resource.Id, input, _ivan.Id, isAdministrator: false);
 
         Assert.True(result.Succeeded);
         var saved = _context.Resources.Single();
@@ -772,7 +861,7 @@ public class ResourceServiceTests
         var created = new DateTime(2026, 2, 2, 0, 0, 0, DateTimeKind.Utc);
         var resource = await AddResourceAsync("Стар", owner: _ivan, createdOn: created);
 
-        await _service.UpdateAsync(resource.Id, ValidInput(), _ivan.Id);
+        await _service.UpdateAsync(resource.Id, ValidInput(), _ivan.Id, isAdministrator: false);
 
         var saved = _context.Resources.Single();
         Assert.Equal("ivan", saved.OwnerId);
@@ -784,7 +873,7 @@ public class ResourceServiceTests
     {
         var resource = await AddResourceAsync("Стар", owner: _ivan);
 
-        var result = await _service.UpdateAsync(resource.Id, ValidInput(), _maria.Id);
+        var result = await _service.UpdateAsync(resource.Id, ValidInput(), _maria.Id, isAdministrator: false);
 
         Assert.Equal(ServiceError.Forbidden, result.Error);
         Assert.Equal("Стар", _context.Resources.Single().Title);
@@ -793,7 +882,7 @@ public class ResourceServiceTests
     [Fact]
     public async Task UpdateAsync_UnknownId_ReturnsNotFound()
     {
-        var result = await _service.UpdateAsync(999, ValidInput(), _ivan.Id);
+        var result = await _service.UpdateAsync(999, ValidInput(), _ivan.Id, isAdministrator: false);
 
         Assert.Equal(ServiceError.NotFound, result.Error);
     }
@@ -805,7 +894,7 @@ public class ResourceServiceTests
         var input = ValidInput();
         input.Url = "javascript:alert(1)";
 
-        var result = await _service.UpdateAsync(resource.Id, input, _ivan.Id);
+        var result = await _service.UpdateAsync(resource.Id, input, _ivan.Id, isAdministrator: false);
 
         Assert.Equal(ServiceError.Invalid, result.Error);
         Assert.Equal("Стар", _context.Resources.Single().Title);

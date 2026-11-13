@@ -73,11 +73,15 @@ else
             <strong>@Model.License.Name</strong>
         }
     </div>
-    <div>Публикувал: <strong>@(Model.Owner?.FullName ?? "Изтрит потребител")</strong></div>
+    <div>Публикувал: <strong>@Model.PublisherName()</strong></div>
     <div>Дата: @Model.CreatedOn.ToString("dd.MM.yyyy HH:mm")</div>
 </div>
 
-@if (User.Identity?.IsAuthenticated == true && Model.OwnerId == User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)!.Value)
+@{
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var isAdministrator = User.IsInRole(SchoolLibrary.Data.Constants.Roles.Administrator);
+}
+@if (User.Identity?.IsAuthenticated == true && SchoolLibrary.Services.Resources.ResourcePermissions.CanEdit(Model, userId, isAdministrator))
 {
     <div class="mt-4">
         <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-primary">Редактирай</a>

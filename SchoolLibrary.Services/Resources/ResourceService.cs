@@ -85,7 +85,7 @@ public class ResourceService : IResourceService
             .FirstOrDefaultAsync(r => r.NormalizedUrl == normalized);
     }
 
-    public async Task<ServiceResult<Resource>> GetForEditAsync(int id, string userId)
+    public async Task<ServiceResult<Resource>> GetForEditAsync(int id, string userId, bool isAdministrator)
     {
         var resource = await GetDetailsAsync(id);
         if (resource == null)
@@ -93,8 +93,8 @@ public class ResourceService : IResourceService
             return ServiceResult<Resource>.Failure(ServiceError.NotFound, NotFoundMessage);
         }
 
-        // Administrators may delete other people's resources but not edit them
-        if (resource.OwnerId != userId)
+        // Administrators may delete other people's resources but edit only those without an owner
+        if (!ResourcePermissions.CanEdit(resource, userId, isAdministrator))
         {
             return ServiceResult<Resource>.Failure(ServiceError.Forbidden, ForbiddenMessage);
         }
@@ -110,7 +110,7 @@ public class ResourceService : IResourceService
             return ServiceResult<Resource>.Failure(ServiceError.NotFound, NotFoundMessage);
         }
 
-        if (!CanDelete(resource, userId, isAdministrator))
+        if (!ResourcePermissions.CanDelete(resource, userId, isAdministrator))
         {
             return ServiceResult<Resource>.Failure(ServiceError.Forbidden, ForbiddenMessage);
         }
@@ -149,7 +149,7 @@ public class ResourceService : IResourceService
         return ServiceResult<Resource>.Success(resource);
     }
 
-    public async Task<ServiceResult<Resource>> UpdateAsync(int id, ResourceInput input, string userId)
+    public async Task<ServiceResult<Resource>> UpdateAsync(int id, ResourceInput input, string userId, bool isAdministrator)
     {
         var resource = await _context.Resources
             .Include(r => r.Categories)
@@ -162,7 +162,7 @@ public class ResourceService : IResourceService
             return ServiceResult<Resource>.Failure(ServiceError.NotFound, NotFoundMessage);
         }
 
-        if (resource.OwnerId != userId)
+        if (!ResourcePermissions.CanEdit(resource, userId, isAdministrator))
         {
             return ServiceResult<Resource>.Failure(ServiceError.Forbidden, ForbiddenMessage);
         }
@@ -197,7 +197,7 @@ public class ResourceService : IResourceService
             return ServiceResult<Resource>.Failure(ServiceError.NotFound, NotFoundMessage);
         }
 
-        if (!CanDelete(resource, userId, isAdministrator))
+        if (!ResourcePermissions.CanDelete(resource, userId, isAdministrator))
         {
             return ServiceResult<Resource>.Failure(ServiceError.Forbidden, ForbiddenMessage);
         }
@@ -214,9 +214,6 @@ public class ResourceService : IResourceService
         return normalized != null
             && await _context.Resources.AnyAsync(r => r.NormalizedUrl == normalized && r.Id != excludeId);
     }
-
-    private static bool CanDelete(Resource resource, string userId, bool isAdministrator) =>
-        isAdministrator || resource.OwnerId == userId;
 
     private static IQueryable<Resource> ApplyFilter(IQueryable<Resource> query, ResourceFilter filter)
     {

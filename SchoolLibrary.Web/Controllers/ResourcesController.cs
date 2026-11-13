@@ -35,6 +35,8 @@ namespace SchoolLibrary.Controllers
 
         private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
+        private bool IsAdministrator => User.IsInRole(Roles.Administrator);
+
         // GET: Resources
         [AllowAnonymous]
         public async Task<IActionResult> Index(
@@ -147,7 +149,7 @@ namespace SchoolLibrary.Controllers
                 return NotFound();
             }
 
-            var result = await _resources.GetForEditAsync(id.Value, CurrentUserId);
+            var result = await _resources.GetForEditAsync(id.Value, CurrentUserId, IsAdministrator);
             if (!result.Succeeded)
             {
                 return ToActionResult(result);
@@ -186,7 +188,7 @@ namespace SchoolLibrary.Controllers
 
             if (ModelState.IsValid)
             {
-                var result = await _resources.UpdateAsync(id, ToInput(vm), CurrentUserId);
+                var result = await _resources.UpdateAsync(id, ToInput(vm), CurrentUserId, IsAdministrator);
                 if (result.Succeeded)
                 {
                     TempData["SuccessMessage"] = $"Ресурсът {result.Value!.Title} е редактиран успешно.";
@@ -213,7 +215,7 @@ namespace SchoolLibrary.Controllers
                 return NotFound();
             }
 
-            var result = await _resources.GetForDeleteAsync(id.Value, CurrentUserId, User.IsInRole(Roles.Administrator));
+            var result = await _resources.GetForDeleteAsync(id.Value, CurrentUserId, IsAdministrator);
             if (!result.Succeeded)
             {
                 return ToActionResult(result);
@@ -227,7 +229,7 @@ namespace SchoolLibrary.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var result = await _resources.DeleteAsync(id, CurrentUserId, User.IsInRole(Roles.Administrator));
+            var result = await _resources.DeleteAsync(id, CurrentUserId, IsAdministrator);
             if (!result.Succeeded)
             {
                 return ToActionResult(result);

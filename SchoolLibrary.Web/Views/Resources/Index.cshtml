@@ -1,6 +1,7 @@
 ﻿@model SchoolLibrary.ViewModels.ResourceIndexViewModel
 
 @using SchoolLibrary.Data.Enums
+@using SchoolLibrary.Services.Resources
 @{
     var (heading, newLabel) = Model.Kind switch
     {
@@ -134,21 +135,22 @@ else
                         <td>@foreach (var c in item.Categories.OrderBy(c => c.Name)) { <span class="badge bg-primary text-primary-emphasis">@c.Name</span> }</td>
                         <td>@foreach (var g in item.GradeLevels.OrderBy(g => g.Number)) { <span class="badge bg-secondary text-secondary-emphasis">@g.Name</span> }</td>
                         <td class="small">@(item.License?.Name ?? "—")</td>
-                        <td class="small">@(item.Owner?.FullName ?? "Изтрит потребител")</td>
+                        <td class="small">@item.PublisherName()</td>
                         <td class="small text-body-secondary">@item.CreatedOn.ToString("dd.MM.yyyy")</td>
                         <td class="text-end text-nowrap">
                             @{
-                                var isOwner = currentUserId != null && item.OwnerId == currentUserId;
+                                var canEdit = ResourcePermissions.CanEdit(item, currentUserId, User.IsInRole(Roles.Administrator));
+                                var canDelete = ResourcePermissions.CanDelete(item, currentUserId, User.IsInRole(Roles.Administrator));
                             }
                             <div class="d-inline-flex gap-1">
                                 <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary"
                                    data-sl-tip="Детайли" data-sl-placement="top" aria-label="Детайли"><i class="bi bi-eye"></i></a>
-                                @if (isOwner)
+                                @if (canEdit)
                                 {
                                     <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary"
                                        data-sl-tip="Редактирай" data-sl-placement="top" aria-label="Редактирай"><i class="bi bi-pencil"></i></a>
                                 }
-                                @if (isOwner || User.IsInRole(Roles.Administrator))
+                                @if (canDelete)
                                 {
                                     <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger"
                                        data-sl-tip="Изтрий" data-sl-placement="top" aria-label="Изтрий"><i class="bi bi-trash"></i></a>
