@@ -4,6 +4,7 @@ using SchoolLibrary.Services.Comments;
 using SchoolLibrary.Services.Favorites;
 using SchoolLibrary.Services.GradeLevels;
 using SchoolLibrary.Services.Licenses;
+using SchoolLibrary.Services.Reports;
 using SchoolLibrary.Services.Resources;
 using SchoolLibrary.Services.Statistics;
 using SchoolLibrary.Services.Users;
@@ -20,6 +21,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IFavoriteService, FavoriteService>();
         services.AddScoped<IGradeLevelService, GradeLevelService>();
         services.AddScoped<ILicenseService, LicenseService>();
+        services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<IResourceImportService, ResourceImportService>();
         services.AddScoped<IStatisticsService, StatisticsService>();

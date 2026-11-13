@@ -39,6 +39,15 @@ public class CommentService : ICommentService
         return new PagedResult<Comment>(items, totalCount, page, pageSize);
     }
 
+    public async Task<Comment?> GetAsync(int commentId)
+    {
+        return await _context.Comments
+            .AsNoTracking()
+            .Include(c => c.Author)
+            .Include(c => c.Resource)
+            .FirstOrDefaultAsync(c => c.Id == commentId);
+    }
+
     public async Task<ServiceResult<Comment>> AddAsync(int resourceId, string authorId, string text)
     {
         // A browser counts a line break as one character but sends two (CRLF), so the length is

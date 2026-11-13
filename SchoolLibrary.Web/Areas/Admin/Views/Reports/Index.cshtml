@@ -1,0 +1,178 @@
+@using SchoolLibrary.Data.Enums
+@model SchoolLibrary.Areas.Admin.Models.ReportIndexViewModel
+
+@{
+    ViewData["Title"] = "Сигнали";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-controller="Home" asp-action="Index">Администрация</a></li>
+        <li class="breadcrumb-item active">Сигнали</li>
+    </ol>
+</nav>
+
+<h1 class="mb-3">Сигнали <small class="fs-6 text-body-secondary">(намерени: @Model.TotalCount)</small></h1>
+
+<partial name="_MessagePartial" />
+
+<form method="get" class="card card-body bg-body-tertiary py-2 mb-4">
+    <div class="d-flex flex-wrap gap-2 align-items-end">
+        <div class="filter-field">
+            <label class="form-label small mb-1" for="status">Статус</label>
+            <select id="status" name="status" class="form-select" onchange="this.form.submit()">
+                <option value="New" selected="@(Model.Status == ReportStatus.New)">Нови</option>
+                <option value="Reviewed" selected="@(Model.Status == ReportStatus.Reviewed)">Разгледани</option>
+                <option value="Rejected" selected="@(Model.Status == ReportStatus.Rejected)">Отхвърлени</option>
+                <option value="all" selected="@(Model.Status == null)">Всички</option>
+            </select>
+        </div>
+        <div class="filter-field">
+            <label class="form-label small mb-1" for="target">Какво е докладвано</label>
+            <select id="target" name="target" class="form-select" onchange="this.form.submit()">
+                <option value="">Всичко</option>
+                <option value="Resource" selected="@(Model.Target == ReportTarget.Resource)">Ресурси</option>
+                <option value="Comment" selected="@(Model.Target == ReportTarget.Comment)">Коментари</option>
+            </select>
+        </div>
+        <noscript><button type="submit" class="btn btn-primary">Филтрирай</button></noscript>
+    </div>
+</form>
+
+@if (Model.Reports.Count == 0)
+{
+    <div class="alert alert-info text-center py-5">
+        <p class="mb-0">Няма сигнали по избраните критерии.</p>
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Дата</th>
+                    <th>Съдържание</th>
+                    <th>Причина</th>
+                    <th>Подал</th>
+                    <th>Статус</th>
+                    <th class="text-end">Действия</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var report in Model.Reports)
+                {
+                    <tr>
+                        <td class="small text-nowrap">@report.CreatedOn.ToString("dd.MM.yyyy HH:mm")</td>
+                        <td>
+                            <span class="badge text-bg-light border">@report.Target.DisplayName()</span>
+                            @if (report.ResourceId.HasValue)
+                            {
+                                <a asp-area="" asp-controller="Resources" asp-action="Details" asp-route-id="@report.ResourceId"
+                                   asp-fragment="@(report.Target == ReportTarget.Comment ? "comments" : null)"
+                                   class="fw-bold text-decoration-none" target="_blank" rel="noopener">@report.TargetTitle</a>
+                            }
+                            else
+                            {
+                                <span class="fw-bold">@report.TargetTitle</span>
+                                <span class="badge text-bg-secondary">изтрит</span>
+                            }
+
+                            @if (report.Target == ReportTarget.Comment)
+                            {
+                                <div class="small text-break mt-1" style="white-space: pre-line;">„@report.TargetText“</div>
+                                <div class="small text-body-secondary">
+                                    Автор: @(report.Comment?.Author.FullName ?? "—")
+                                    @if (report.CommentId == null)
+                                    {
+                                        <span class="badge text-bg-secondary">коментарът е изтрит</span>
+                                    }
+                                </div>
+                            }
+                        </td>
+                        <td class="small">
+                            <div>@report.Reason.DisplayName()</div>
+                            @if (!string.IsNullOrEmpty(report.Details))
+                            {
+                                <div class="text-body-secondary text-break" style="white-space: pre-line;">@report.Details</div>
+                            }
+                        </td>
+                        <td class="small">@(report.Reporter?.FullName ?? "Изтрит потребител")</td>
+                        <td>
+                            <span class="badge @report.Status.BadgeClass()">@report.Status.DisplayName()</span>
+                            @if (report.ReviewedOn.HasValue)
+                            {
+                                <div class="small text-body-secondary">@report.ReviewedOn.Value.ToString("dd.MM.yyyy")</div>
+                            }
+                        </td>
+                        <td class="text-end text-nowrap">
+                            <div class="d-inline-flex gap-1">
+                                @if (report.Status != ReportStatus.Reviewed)
+                                {
+                                    <form asp-action="Resolve" method="post">
+                                        <input type="hidden" name="id" value="@report.Id" />
+                                        <input type="hidden" name="resolution" value="Reviewed" />
+                                        <input type="hidden" name="status" value="@Model.StatusParameter" />
+                                        <input type="hidden" name="target" value="@Model.Target" />
+                                        <input type="hidden" name="page" value="@Model.Page" />
+                                        <button type="submit" class="btn btn-sm btn-outline-success"
+                                                data-sl-tip="Разгледан" data-sl-placement="top" aria-label="Отбележи като разгледан"><i class="bi bi-check2"></i></button>
+                                    </form>
+                                }
+                                @if (report.Status != ReportStatus.Rejected)
+                                {
+                                    <form asp-action="Resolve" method="post">
+                                        <input type="hidden" name="id" value="@report.Id" />
+                                        <input type="hidden" name="resolution" value="Rejected" />
+                                        <input type="hidden" name="status" value="@Model.StatusParameter" />
+                                        <input type="hidden" name="target" value="@Model.Target" />
+                                        <input type="hidden" name="page" value="@Model.Page" />
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                                data-sl-tip="Отхвърли" data-sl-placement="top" aria-label="Отхвърли сигнала"><i class="bi bi-x-lg"></i></button>
+                                    </form>
+                                }
+                                @if ((report.Target == ReportTarget.Comment && report.CommentId.HasValue)
+                                    || (report.Target == ReportTarget.Resource && report.ResourceId.HasValue))
+                                {
+                                    <form asp-action="DeleteTarget" method="post"
+                                          onsubmit="return confirm('Да изтрия ли докладваното съдържание? Действието е необратимо.');">
+                                        <input type="hidden" name="id" value="@report.Id" />
+                                        <input type="hidden" name="status" value="@Model.StatusParameter" />
+                                        <input type="hidden" name="target" value="@Model.Target" />
+                                        <input type="hidden" name="page" value="@Model.Page" />
+                                        <button type="submit" class="btn btn-sm btn-outline-danger"
+                                                data-sl-tip="@(report.Target == ReportTarget.Comment ? "Изтрий коментара" : "Изтрий ресурса")"
+                                                data-sl-placement="top" aria-label="Изтрий докладваното съдържание"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                }
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <nav aria-label="Страници със сигнали">
+            <ul class="pagination justify-content-center flex-wrap">
+                <li class="page-item @(Model.Page == 1 ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-status="@Model.StatusParameter" asp-route-target="@Model.Target"
+                       asp-route-page="@(Model.Page - 1)" aria-label="Предишна"><i class="bi bi-chevron-left"></i></a>
+                </li>
+                @for (var p = 1; p <= Model.TotalPages; p++)
+                {
+                    <li class="page-item @(p == Model.Page ? "active" : "")" @(p == Model.Page ? "aria-current=page" : "")>
+                        <a class="page-link" asp-action="Index" asp-route-status="@Model.StatusParameter" asp-route-target="@Model.Target"
+                           asp-route-page="@p">@p</a>
+                    </li>
+                }
+                <li class="page-item @(Model.Page == Model.TotalPages ? "disabled" : "")">
+                    <a class="page-link" asp-action="Index" asp-route-status="@Model.StatusParameter" asp-route-target="@Model.Target"
+                       asp-route-page="@(Model.Page + 1)" aria-label="Следваща"><i class="bi bi-chevron-right"></i></a>
+                </li>
+            </ul>
+        </nav>
+    }
+}

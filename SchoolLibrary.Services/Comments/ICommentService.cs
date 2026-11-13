@@ -9,6 +9,9 @@ public interface ICommentService
     /// <summary>One page of the comments under a resource, newest first, each with its author.</summary>
     Task<PagedResult<Comment>> GetForResourceAsync(int resourceId, int page, int pageSize = 10);
 
+    /// <summary>A comment with its author and the resource it is under, or null when it does not exist.</summary>
+    Task<Comment?> GetAsync(int commentId);
+
     /// <summary>
     /// Adds a comment. Fails when the text is empty or longer than 500 characters,
     /// or when the resource does not exist.

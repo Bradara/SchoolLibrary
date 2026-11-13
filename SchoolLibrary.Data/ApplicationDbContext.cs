@@ -57,6 +57,29 @@ namespace SchoolLibrary.Data
             builder.Entity<Comment>()
                 .HasIndex(c => new { c.ResourceId, c.CreatedOn });
 
+            // A report outlives what it reports and who sent it: the links become NULL, the texts stay
+            builder.Entity<Report>()
+                .HasOne(r => r.Resource)
+                .WithMany()
+                .HasForeignKey(r => r.ResourceId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<Report>()
+                .HasOne(r => r.Comment)
+                .WithMany()
+                .HasForeignKey(r => r.CommentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<Report>()
+                .HasOne(r => r.Reporter)
+                .WithMany()
+                .HasForeignKey(r => r.ReporterId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // The moderation list: filtered by status, newest first
+            builder.Entity<Report>()
+                .HasIndex(r => new { r.Status, r.CreatedOn });
+
             // One resource per link. PostgreSQL allows several NULLs in a unique index,
             // so resources that were not backfilled yet do not clash
             builder.Entity<Resource>()
@@ -82,5 +105,6 @@ namespace SchoolLibrary.Data
         public DbSet<License> Licenses { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
         public DbSet<Comment> Comments { get; set; }
+        public DbSet<Report> Reports { get; set; }
     }
 }

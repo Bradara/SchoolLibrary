@@ -1,0 +1,63 @@
+@using SchoolLibrary.Data.Enums
+@using SchoolLibrary.Services.Reports
+@model SchoolLibrary.ViewModels.ReportFormViewModel
+
+@{
+    ViewData["Title"] = "Подай сигнал";
+}
+
+<h1>Подай сигнал</h1>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card bg-body-tertiary mb-4">
+            <div class="card-body py-2">
+                @if (Model.IsComment)
+                {
+                    <div class="small text-body-secondary">Коментар от <strong>@Model.TargetAuthor</strong> към ресурса „@Model.TargetTitle“</div>
+                    <div class="text-break" style="white-space: pre-line;">@Model.TargetText</div>
+                }
+                else
+                {
+                    <div class="small text-body-secondary">Ресурс</div>
+                    <div class="fw-bold">@Model.TargetTitle</div>
+                }
+            </div>
+        </div>
+
+        <form asp-action="Create" method="post">
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+            <input type="hidden" asp-for="ResourceId" />
+            <input type="hidden" asp-for="CommentId" />
+
+            <div class="mb-3">
+                <label class="form-label">@Html.DisplayNameFor(m => m.Reason)</label>
+                @foreach (var reason in Enum.GetValues<ReportReason>())
+                {
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="Reason" id="reason-@reason"
+                               value="@reason" checked="@(Model.Reason == reason)" />
+                        <label class="form-check-label" for="reason-@reason">@reason.DisplayName()</label>
+                    </div>
+                }
+                <span asp-validation-for="Reason" class="text-danger"></span>
+            </div>
+
+            <div class="mb-3">
+                <label asp-for="Details" class="form-label"></label>
+                <textarea asp-for="Details" class="form-control" rows="4"
+                          maxlength="@ReportService.DetailsMaxLength"
+                          placeholder="По желание. При причина „Друго“ е задължително."></textarea>
+                <div class="form-text">До @ReportService.DetailsMaxLength символа.</div>
+                <span asp-validation-for="Details" class="text-danger"></span>
+            </div>
+
+            <button type="submit" class="btn btn-danger"><i class="bi bi-flag"></i> Изпрати сигнала</button>
+            <a asp-controller="Resources" asp-action="Details" asp-route-id="@Model.BackResourceId" class="btn btn-secondary">Отказ</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+}

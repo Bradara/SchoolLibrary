@@ -211,6 +211,25 @@ public class CommentServiceTests
         Assert.Equal(1, result.Page);
     }
 
+    // ---------- GetAsync ----------
+
+    [Fact]
+    public async Task GetAsync_ReturnsCommentWithAuthorAndResource()
+    {
+        var saved = await SaveCommentAsync("maria", "Здравейте");
+
+        var comment = await _service.GetAsync(saved.Id);
+
+        Assert.Equal("Мария Георгиева", comment!.Author.FullName);
+        Assert.Equal("Дроби", comment.Resource.Title);
+    }
+
+    [Fact]
+    public async Task GetAsync_UnknownId_ReturnsNull()
+    {
+        Assert.Null(await _service.GetAsync(999));
+    }
+
     // ---------- DeleteAsync ----------
 
     [Fact]

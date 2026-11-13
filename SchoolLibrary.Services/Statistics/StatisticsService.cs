@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
+using SchoolLibrary.Data.Enums;
 
 namespace SchoolLibrary.Services.Statistics;
 
@@ -20,6 +21,8 @@ public class StatisticsService : IStatisticsService
         var categories = await _context.Categories.CountAsync();
         var pendingTeachers = await _context.Users.CountAsync(u => u.TeacherRequested);
 
-        return new DashboardStatistics(users, resources, categories, pendingTeachers);
+        var newReports = await _context.Reports.CountAsync(r => r.Status == ReportStatus.New);
+
+        return new DashboardStatistics(users, resources, categories, pendingTeachers, newReports);
     }
 }

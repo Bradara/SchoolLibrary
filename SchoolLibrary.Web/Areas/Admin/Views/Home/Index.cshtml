@@ -7,7 +7,7 @@
 <h1 class="mb-4">Администрация</h1>
 
 <div class="row g-3">
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-lg">
         <div class="card h-100 text-center">
             <div class="card-body">
                 <i class="bi bi-people fs-2"></i>
@@ -16,7 +16,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-lg">
         <div class="card h-100 text-center">
             <div class="card-body">
                 <i class="bi bi-collection fs-2"></i>
@@ -25,7 +25,7 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-lg">
         <div class="card h-100 text-center">
             <div class="card-body">
                 <i class="bi bi-tags fs-2"></i>
@@ -34,12 +34,21 @@
             </div>
         </div>
     </div>
-    <div class="col-6 col-lg-3">
+    <div class="col-6 col-lg">
         <div class="card h-100 text-center @(Model.PendingTeachers > 0 ? "border-warning" : "")">
             <div class="card-body">
                 <i class="bi bi-person-check fs-2"></i>
                 <div class="fs-3 fw-bold">@Model.PendingTeachers</div>
                 <div class="text-muted">Чакащи учители</div>
+            </div>
+        </div>
+    </div>
+    <div class="col-6 col-lg">
+        <div class="card h-100 text-center @(Model.NewReports > 0 ? "border-danger" : "")">
+            <div class="card-body">
+                <i class="bi bi-flag fs-2"></i>
+                <div class="fs-3 fw-bold">@Model.NewReports</div>
+                <div class="text-muted">Нови сигнали</div>
             </div>
         </div>
     </div>
@@ -51,6 +60,9 @@
     </a>
     <a asp-area="Admin" asp-controller="ResourceImport" asp-action="Index" class="btn btn-outline-primary">
         <i class="bi bi-file-earmark-arrow-up"></i> Импорт на ресурси
+    </a>
+    <a asp-area="Admin" asp-controller="Reports" asp-action="Index" class="btn @(Model.NewReports > 0 ? "btn-danger" : "btn-outline-primary")">
+        <i class="bi bi-flag"></i> Сигнали@(Model.NewReports > 0 ? $" ({Model.NewReports})" : "")
     </a>
     <a asp-area="Admin" asp-controller="Users" asp-action="Index" class="btn btn-outline-primary">
         <i class="bi bi-people"></i> Потребители

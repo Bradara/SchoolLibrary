@@ -12,6 +12,8 @@
     </ol>
 </nav>
 
+<partial name="_MessagePartial" />
+
 <h1>@Model.Resource.Title</h1>
 
 <div class="mb-3">
@@ -59,6 +61,9 @@ else
     {
         <partial name="_FavoriteButton"
                  model="new FavoriteButtonModel(Model.Resource.Id, Model.IsFavorite, Context.Request.Path + Context.Request.QueryString)" />
+        <a asp-controller="Reports" asp-action="Create" asp-route-resourceId="@Model.Resource.Id"
+           class="btn btn-sm btn-outline-secondary"
+           data-sl-tip="Подай сигнал" data-sl-placement="top" aria-label="Подай сигнал"><i class="bi bi-flag"></i></a>
     }
     <span class="text-body-secondary small">
         <i class="bi bi-heart-fill text-danger"></i>

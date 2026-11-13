@@ -23,6 +23,7 @@
   <ItemGroup>
     <ProjectReference Include="..\SchoolLibrary.Data\SchoolLibrary.Data.csproj" />
     <ProjectReference Include="..\SchoolLibrary.Services\SchoolLibrary.Services.csproj" />
+    <ProjectReference Include="..\SchoolLibrary.Web\SchoolLibrary.Web.csproj" />
   </ItemGroup>
 
 </Project>

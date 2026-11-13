@@ -29,9 +29,12 @@ namespace SchoolLibrary.Controllers
         }
 
         [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-        public IActionResult Error()
+        // Reached by re-execution from the status code pages ("?code=404") and from the exception handler
+        // (no code: a server error). The response keeps the status code of the original request.
+        public IActionResult Error(int? code)
         {
-            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            var requestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier;
+            return View(ErrorViewModel.For(code, requestId));
         }
     }
 }
