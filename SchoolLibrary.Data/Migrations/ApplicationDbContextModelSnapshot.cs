@@ -302,6 +302,35 @@ namespace SchoolLibrary.Data.Migrations
                     b.ToTable("GradeLevels");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.License", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Url")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name")
+                        .IsUnique();
+
+                    b.ToTable("Licenses");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Resource", b =>
                 {
                     b.Property<int>("Id")

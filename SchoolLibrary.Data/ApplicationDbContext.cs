@@ -23,10 +23,16 @@ namespace SchoolLibrary.Data
                 .WithMany()
                 .HasForeignKey(r => r.OwnerId)
                 .OnDelete(DeleteBehavior.SetNull);
+
+            // Two licenses with the same name would be confusing in the drop-down
+            builder.Entity<License>()
+                .HasIndex(l => l.Name)
+                .IsUnique();
         }
 
         public DbSet<Resource> Resources { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<GradeLevel> GradeLevels { get; set; }
+        public DbSet<License> Licenses { get; set; }
     }
 }
