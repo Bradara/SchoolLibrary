@@ -70,7 +70,7 @@ public class ApplicationDbSeederTests : IDisposable
         Assert.True(_db.Categories.Count() >= 30);
         Assert.Contains(_db.Categories, c => c.Name == "Математика");
         Assert.Contains(_db.Categories, c => c.Name == "Човекът и природата");
-        Assert.Equal(10, _db.Licenses.Count());
+        Assert.Equal(14, _db.Licenses.Count());
         Assert.Contains(_db.Licenses, l => l.Name == "CC BY-NC 4.0");
         Assert.Equal(Roles.All.Length, _db.Roles.Count());
     }
@@ -118,7 +118,7 @@ public class ApplicationDbSeederTests : IDisposable
 
         await SeedAsync();
 
-        Assert.Equal(10, _db.Licenses.Count());
+        Assert.Equal(14, _db.Licenses.Count());
         Assert.Equal("моето описание", _db.Licenses.Single(l => l.Name == "CC BY 4.0").Description);
     }
 

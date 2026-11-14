@@ -61,7 +61,11 @@ public static class ApplicationDbSeeder
         ("CC BY-NC 4.0", "С посочване на автора, без търговска употреба.", "https://creativecommons.org/licenses/by-nc/4.0/deed.bg"),
         ("CC BY-NC-SA 4.0", "С посочване на автора, без търговска употреба, производните работи при същите условия.", "https://creativecommons.org/licenses/by-nc-sa/4.0/deed.bg"),
         ("CC BY-ND 4.0", "С посочване на автора, без промени.", "https://creativecommons.org/licenses/by-nd/4.0/deed.bg"),
-        ("Свободен за образователна употреба", "Публикуван от институция за свободно образователно ползване.", null)
+        ("Свободен за образователна употреба", "Публикуван от институция за свободно образователно ползване.", null),
+        ("CC BY 3.0", "Свободно ползване с посочване на автора (по-стара версия на лиценза).", "https://creativecommons.org/licenses/by/3.0/deed.bg"),
+        ("MIT", "Свободен софтуерен лиценз: ползване и промяна със запазване на бележката за авторските права.", "https://opensource.org/license/mit"),
+        ("Apache 2.0", "Свободен софтуерен лиценз: ползване и промяна със запазване на бележките за авторските права.", "https://www.apache.org/licenses/LICENSE-2.0"),
+        ("Стандартен лиценз на YouTube", "Видеото се показва чрез плейъра на YouTube и остава собственост на автора; платформата не го копира.", "https://www.youtube.com/t/terms")
     };
 
     /// <summary>Applies the migrations, then seeds the reference data and the roles.</summary>

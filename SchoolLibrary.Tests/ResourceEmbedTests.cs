@@ -13,6 +13,8 @@ public class ResourceEmbedTests
     [InlineData("https://en.wikibooks.org/wiki/Algebra")]
     [InlineData("https://www.gutenberg.org/ebooks/11")]
     [InlineData("https://gutenberg.org/cache/epub/11/pg11-images.html")]
+    [InlineData("https://blockly.games/turtle?lang=bg")]
+    [InlineData("https://jspaint.app/")]
     public void TrustedDomains_AreEmbedded(string url)
     {
         var resource = WithUrl(url);
@@ -34,6 +36,8 @@ public class ResourceEmbedTests
     [InlineData("https://wikisource.org.evil.com/wiki/Page")]
     [InlineData("https://evil.com/wikisource.org")]
     [InlineData("https://notgutenberg.org/ebooks/11")]
+    [InlineData("https://evilblockly.games/turtle")]
+    [InlineData("https://jspaint.app.evil.com/")]
     [InlineData("https://en.wikipedia.org/wiki/Bulgaria")]
     [InlineData("https://example.com/page")]
     public void OtherDomains_AreNotEmbedded(string url)
