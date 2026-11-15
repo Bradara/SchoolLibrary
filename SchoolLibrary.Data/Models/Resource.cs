@@ -142,7 +142,8 @@ namespace SchoolLibrary.Data.Models
             "wikibooks.org",
             "gutenberg.org",
             "blockly.games",
-            "jspaint.app"
+            "jspaint.app",
+            "wikipedia.org"
         };
 
         // Самият домейн или негов поддомейн (bg.wikisource.org), но не evilwikisource.org
