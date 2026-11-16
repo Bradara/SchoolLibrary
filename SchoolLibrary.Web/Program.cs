@@ -98,6 +98,14 @@ namespace SchoolLibrary
             }
             app.UseStaticFiles();
 
+            // In Production every cookie (sign-in, antiforgery, TempData) gets the Secure flag, so browsers never
+            // send it over plain HTTP. Behind nginx the request is HTTPS (see UseForwardedHeaders above).
+            // Security:AllowInsecureCookies=true is for the local Docker stack that is opened over http://localhost.
+            if (app.Environment.IsProduction() && !app.Configuration.GetValue<bool>("Security:AllowInsecureCookies"))
+            {
+                app.UseCookiePolicy(new CookiePolicyOptions { Secure = CookieSecurePolicy.Always });
+            }
+
             app.UseRouting();
 
             app.UseAuthorization();
