@@ -69,6 +69,9 @@ public static class ApplicationDbSeeder
         ("GPL 2.0", "Свободен софтуерен лиценз: програмата може да се ползва, променя и разпространява при същите условия.", "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html")
     };
 
+    /// <summary>Names of the licenses that are seeded on every start.</summary>
+    public static IReadOnlyList<string> StandardLicenseNames => LicenseSeed.Select(l => l.Name).ToList();
+
     /// <summary>Applies the migrations, then seeds the reference data and the roles.</summary>
     public static async Task SeedAsync(IServiceProvider services)
     {

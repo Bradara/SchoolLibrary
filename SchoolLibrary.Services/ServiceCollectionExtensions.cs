@@ -30,7 +30,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IResourceDiscoveryService, ResourceDiscoveryService>();
 
         // Sources for "Find resources". The hosts are fixed in code: the search never fetches an address a user typed
-        foreach (var clientName in new[] { WikimediaSourceProvider.HttpClientName, PhetSourceProvider.HttpClientName, GutenbergSourceProvider.HttpClientName })
+        foreach (var clientName in new[] { WikimediaSourceProvider.HttpClientName, PhetSourceProvider.HttpClientName, GutenbergSourceProvider.HttpClientName, InternetArchiveSourceProvider.HttpClientName })
         {
             services.AddHttpClient(clientName, client =>
             {
@@ -48,6 +48,7 @@ public static class ServiceCollectionExtensions
         // One instance for the whole application: the PhET catalog is downloaded once and kept in memory
         services.AddSingleton<IResourceSourceProvider, PhetSourceProvider>();
         services.AddTransient<IResourceSourceProvider, GutenbergSourceProvider>();
+        services.AddTransient<IResourceSourceProvider, InternetArchiveSourceProvider>();
 
         return services;
     }

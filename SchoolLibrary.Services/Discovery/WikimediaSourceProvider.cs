@@ -1,6 +1,4 @@
-using System.Net;
 using System.Text.Json;
-using System.Text.RegularExpressions;
 
 namespace SchoolLibrary.Services.Discovery;
 
@@ -26,8 +24,6 @@ public class WikimediaSourceProvider : IResourceSourceProvider
         new WikimediaWiki("wikipedia-ru", "ru.wikipedia.org", "Уикипедия (руски)", "Участники Википедии"),
         new WikimediaWiki("wikipedia-simple", "simple.wikipedia.org", "Уикипедия (опростен английски)", "Wikipedia contributors")
     };
-
-    private static readonly Regex HtmlTag = new("<[^>]*>", RegexOptions.Compiled);
 
     private readonly HttpClient _http;
     private readonly WikimediaWiki _wiki;
@@ -70,7 +66,7 @@ public class WikimediaSourceProvider : IResourceSourceProvider
                 Url: PageUrl(title),
                 Author: _wiki.Author,
                 SourceName: _wiki.DisplayName,
-                Description: CleanSnippet(snippet),
+                Description: DiscoveryText.Clean(snippet, MaxDescriptionLength),
                 LicenseName: LicenseName));
         }
 
@@ -78,13 +74,4 @@ public class WikimediaSourceProvider : IResourceSourceProvider
     }
 
     private string PageUrl(string title) => $"https://{_wiki.Host}/wiki/{Uri.EscapeDataString(title.Replace(' ', '_'))}";
-
-    // The API marks matches with HTML tags and entities; the platform shows plain text
-    private static string CleanSnippet(string? snippet)
-    {
-        if (string.IsNullOrWhiteSpace(snippet)) return string.Empty;
-
-        var text = WebUtility.HtmlDecode(HtmlTag.Replace(snippet, string.Empty)).Trim();
-        return text.Length <= MaxDescriptionLength ? text : text[..MaxDescriptionLength].TrimEnd() + "…";
-    }
 }

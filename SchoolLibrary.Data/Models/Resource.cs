@@ -116,6 +116,14 @@ namespace SchoolLibrary.Data.Models
                     return Url;
                 }
 
+                // Internet Archive: страницата /details/{id} не се вгражда, но плейърът /embed/{id} се вгражда
+                // (проверено: без X-Frame-Options и frame-ancestors). Само за истински идентификатори.
+                if (host == "archive.org" || host == "www.archive.org")
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(uri.AbsolutePath, @"^/details/([A-Za-z0-9][A-Za-z0-9._-]*)/?$");
+                    return match.Success ? $"https://archive.org/embed/{match.Groups[1].Value}" : null;
+                }
+
                 // Доверени сайтове със свободно съдържание, които позволяват вграждане.
                 // Страниците им не завършват на .html, затова се разпознават по домейна.
                 if (IsTrustedEmbedHost(host))
