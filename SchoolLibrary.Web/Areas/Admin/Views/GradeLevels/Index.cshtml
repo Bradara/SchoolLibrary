@@ -1,0 +1,42 @@
+@model IEnumerable<SchoolLibrary.Services.GradeLevels.GradeLevelListItem>
+
+@{
+    ViewData["Title"] = "Класове";
+}
+
+<h1 class="mb-3">Класове</h1>
+
+<p class="text-muted">Класовете от 5. до 12. са фиксиран набор и не се добавят, редактират или изтриват.</p>
+
+@if (!Model.Any())
+{
+    <div class="alert alert-info text-center py-5">Все още няма класове.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Клас</th>
+                    <th>Брой ресурси</th>
+                    <th class="text-end">Операции</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td class="fw-bold">@item.GradeLevel.Name</td>
+                        <td>@item.ResourceCount</td>
+                        <td class="text-end text-nowrap">
+                            <a asp-area="" asp-controller="Resources" asp-action="Index" asp-route-gradeLevelId="@item.GradeLevel.Id"
+                               class="btn btn-sm btn-outline-secondary"
+                               data-sl-tip="Ресурси за класа" data-sl-placement="top" aria-label="Ресурси за класа"><i class="bi bi-eye"></i></a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

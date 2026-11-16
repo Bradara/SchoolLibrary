@@ -7,4 +7,7 @@ public interface IGradeLevelService
 {
     /// <summary>All grades ordered by number.</summary>
     Task<IReadOnlyList<GradeLevel>> GetAllAsync();
+
+    /// <summary>All grades ordered by number, each with the number of resources filed under it.</summary>
+    Task<IReadOnlyList<GradeLevelListItem>> GetAllWithCountsAsync();
 }

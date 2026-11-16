@@ -20,4 +20,13 @@ public class GradeLevelService : IGradeLevelService
             .OrderBy(g => g.Number)
             .ToListAsync();
     }
+
+    public async Task<IReadOnlyList<GradeLevelListItem>> GetAllWithCountsAsync()
+    {
+        return await _context.GradeLevels
+            .AsNoTracking()
+            .OrderBy(g => g.Number)
+            .Select(g => new GradeLevelListItem(g, g.Resources.Count))
+            .ToListAsync();
+    }
 }
