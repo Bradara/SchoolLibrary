@@ -53,8 +53,8 @@
 1. Създай мрежата и закачи базата към нея:
 
    ```
-   docker network create schoolnet
-   docker network connect schoolnet postgres
+   sudo docker network create schoolnet
+   sudo docker network connect schoolnet postgres
    ```
 
 2. Копирай `.env.example` като `.env` (`chmod 600 .env`) и задай:
@@ -63,7 +63,7 @@
    ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=schoollibrary;Username=...;Password=...
    ```
 
-3. Стартирай: `docker compose up -d --build`
+3. Стартирай: `sudo docker compose up -d --build`
 4. В nginx: `proxy_pass http://127.0.0.1:8080;` със заглавия `Host`,
    `X-Forwarded-For` и `X-Forwarded-Proto`.
 5. Архивиране на базата: `scripts/backup-db.sh` (пуска се от cron).
@@ -90,7 +90,7 @@
 - [x] Bootstrap layout полиране (responsive design)
 - [x] Error/404 страници
 - [x] Docker пакетиране и деплой
-- [ ] Вертикално меню и цветови теми
+- [x] Вертикално меню и цветови теми
 
 ## Реализирани функционалности
 - [x] Вграждане в iframe за споделени ресурси в Google drive, статични страници, Github pages и свободни .pdf файлове от мрежата

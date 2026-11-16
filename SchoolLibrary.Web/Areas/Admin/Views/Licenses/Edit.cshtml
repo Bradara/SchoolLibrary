@@ -1,0 +1,17 @@
+@model SchoolLibrary.Areas.Admin.Models.LicenseFormViewModel
+
+@{
+    ViewData["Title"] = "Редактирай лиценз";
+}
+
+<h1>Редактирай лиценз</h1>
+
+<form asp-action="Edit" method="post">
+    <partial name="_LicenseForm" model="Model" />
+    <button type="submit" class="btn btn-primary">Запази</button>
+    <a asp-action="Index" class="btn btn-secondary">Отказ</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

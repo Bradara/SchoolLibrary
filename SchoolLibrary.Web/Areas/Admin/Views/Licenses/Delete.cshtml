@@ -1,0 +1,23 @@
+@model SchoolLibrary.Data.Models.License
+
+@{
+    ViewData["Title"] = "Изтрий лиценз";
+}
+
+<h1>Изтрий лиценз</h1>
+
+<h3>Сигурни ли сте, че искате да изтриете този лиценз?</h3>
+
+<div class="mb-3">
+    <h4>@Model.Name</h4>
+    @if (!string.IsNullOrEmpty(Model.Description))
+    {
+        <p class="text-muted">@Model.Description</p>
+    }
+</div>
+
+<form asp-action="Delete" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Изтрий</button>
+    <a asp-action="Index" class="btn btn-secondary">Откажи</a>
+</form>
