@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using SchoolLibrary.Services.Categories;
 using SchoolLibrary.Services.Comments;
+using SchoolLibrary.Services.Discovery;
 using SchoolLibrary.Services.Favorites;
 using SchoolLibrary.Services.GradeLevels;
 using SchoolLibrary.Services.Licenses;
@@ -26,6 +27,27 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IResourceImportService, ResourceImportService>();
         services.AddScoped<IStatisticsService, StatisticsService>();
         services.AddScoped<IUserService, UserService>();
+        services.AddScoped<IResourceDiscoveryService, ResourceDiscoveryService>();
+
+        // Sources for "Find resources". The hosts are fixed in code: the search never fetches an address a user typed
+        foreach (var clientName in new[] { WikimediaSourceProvider.HttpClientName, PhetSourceProvider.HttpClientName, GutenbergSourceProvider.HttpClientName })
+        {
+            services.AddHttpClient(clientName, client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(15);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("SchoolLibraryBot/1.0");
+            });
+        }
+
+        foreach (var wiki in WikimediaSourceProvider.Wikis)
+        {
+            services.AddTransient<IResourceSourceProvider>(sp => new WikimediaSourceProvider(
+                sp.GetRequiredService<IHttpClientFactory>().CreateClient(WikimediaSourceProvider.HttpClientName), wiki));
+        }
+
+        // One instance for the whole application: the PhET catalog is downloaded once and kept in memory
+        services.AddSingleton<IResourceSourceProvider, PhetSourceProvider>();
+        services.AddTransient<IResourceSourceProvider, GutenbergSourceProvider>();
 
         return services;
     }
