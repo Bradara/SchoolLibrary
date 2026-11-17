@@ -122,6 +122,29 @@ public class ApplicationDbSeederTests : IDisposable
         Assert.Equal("моето описание", _db.Licenses.Single(l => l.Name == "CC BY 4.0").Description);
     }
 
+    [Fact]
+    public async Task SeedDataAsync_EmptyCatalog_AddsTheFourOnlineLibraries()
+    {
+        await SeedAsync();
+
+        var libraries = _db.OnlineLibraries.OrderBy(l => l.SortOrder).ToList();
+        Assert.Equal(new[] { "https://chitanka.info", "https://4eti.me", "https://litenet.bg", "https://slovo.bg" }, libraries.Select(l => l.Url));
+        Assert.All(libraries, l => Assert.False(string.IsNullOrWhiteSpace(l.Description)));
+        Assert.All(libraries, l => Assert.StartsWith("bi-", l.Icon));
+    }
+
+    [Fact]
+    public async Task SeedDataAsync_OnlineLibrariesAdministratorsRemoved_AreNotAddedBack()
+    {
+        await SeedAsync();
+        _db.OnlineLibraries.Remove(_db.OnlineLibraries.First(l => l.Url == "https://slovo.bg"));
+        await _db.SaveChangesAsync();
+
+        await SeedAsync();
+
+        Assert.Equal(3, _db.OnlineLibraries.Count());
+    }
+
     // ---------- roles of the existing users ----------
 
     [Fact]

@@ -1,0 +1,59 @@
+@model IReadOnlyList<SchoolLibrary.Data.Models.OnlineLibrary>
+
+@{
+    ViewData["Title"] = "Онлайн библиотеки";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1>Онлайн библиотеки</h1>
+    <a asp-action="Create" class="btn btn-primary">+ Нова библиотека</a>
+</div>
+
+<partial name="_MessagePartial" />
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-info text-center py-5">Все още няма библиотеки в каталога.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 3rem"></th>
+                    <th>Име</th>
+                    <th>Описание</th>
+                    <th>Ред</th>
+                    <th class="text-end">Операции</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var library in Model)
+                {
+                    <tr>
+                        <td class="fs-4"><i class="bi @library.Icon"></i></td>
+                        <td class="fw-bold">
+                            @library.Name
+                            @if (library.SafeUrl != null)
+                            {
+                                <a href="@library.SafeUrl" target="_blank" rel="noopener noreferrer" class="ms-1 text-decoration-none"
+                                   data-sl-tip="@library.Host" data-sl-placement="top" aria-label="Отвори сайта"><i class="bi bi-box-arrow-up-right"></i></a>
+                            }
+                        </td>
+                        <td class="text-muted">@library.Description</td>
+                        <td>@library.SortOrder</td>
+                        <td class="text-end text-nowrap">
+                            <div class="d-inline-flex gap-1">
+                                <a asp-action="Edit" asp-route-id="@library.Id" class="btn btn-sm btn-outline-primary"
+                                   data-sl-tip="Редактирай" data-sl-placement="top" aria-label="Редактирай"><i class="bi bi-pencil"></i></a>
+                                <a asp-action="Delete" asp-route-id="@library.Id" class="btn btn-sm btn-outline-danger"
+                                   data-sl-tip="Изтрий" data-sl-placement="top" aria-label="Изтрий"><i class="bi bi-trash"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

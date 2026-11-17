@@ -69,6 +69,14 @@ public static class ApplicationDbSeeder
         ("GPL 2.0", "Свободен софтуерен лиценз: програмата може да се ползва, променя и разпространява при същите условия.", "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html")
     };
 
+    private static readonly (string Name, string Description, string Url, string Icon)[] OnlineLibrarySeed =
+    {
+        ("Читанка", "Свободна електронна библиотека с произведения на български и чужди автори, достъпни за четене онлайн и за изтегляне.", "https://chitanka.info", "bi-book"),
+        ("Чети", "Онлайн библиотека с книги за четене, сред които и произведения от училищната програма.", "https://4eti.me", "bi-bookshelf"),
+        ("Литернет", "Литературен портал с произведения, автори и материали по литература.", "https://litenet.bg", "bi-journal-text"),
+        ("Словото", "Сайт за българска литература: автори, творби и справочни материали.", "https://slovo.bg", "bi-feather")
+    };
+
     /// <summary>Names of the licenses that are seeded on every start.</summary>
     public static IReadOnlyList<string> StandardLicenseNames => LicenseSeed.Select(l => l.Name).ToList();
 
@@ -92,6 +100,7 @@ public static class ApplicationDbSeeder
         await SeedGradeLevelsAsync(db);
         await SeedCategoriesAsync(db);
         await SeedLicensesAsync(db);
+        await SeedOnlineLibrariesAsync(db);
         await BackfillNormalizedUrlsAsync(db, services.GetService<ILoggerFactory>()?.CreateLogger(nameof(ApplicationDbSeeder)));
 
         var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
@@ -139,6 +148,25 @@ public static class ApplicationDbSeeder
         }
 
         db.Licenses.AddRange(missing);
+        await db.SaveChangesAsync();
+    }
+
+    // Only on an empty table: afterwards the administrator owns the list, and a deleted library must not come back
+    private static async Task SeedOnlineLibrariesAsync(ApplicationDbContext db)
+    {
+        if (await db.OnlineLibraries.AnyAsync())
+        {
+            return;
+        }
+
+        db.OnlineLibraries.AddRange(OnlineLibrarySeed.Select((l, i) => new OnlineLibrary
+        {
+            Name = l.Name,
+            Description = l.Description,
+            Url = l.Url,
+            Icon = l.Icon,
+            SortOrder = (i + 1) * 10
+        }));
         await db.SaveChangesAsync();
     }
 

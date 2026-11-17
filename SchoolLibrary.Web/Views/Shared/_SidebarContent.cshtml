@@ -13,7 +13,6 @@
     var kind = Context.Request.Query["kind"].ToString();
     var onResources = area == null && controller == "Resources";
     string ActiveKind(string value) => onResources && action == "Index" && kind == value ? "active" : "";
-    string ActiveAllResources() => onResources && (action != "Index" || kind == "") ? "active" : "";
 }
 
 <div class="sidebar-inner d-flex flex-column flex-grow-1 @(compact ? "sidebar-compact" : "")">
@@ -37,12 +36,6 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link @ActiveAllResources()" asp-area="" asp-controller="Resources" asp-action="Index"
-               data-sl-tip="@(compact ? "Ресурси" : null)" aria-label="@(compact ? "Ресурси" : null)">
-                <i class="bi bi-collection"></i><span class="nav-label"> Ресурси</span>
-            </a>
-        </li>
-        <li class="nav-item">
             <a class="nav-link @ActiveKind("External")" asp-area="" asp-controller="Resources" asp-action="Index" asp-route-kind="External"
                data-sl-tip="@(compact ? "Свободни ресурси" : null)" aria-label="@(compact ? "Свободни ресурси" : null)">
                 <i class="bi bi-globe2"></i><span class="nav-label"> Свободни ресурси</span>
@@ -56,6 +49,12 @@
         </li>
         @if (User.Identity?.IsAuthenticated == true)
         {
+            <li class="nav-item">
+                <a class="nav-link @Active("Libraries")" asp-area="" asp-controller="Libraries" asp-action="Index"
+                   data-sl-tip="@(compact ? "Библиотеки" : null)" aria-label="@(compact ? "Библиотеки" : null)">
+                    <i class="bi bi-bookshelf"></i><span class="nav-label"> Библиотеки</span>
+                </a>
+            </li>
             <li class="nav-item">
                 <a class="nav-link @Active("Favorites")" asp-area="" asp-controller="Favorites" asp-action="Index"
                    data-sl-tip="@(compact ? "Любими" : null)" aria-label="@(compact ? "Любими" : null)">

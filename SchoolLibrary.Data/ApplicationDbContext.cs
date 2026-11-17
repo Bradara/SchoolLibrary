@@ -97,12 +97,17 @@ namespace SchoolLibrary.Data
             builder.Entity<License>()
                 .HasIndex(l => l.Name)
                 .IsUnique();
+
+            builder.Entity<OnlineLibrary>()
+                .HasIndex(l => l.Name)
+                .IsUnique();
         }
 
         public DbSet<Resource> Resources { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<GradeLevel> GradeLevels { get; set; }
         public DbSet<License> Licenses { get; set; }
+        public DbSet<OnlineLibrary> OnlineLibraries { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Report> Reports { get; set; }

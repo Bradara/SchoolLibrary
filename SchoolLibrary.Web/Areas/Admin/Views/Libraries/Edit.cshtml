@@ -1,0 +1,17 @@
+@model SchoolLibrary.Areas.Admin.Models.OnlineLibraryFormViewModel
+
+@{
+    ViewData["Title"] = "Редактирай библиотека";
+}
+
+<h1>Редактирай библиотека</h1>
+
+<form asp-action="Edit" method="post">
+    <partial name="_LibraryForm" model="Model" />
+    <button type="submit" class="btn btn-primary">Запази</button>
+    <a asp-action="Index" class="btn btn-secondary">Отказ</a>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
