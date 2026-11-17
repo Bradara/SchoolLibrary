@@ -30,7 +30,10 @@ public class GutenbergSourceProvider : IResourceSourceProvider
 
     public async Task<IReadOnlyList<ResourceCandidate>> SearchAsync(string query, int maxResults, CancellationToken cancellationToken)
     {
-        var url = $"{Host}/ebooks/search.opds/?query={Uri.EscapeDataString(query)}";
+        var terms = SearchTerms.Extract(query);
+        if (terms.Count == 0) return Array.Empty<ResourceCandidate>();
+
+        var url = $"{Host}/ebooks/search.opds/?query={Uri.EscapeDataString(string.Join(' ', terms))}";
 
         using var http = _httpFactory.CreateClient(HttpClientName);
         using var response = await http.GetAsync(url, cancellationToken);

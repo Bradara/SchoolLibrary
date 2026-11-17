@@ -1,0 +1,164 @@
+@model SchoolLibrary.ViewModels.DiscoveryIndexViewModel
+
+@{
+    ViewData["Title"] = "Намери ресурси";
+    var addable = Model.Candidates.Count(c => c.ExistingResourceId == null);
+}
+
+<h1 class="mb-3">🔎 Намери ресурси</h1>
+
+<partial name="_MessagePartial" />
+
+<p class="text-muted mb-1">
+    Въведете тема и платформата ще потърси свободни материали в одобрени източници. Нищо не се добавя,
+    докато не отметнете какво искате и не потвърдите. Лицензите са посочени от самите източници — прегледайте ги.
+</p>
+<p class="text-muted small">
+    <strong>Съвет:</strong> достатъчни са 1–3 ключови думи, например „фотосинтеза“, „Древен Египет“ или „дроби“.
+    Не е нужно да пишете „и“, „или“, „на“ — те се пропускат. Ако няма резултат с всички думи, се показват частични съвпадения.
+    Книгите и видеата в Internet Archive са предимно на руски и английски.
+</p>
+
+<form method="get" asp-action="Index" class="card card-body bg-body-tertiary mb-4">
+    <div class="row g-3 align-items-end">
+        <div class="col-md-6">
+            <label class="form-label" for="topic">Тема</label>
+            <input id="topic" name="topic" value="@Model.Topic" class="form-control" maxlength="100"
+                   placeholder="например: фотосинтеза, дроби, Втората световна война" />
+            <span asp-validation-for="Topic" class="text-danger"></span>
+        </div>
+        <div class="col-md-auto">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-search"></i> Търси</button>
+        </div>
+    </div>
+    <div class="mt-3">
+        <div class="form-label mb-1">Източници</div>
+        <div class="d-flex flex-wrap gap-2">
+            @foreach (var source in Model.Sources)
+            {
+                <input class="btn-check" type="checkbox" name="sources" value="@source.Key" id="source-@source.Key" autocomplete="off"
+                       checked="@Model.SelectedSources.Contains(source.Key)" />
+                <label class="btn btn-sm btn-outline-primary" for="source-@source.Key">@source.DisplayName</label>
+            }
+        </div>
+    </div>
+</form>
+
+@if (Model.FailedSources.Count > 0)
+{
+    <div class="alert alert-warning">
+        Не успяхме да потърсим в: @string.Join(", ", Model.FailedSources). Опитайте пак след малко.
+    </div>
+}
+
+@if (Model.Searched && Model.SearchedTerms.Count > 0)
+{
+    <p class="small text-muted">Търсени думи: <strong>@string.Join(", ", Model.SearchedTerms)</strong></p>
+}
+
+@if (Model.Searched && Model.Candidates.Count == 0)
+{
+    <div class="alert alert-info text-center py-4">
+        Няма намерени ресурси за „@Model.Topic“. Опитайте с по-малко или по-общи думи (например само „Египет“), в единствено или множествено число, или включете повече източници.
+    </div>
+}
+else if (Model.Searched)
+{
+    <form method="post" asp-action="Add">
+        <input type="hidden" name="Topic" value="@Model.Topic" />
+        @foreach (var key in Model.SelectedSources)
+        {
+            <input type="hidden" name="Sources" value="@key" />
+        }
+
+        <div class="table-responsive">
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th style="width: 2.5rem"></th>
+                        <th>Ресурс</th>
+                        <th>Източник</th>
+                        <th>Лиценз</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @for (var i = 0; i < Model.Candidates.Count; i++)
+                    {
+                        var row = Model.Candidates[i];
+                        <tr>
+                            <td>
+                                @* Every row posts its fields (the list must have no gaps); a resource that is already in the library cannot be ticked *@
+                                <input asp-for="Candidates[i].IsSelected" class="form-check-input" disabled="@(row.ExistingResourceId != null)" />
+                                <input type="hidden" asp-for="Candidates[i].Title" />
+                                <input type="hidden" asp-for="Candidates[i].Url" />
+                                <input type="hidden" asp-for="Candidates[i].Author" />
+                                <input type="hidden" asp-for="Candidates[i].SourceName" />
+                                <input type="hidden" asp-for="Candidates[i].Description" />
+                                <input type="hidden" asp-for="Candidates[i].LicenseName" />
+                            </td>
+                            <td>
+                                <a href="@row.Url" target="_blank" rel="noopener noreferrer" class="fw-bold text-decoration-none">@row.Title</a>
+                                @if (row.IsEmbeddable)
+                                {
+                                    <span class="badge bg-success-subtle text-success-emphasis ms-1">вгражда се</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary-subtle text-secondary-emphasis ms-1">само връзка</span>
+                                }
+                                @if (row.ExistingResourceId != null)
+                                {
+                                    <a asp-controller="Resources" asp-action="Details" asp-route-id="@row.ExistingResourceId"
+                                       class="badge text-bg-warning text-decoration-none ms-1">вече е в библиотеката</a>
+                                }
+                                @if (!string.IsNullOrEmpty(row.Description))
+                                {
+                                    <div class="small text-muted">@row.Description</div>
+                                }
+                            </td>
+                            <td>@row.SourceName</td>
+                            <td class="text-nowrap">@row.LicenseName</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @if (addable == 0)
+        {
+            <div class="alert alert-info">Всичко намерено вече е в библиотеката.</div>
+        }
+        else
+        {
+            <div class="card card-body bg-body-tertiary">
+                <p class="mb-2">Отметнатите ресурси ще бъдат добавени като <strong>свободни ресурси</strong> към избраните предмети и класове.</p>
+
+                <div class="mb-3">
+                    <div class="form-label">Предмети</div>
+                    <div class="border rounded p-2 d-flex flex-wrap gap-2" style="max-height: 16rem; overflow-y: auto;">
+                        @foreach (var c in Model.AllCategories)
+                        {
+                            <input class="btn-check" type="checkbox" name="SelectedCategoryIds" autocomplete="off" value="@c.Id" id="category-@c.Id" />
+                            <label class="btn btn-sm btn-outline-primary" for="category-@c.Id">@c.Name</label>
+                        }
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <div class="form-label">Класове</div>
+                    <div class="border rounded p-2 d-flex flex-wrap gap-2">
+                        @foreach (var g in Model.AllGradeLevels)
+                        {
+                            <input class="btn-check" type="checkbox" name="SelectedGradeLevelIds" autocomplete="off" value="@g.Id" id="grade-@g.Id" />
+                            <label class="btn btn-sm btn-outline-primary" for="grade-@g.Id">@g.Name</label>
+                        }
+                    </div>
+                </div>
+
+                <div>
+                    <button type="submit" class="btn btn-success"><i class="bi bi-plus-circle"></i> Добави отметнатите</button>
+                </div>
+            </div>
+        }
+    </form>
+}

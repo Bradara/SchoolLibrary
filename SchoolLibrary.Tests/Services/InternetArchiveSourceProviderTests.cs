@@ -26,20 +26,25 @@ public class InternetArchiveSourceProviderTests
 
     private sealed class FakeHandler : HttpMessageHandler
     {
-        private readonly string _body;
+        private readonly Func<Uri, string> _respond;
         private readonly HttpStatusCode _status;
         public Uri? LastUri { get; private set; }
 
-        public FakeHandler(string body, HttpStatusCode status)
+        public FakeHandler(string body, HttpStatusCode status) : this(_ => body, status)
         {
-            _body = body;
+        }
+
+        // The answer can depend on what was asked, so a test can check the second, relaxed question
+        public FakeHandler(Func<Uri, string> Respond, HttpStatusCode status = HttpStatusCode.OK)
+        {
+            _respond = Respond;
             _status = status;
         }
 
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
         {
             LastUri = request.RequestUri;
-            return Task.FromResult(new HttpResponseMessage(_status) { Content = new StringContent(_body, Encoding.UTF8, "application/json") });
+            return Task.FromResult(new HttpResponseMessage(_status) { Content = new StringContent(_respond(request.RequestUri!), Encoding.UTF8, "application/json") });
         }
     }
 
@@ -101,12 +106,13 @@ public class InternetArchiveSourceProviderTests
     {
         var (provider, handler) = Create();
 
-        await provider.SearchAsync("физика 7", 10, CancellationToken.None);
+        await provider.SearchAsync("физика на светлината", 10, CancellationToken.None);
 
         var uri = handler.LastUri!;
         Assert.Equal("archive.org", uri.Host);
         var query = Uri.UnescapeDataString(uri.Query.Split("&q=")[1]);
-        Assert.Equal("title:(физика AND 7) AND mediatype:(texts OR movies) AND licenseurl:*creativecommons*", query);
+        // Every word by its beginning (the archive does not know word endings); "на" is left out
+        Assert.Equal("title:(физик* AND светлина*) AND mediatype:(texts OR movies) AND licenseurl:*creativecommons*", query);
         Assert.Contains("rows=30", uri.Query);
         Assert.Contains("sort%5B%5D=downloads", uri.Query);
     }
@@ -119,7 +125,47 @@ public class InternetArchiveSourceProviderTests
         await provider.SearchAsync("""x" OR licenseurl:* ) AND (creator:"y""", 10, CancellationToken.None);
 
         var query = Uri.UnescapeDataString(handler.LastUri!.Query.Split("&q=")[1]);
-        Assert.Equal("title:(x AND licenseurl AND creator AND y) AND mediatype:(texts OR movies) AND licenseurl:*creativecommons*", query);
+        // Quotes, colons, brackets and the words OR/AND are gone; only letters of the remaining words stay
+        Assert.Equal("title:(licenseu* AND creat*) AND mediatype:(texts OR movies) AND licenseurl:*creativecommons*", query);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WhenNoTitleHasEveryWord_AsksAgainForAnyWord_AndKeepsTitlesWithAtLeastHalfOfThem()
+    {
+        var queries = new List<string>();
+        var handler = new FakeHandler(Respond: uri =>
+        {
+            var q = Uri.UnescapeDataString(uri.Query.Split("&q=")[1]);
+            queries.Add(q);
+            return q.Contains(" OR ", StringComparison.Ordinal) && q.StartsWith("title:(древе* OR")
+                ? """
+                  {"response":{"docs":[
+                    {"identifier":"one_word","title":"Религия социал-демократии","creator":"X","licenseurl":"https://creativecommons.org/licenses/by/4.0/"},
+                    {"identifier":"two_words","title":"Древен Египет и неговата религия","creator":"X","licenseurl":"https://creativecommons.org/licenses/by/4.0/"},
+                    {"identifier":"zero_words","title":"Нещо друго","creator":"X","licenseurl":"https://creativecommons.org/licenses/by/4.0/"}]}}
+                  """
+                : """{"response":{"docs":[]}}""";
+        });
+        var provider = new InternetArchiveSourceProvider(new FakeFactory(handler));
+
+        var result = await provider.SearchAsync("древен египет религия", 10, CancellationToken.None);
+
+        Assert.Equal(2, queries.Count);
+        Assert.StartsWith("title:(древе* AND египе* AND религ*)", queries[0]);
+        Assert.StartsWith("title:(древе* OR египе* OR религ*)", queries[1]);
+        // Two of the three words are needed: the one-word title and the unrelated one are dropped
+        Assert.Equal(new[] { "two_words" }, result.Select(c => c.Url.Split('/').Last()));
+    }
+
+    [Fact]
+    public async Task SearchAsync_ASingleWordThatFindsNothing_IsNotAskedTwice()
+    {
+        var calls = 0;
+        var handler = new FakeHandler(Respond: _ => { calls++; return """{"response":{"docs":[]}}"""; });
+        var provider = new InternetArchiveSourceProvider(new FakeFactory(handler));
+
+        Assert.Empty(await provider.SearchAsync("физика", 10, CancellationToken.None));
+        Assert.Equal(1, calls);
     }
 
     [Theory]

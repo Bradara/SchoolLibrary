@@ -5,7 +5,7 @@ namespace SchoolLibrary.Services.Discovery;
 /// <summary>
 /// Searches the interactive simulations of PhET (University of Colorado Boulder), translated into Bulgarian.
 /// PhET has no search service, so its public catalog (about 100 simulations) is downloaded once and kept in
-/// memory for a few hours; the topic is matched against the Bulgarian title, the learning goals and the English name.
+/// memory for a few hours; the words of the topic are matched against the beginnings of the words in the Bulgarian title, the learning goals and the English name.
 /// Every simulation is published under CC BY-NC 4.0 (the code is GPL).
 /// </summary>
 public class PhetSourceProvider : IResourceSourceProvider
@@ -35,23 +35,32 @@ public class PhetSourceProvider : IResourceSourceProvider
 
     public async Task<IReadOnlyList<ResourceCandidate>> SearchAsync(string query, int maxResults, CancellationToken cancellationToken)
     {
-        var words = query.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
-        if (words.Length == 0) return Array.Empty<ResourceCandidate>();
+        var terms = SearchTerms.Extract(query);
+        if (terms.Count == 0) return Array.Empty<ResourceCandidate>();
 
         var catalog = await GetCatalogAsync(cancellationToken);
 
-        return catalog
-            .Where(s => words.All(w => s.SearchText.Contains(w, StringComparison.CurrentCultureIgnoreCase)))
+        var scored = catalog
+            .Select(s => (Simulation: s, Matches: SearchTerms.CountMatches(s.SearchText, terms), InTitle: SearchTerms.CountMatches(s.Title, terms)))
+            .Where(x => x.Matches > 0)
+            .ToList();
+
+        // Simulations that have every word first; when there are none, those that have at least half of them
+        var required = scored.Any(x => x.Matches == terms.Count) ? terms.Count : SearchTerms.RelaxedRequirement(terms.Count);
+
+        return scored
+            .Where(x => x.Matches >= required)
             // A match in the title is a better answer than a match in the learning goals
-            .OrderByDescending(s => words.All(w => s.Title.Contains(w, StringComparison.CurrentCultureIgnoreCase)))
-            .ThenBy(s => s.Title, StringComparer.CurrentCulture)
+            .OrderByDescending(x => x.Matches)
+            .ThenByDescending(x => x.InTitle)
+            .ThenBy(x => x.Simulation.Title, StringComparer.CurrentCulture)
             .Take(maxResults)
-            .Select(s => new ResourceCandidate(
-                Title: "Симулация: " + s.Title,
-                Url: s.Url,
+            .Select(x => new ResourceCandidate(
+                Title: "Симулация: " + x.Simulation.Title,
+                Url: x.Simulation.Url,
                 Author: Author,
                 SourceName: DisplayName,
-                Description: s.Description,
+                Description: x.Simulation.Description,
                 LicenseName: LicenseName))
             .ToList();
     }

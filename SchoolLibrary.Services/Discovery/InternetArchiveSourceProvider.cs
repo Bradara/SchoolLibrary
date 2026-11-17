@@ -15,7 +15,6 @@ public class InternetArchiveSourceProvider : IResourceSourceProvider
     private const int MaxDescriptionLength = 300;
 
     private static readonly Regex Identifier = new(@"^[A-Za-z0-9][A-Za-z0-9._-]*$", RegexOptions.Compiled);
-    private static readonly Regex NotLettersOrDigits = new(@"[^\p{L}\p{Nd}]+", RegexOptions.Compiled);
 
     // CC license addresses (any http/https spelling) mapped to the names of the licenses the platform has.
     // A license that is not in the list (for example "no derivatives, non-commercial") is not offered.
@@ -47,14 +46,34 @@ public class InternetArchiveSourceProvider : IResourceSourceProvider
 
     public async Task<IReadOnlyList<ResourceCandidate>> SearchAsync(string query, int maxResults, CancellationToken cancellationToken)
     {
-        var luceneQuery = BuildQuery(query);
-        if (luceneQuery == null) return Array.Empty<ResourceCandidate>();
+        var terms = SearchTerms.Extract(query);
+        if (terms.Count == 0) return Array.Empty<ResourceCandidate>();
 
+        // The archive does not know word endings, so every word is searched by its beginning ("древ*").
+        // Items that have every word come first; when there are none, items that have at least half of them.
+        var found = await QueryAsync(terms, "AND", maxResults, cancellationToken);
+        if (found.Count == 0 && terms.Count > 1)
+        {
+            var required = SearchTerms.RelaxedRequirement(terms.Count);
+            found = (await QueryAsync(terms, "OR", maxResults * 3, cancellationToken))
+                .Select(c => (Candidate: c, Matches: SearchTerms.CountMatches(c.Title, terms)))
+                .Where(x => x.Matches >= required)
+                .OrderByDescending(x => x.Matches)
+                .Take(maxResults)
+                .Select(x => x.Candidate)
+                .ToList();
+        }
+
+        return found;
+    }
+
+    private async Task<IReadOnlyList<ResourceCandidate>> QueryAsync(IReadOnlyList<string> terms, string joiner, int maxResults, CancellationToken cancellationToken)
+    {
         // More rows than needed: some items are dropped because their license is not one the platform knows
         var url = "https://archive.org/advancedsearch.php?output=json&sort%5B%5D=downloads+desc" +
                   $"&rows={maxResults * 3}" +
                   "&fl%5B%5D=identifier&fl%5B%5D=title&fl%5B%5D=creator&fl%5B%5D=description&fl%5B%5D=licenseurl" +
-                  $"&q={Uri.EscapeDataString(luceneQuery)}";
+                  $"&q={Uri.EscapeDataString(BuildQuery(terms, joiner))}";
 
         using var http = _httpFactory.CreateClient(HttpClientName);
         using var response = await http.GetAsync(url, cancellationToken);
@@ -91,17 +110,10 @@ public class InternetArchiveSourceProvider : IResourceSourceProvider
         return candidates;
     }
 
-    // Only the words of the topic go into the query (letters and digits), never the raw text, so a user cannot
-    // add search fields or operators. Words must be in the title; books and videos only; CC licenses only.
-    private static string? BuildQuery(string topic)
-    {
-        var words = NotLettersOrDigits.Split(topic)
-            .Where(w => w.Length > 0 && w is not ("AND" or "OR" or "NOT" or "TO"))
-            .ToList();
-        if (words.Count == 0) return null;
-
-        return $"title:({string.Join(" AND ", words)}) AND mediatype:(texts OR movies) AND licenseurl:*creativecommons*";
-    }
+    // Only the words of the topic go into the query (letters and digits, see SearchTerms), never the raw text, so a user
+    // cannot add search fields or operators. Words must be in the title; books and videos only; CC licenses only.
+    private static string BuildQuery(IReadOnlyList<string> terms, string joiner) =>
+        $"title:({string.Join($" {joiner} ", terms.Select(t => SearchTerms.Stem(t) + "*"))}) AND mediatype:(texts OR movies) AND licenseurl:*creativecommons*";
 
     // The API returns a string, or a list of strings when the field was set more than once
     private static string? Text(JsonElement doc, string name)

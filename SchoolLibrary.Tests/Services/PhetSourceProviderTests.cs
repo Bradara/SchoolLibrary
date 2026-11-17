@@ -80,7 +80,7 @@ public class PhetSourceProviderTests
     }
 
     [Fact]
-    public async Task SearchAsync_EveryWordMustMatch_AndTitleMatchesComeFirst()
+    public async Task SearchAsync_TitleMatchesComeFirst()
     {
         var (provider, _) = Create();
 
@@ -88,7 +88,49 @@ public class PhetSourceProviderTests
 
         // "Дроби: Въведение" has the word in its title, "Гравитация и орбити" only in its goals
         Assert.Equal(new[] { "Симулация: Дроби: Въведение", "Симулация: Гравитация и орбити" }, result.Select(c => c.Title));
-        Assert.Empty(await provider.SearchAsync("дроби орбити въведение", 10, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task SearchAsync_WhenSomeSimulationHasEveryWord_OnlyThoseAreShown()
+    {
+        var (provider, _) = Create();
+
+        var result = await provider.SearchAsync("дроби въведение", 10, CancellationToken.None);
+
+        Assert.Equal("Симулация: Дроби: Въведение", Assert.Single(result).Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_WhenNoSimulationHasEveryWord_ShowsThoseWithAtLeastHalfOfThem_BestFirst()
+    {
+        var (provider, _) = Create();
+
+        // Nothing has all of "дроби", "орбити" and "ракети"; "Дроби: Въведение" (дроби) and "Гравитация и орбити"
+        // (орбити, and дроби in the goals) have some. Two of three words are needed.
+        var result = await provider.SearchAsync("дроби орбити ракети", 10, CancellationToken.None);
+
+        Assert.Equal("Симулация: Гравитация и орбити", Assert.Single(result).Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_JoiningWordsAreLeftOut_AndDoNotMatchEverything()
+    {
+        var (provider, _) = Create();
+
+        // "и" is a letter inside most titles; as a word it must not make unrelated simulations match
+        var result = await provider.SearchAsync("гравитация и ракети", 10, CancellationToken.None);
+
+        Assert.Equal("Симулация: Гравитация и орбити", Assert.Single(result).Title);
+        Assert.Empty(await provider.SearchAsync("и", 10, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task SearchAsync_OtherEndingsOfAWordMatch()
+    {
+        var (provider, _) = Create();
+
+        // "орбитите" and "орбити" share their beginning
+        Assert.Single(await provider.SearchAsync("орбитите", 10, CancellationToken.None));
     }
 
     [Fact]

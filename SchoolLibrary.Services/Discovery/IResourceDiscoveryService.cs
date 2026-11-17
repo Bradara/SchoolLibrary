@@ -14,4 +14,16 @@ public interface IResourceDiscoveryService
     /// catalog are marked with the id of the existing resource.
     /// </summary>
     Task<ServiceResult<DiscoveryResult>> SearchAsync(string? topic, IEnumerable<string>? sourceKeys, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Saves the ticked suggestions as free resources owned by <paramref name="ownerId"/>, all under the same
+    /// subjects and grades. Every one goes through <c>IResourceService.CreateAsync</c>, so it gets the same checks
+    /// as a resource typed in by hand (duplicate link, lengths, http(s) address). One that fails is skipped with
+    /// a reason; the others are still saved.
+    /// </summary>
+    Task<ServiceResult<DiscoveryAddResult>> AddAsync(
+        IReadOnlyList<CandidateSelection>? selected,
+        IReadOnlyList<int>? categoryIds,
+        IReadOnlyList<int>? gradeLevelIds,
+        string ownerId);
 }

@@ -63,6 +63,15 @@
                 </a>
             </li>
         }
+        @if (User.CanAddResources())
+        {
+            <li class="nav-item">
+                <a class="nav-link @Active("Discovery")" asp-area="" asp-controller="Discovery" asp-action="Index"
+                   data-sl-tip="@(compact ? "Намери ресурси" : null)" aria-label="@(compact ? "Намери ресурси" : null)">
+                    <i class="bi bi-search"></i><span class="nav-label"> Намери ресурси</span>
+                </a>
+            </li>
+        }
         @if (User.IsInRole(Roles.Administrator))
         {
             <li class="nav-item">

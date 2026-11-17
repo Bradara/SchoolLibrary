@@ -1,6 +1,8 @@
 using SchoolLibrary.Data.Common;
+using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
+using SchoolLibrary.Services.Licenses;
 using SchoolLibrary.Services.Resources;
 
 namespace SchoolLibrary.Services.Discovery;
@@ -10,16 +12,19 @@ public class ResourceDiscoveryService : IResourceDiscoveryService
     public const int MinTopicLength = 2;
     public const int MaxTopicLength = 100;
     public const int ResultsPerSource = 10;
+    public const int MaxAddAtOnce = 30;
     public static readonly TimeSpan DefaultSourceTimeout = TimeSpan.FromSeconds(10);
 
     private readonly IReadOnlyList<IResourceSourceProvider> _providers;
     private readonly IResourceService _resources;
+    private readonly ILicenseService _licenses;
     private readonly TimeSpan _sourceTimeout;
 
-    public ResourceDiscoveryService(IEnumerable<IResourceSourceProvider> providers, IResourceService resources, TimeSpan? sourceTimeout = null)
+    public ResourceDiscoveryService(IEnumerable<IResourceSourceProvider> providers, IResourceService resources, ILicenseService licenses, TimeSpan? sourceTimeout = null)
     {
         _providers = providers.ToList();
         _resources = resources;
+        _licenses = licenses;
         _sourceTimeout = sourceTimeout ?? DefaultSourceTimeout;
     }
 
@@ -39,6 +44,15 @@ public class ResourceDiscoveryService : IResourceDiscoveryService
             return ServiceResult<DiscoveryResult>.Failure(ServiceError.Invalid, $"Темата не може да бъде по-дълга от {MaxTopicLength} символа.");
         }
 
+        // Words like "и", "на", "или" are dropped; the sources get only the words that name the topic
+        var terms = SearchTerms.Extract(topic);
+        if (terms.Count == 0)
+        {
+            return ServiceResult<DiscoveryResult>.Failure(ServiceError.Invalid, "Въведете конкретна тема. Думи като „и“, „на“, „или“ се пропускат.");
+        }
+
+        var query = string.Join(' ', terms);
+
         var chosen = sourceKeys?.ToHashSet(StringComparer.Ordinal) ?? new HashSet<string>();
         var selected = chosen.Count == 0 ? _providers : _providers.Where(p => chosen.Contains(p.Key)).ToList();
         if (selected.Count == 0)
@@ -46,12 +60,12 @@ public class ResourceDiscoveryService : IResourceDiscoveryService
             return ServiceResult<DiscoveryResult>.Failure(ServiceError.Invalid, "Изберете поне един източник.");
         }
 
-        var outcomes = await Task.WhenAll(selected.Select(p => SearchOneAsync(p, topic, _sourceTimeout, cancellationToken)));
+        var outcomes = await Task.WhenAll(selected.Select(p => SearchOneAsync(p, query, _sourceTimeout, cancellationToken)));
 
         var failed = outcomes.Where(o => o.Candidates == null).Select(o => o.Provider.DisplayName).ToList();
         var candidates = await MarkExistingAsync(outcomes.Where(o => o.Candidates != null).SelectMany(o => o.Candidates!));
 
-        return ServiceResult<DiscoveryResult>.Success(new DiscoveryResult(candidates, failed));
+        return ServiceResult<DiscoveryResult>.Success(new DiscoveryResult(candidates, failed, terms));
     }
 
     // One slow or broken source must not break the whole search: it is reported and the rest is shown
@@ -88,5 +102,66 @@ public class ResourceDiscoveryService : IResourceDiscoveryService
         }
 
         return result;
+    }
+
+    public async Task<ServiceResult<DiscoveryAddResult>> AddAsync(
+        IReadOnlyList<CandidateSelection>? selected,
+        IReadOnlyList<int>? categoryIds,
+        IReadOnlyList<int>? gradeLevelIds,
+        string ownerId)
+    {
+        if (selected == null || selected.Count == 0)
+        {
+            return ServiceResult<DiscoveryAddResult>.Failure(ServiceError.Invalid, "Изберете поне един ресурс.");
+        }
+
+        if (selected.Count > MaxAddAtOnce)
+        {
+            return ServiceResult<DiscoveryAddResult>.Failure(ServiceError.Invalid, $"Можете да добавите най-много {MaxAddAtOnce} ресурса наведнъж.");
+        }
+
+        if (categoryIds == null || categoryIds.Count == 0)
+        {
+            return ServiceResult<DiscoveryAddResult>.Failure(ServiceError.Invalid, "Изберете поне един предмет.");
+        }
+
+        if (gradeLevelIds == null || gradeLevelIds.Count == 0)
+        {
+            return ServiceResult<DiscoveryAddResult>.Failure(ServiceError.Invalid, "Изберете поне един клас.");
+        }
+
+        var licenses = (await _licenses.GetOptionsAsync())
+            .ToDictionary(l => l.Name, l => l.Id, StringComparer.OrdinalIgnoreCase);
+
+        var added = new List<string>();
+        var skipped = new List<string>();
+
+        foreach (var item in selected)
+        {
+            var title = item.Title?.Trim() ?? string.Empty;
+            if (item.LicenseName == null || !licenses.TryGetValue(item.LicenseName.Trim(), out var licenseId))
+            {
+                skipped.Add($"{title}: лицензът не е намерен в платформата.");
+                continue;
+            }
+
+            var result = await _resources.CreateAsync(new ResourceInput
+            {
+                Title = title,
+                Author = item.Author ?? string.Empty,
+                Source = item.SourceName,
+                Description = item.Description,
+                Url = item.Url ?? string.Empty,
+                LicenseId = licenseId,
+                Kind = ResourceKind.External,
+                CategoryIds = categoryIds.ToList(),
+                GradeLevelIds = gradeLevelIds.ToList()
+            }, ownerId);
+
+            if (result.Succeeded) added.Add(result.Value!.Title);
+            else skipped.Add($"{title}: {result.Message}");
+        }
+
+        return ServiceResult<DiscoveryAddResult>.Success(new DiscoveryAddResult(added, skipped));
     }
 }

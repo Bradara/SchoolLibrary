@@ -67,15 +67,92 @@ public class WikimediaSourceProviderTests
     [Fact]
     public async Task SearchAsync_AsksTheFixedHostWithTheEscapedTopicAndLimit()
     {
-        var (provider, handler) = Create("""{"query":{"search":[]}}""");
+        var (provider, handler) = Create("""{"query":{"search":[{"title":"X","snippet":""}]}}""");
 
-        await provider.SearchAsync("a&b=c d", 7, CancellationToken.None);
+        await provider.SearchAsync("физика & химия", 7, CancellationToken.None);
 
         var uri = handler.LastRequest!.RequestUri!;
         Assert.Equal("bg.wikipedia.org", uri.Host);
         Assert.Equal("https", uri.Scheme);
-        Assert.Contains("srsearch=a%26b%3Dc%20d", uri.AbsoluteUri);
+        // Punctuation never reaches the wiki search: only the words, joined by a space
+        Assert.Equal("физика химия", Uri.UnescapeDataString(uri.Query.Split("srsearch=")[1]));
         Assert.Contains("srlimit=7", uri.AbsoluteUri);
+    }
+
+    [Fact]
+    public async Task SearchAsync_LeavesOutJoiningWords()
+    {
+        var (provider, handler) = Create("""{"query":{"search":[{"title":"X","snippet":""}]}}""");
+
+        await provider.SearchAsync("религия и култура на Древен Египет", 10, CancellationToken.None);
+
+        Assert.Equal("религия култура древен египет", Uri.UnescapeDataString(handler.LastRequest!.RequestUri!.Query.Split("srsearch=")[1]));
+    }
+
+    [Fact]
+    public async Task SearchAsync_WhenNoPageHasEveryWord_AsksAgainForPagesWithAnyOfThem()
+    {
+        var asked = new List<string>();
+        var handler = new FakeHandler(request =>
+        {
+            var search = Uri.UnescapeDataString(request.RequestUri!.Query.Split("srsearch=")[1]);
+            asked.Add(search);
+            return Json(search.Contains(" OR ")
+                ? """{"query":{"search":[{"title":"Древен Египет","snippet":"x"}]}}"""
+                : """{"query":{"search":[]}}""");
+        });
+        var provider = new WikimediaSourceProvider(new HttpClient(handler), Wiki);
+
+        var result = await provider.SearchAsync("Древен Египет религия", 10, CancellationToken.None);
+
+        Assert.Equal(new[] { "древен египет религия", "древен OR египет OR религия" }, asked);
+        Assert.Equal("Древен Египет", Assert.Single(result).Title);
+    }
+
+    [Fact]
+    public async Task SearchAsync_FromTheAnyWordQuestion_KeepsOnlyPagesWithAtLeastHalfTheWords()
+    {
+        var handler = new FakeHandler(request =>
+        {
+            var search = Uri.UnescapeDataString(request.RequestUri!.Query.Split("srsearch=")[1]);
+            return Json(search.Contains(" OR ")
+                ? """
+                  {"query":{"search":[
+                    {"title":"Древен Египет","snippet":"държава край Нил"},
+                    {"title":"Планетарен индекс","snippet":"упоменава религия само веднъж"},
+                    {"title":"Нещо друго","snippet":"култура и религия на народа"}]}}
+                  """
+                : """{"query":{"search":[]}}""");
+        });
+        var provider = new WikimediaSourceProvider(new HttpClient(handler), Wiki);
+
+        var result = await provider.SearchAsync("Древен Египет религия култура", 10, CancellationToken.None);
+
+        // Four words need two: "Древен Египет" has two in its title, "Нещо друго" has two in its text, the other has one
+        Assert.Equal(new[] { "Древен Египет", "Нещо друго" }, result.Select(c => c.Title));
+    }
+
+    [Fact]
+    public async Task SearchAsync_ASingleWordThatFindsNothing_IsNotAskedTwice()
+    {
+        var calls = 0;
+        var handler = new FakeHandler(_ => { calls++; return Json("""{"query":{"search":[]}}"""); });
+        var provider = new WikimediaSourceProvider(new HttpClient(handler), Wiki);
+
+        Assert.Empty(await provider.SearchAsync("физика", 10, CancellationToken.None));
+        Assert.Equal(1, calls);
+    }
+
+    [Theory]
+    [InlineData("и")]
+    [InlineData("на и или")]
+    [InlineData("!!!")]
+    public async Task SearchAsync_WithoutAnyWordWorthSearching_AsksNothing(string topic)
+    {
+        var (provider, handler) = Create("{}");
+
+        Assert.Empty(await provider.SearchAsync(topic, 10, CancellationToken.None));
+        Assert.Null(handler.LastRequest);
     }
 
     [Fact]
@@ -83,7 +160,7 @@ public class WikimediaSourceProviderTests
     {
         var (provider, _) = Create("{\"query\":{\"search\":[{\"title\":\"A\",\"snippet\":\"" + new string('я', 500) + "\"}]}}");
 
-        var result = await provider.SearchAsync("a", 10, CancellationToken.None);
+        var result = await provider.SearchAsync("физика", 10, CancellationToken.None);
 
         Assert.Equal(301, result[0].Description.Length);
         Assert.EndsWith("…", result[0].Description);
@@ -98,7 +175,7 @@ public class WikimediaSourceProviderTests
     {
         var (provider, _) = Create(json);
 
-        Assert.Empty(await provider.SearchAsync("a", 10, CancellationToken.None));
+        Assert.Empty(await provider.SearchAsync("физика", 10, CancellationToken.None));
     }
 
     [Fact]
@@ -106,7 +183,7 @@ public class WikimediaSourceProviderTests
     {
         var (provider, _) = Create("{}", HttpStatusCode.ServiceUnavailable);
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => provider.SearchAsync("a", 10, CancellationToken.None));
+        await Assert.ThrowsAsync<HttpRequestException>(() => provider.SearchAsync("физика", 10, CancellationToken.None));
     }
 
     [Fact]

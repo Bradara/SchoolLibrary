@@ -96,7 +96,7 @@ public class GutenbergSourceProviderTests
     {
         var (provider, _) = Create();
 
-        Assert.Single(await provider.SearchAsync("a", 1, CancellationToken.None));
+        Assert.Single(await provider.SearchAsync("book", 1, CancellationToken.None));
     }
 
     [Fact]
@@ -107,7 +107,7 @@ public class GutenbergSourceProviderTests
         await provider.SearchAsync("war & peace", 10, CancellationToken.None);
 
         Assert.Equal("www.gutenberg.org", handler.LastUri!.Host);
-        Assert.Contains("query=war%20%26%20peace", handler.LastUri.AbsoluteUri);
+        Assert.Contains("query=war%20peace", handler.LastUri.AbsoluteUri);
     }
 
     [Fact]
@@ -116,7 +116,7 @@ public class GutenbergSourceProviderTests
         var feed = $"""<feed xmlns="http://www.w3.org/2005/Atom"><entry><title>{new string('я', 300)}</title><id>https://www.gutenberg.org/ebooks/1.opds</id></entry></feed>""";
         var (provider, _) = Create(feed);
 
-        var result = await provider.SearchAsync("a", 10, CancellationToken.None);
+        var result = await provider.SearchAsync("book", 10, CancellationToken.None);
 
         Assert.Equal(100, result[0].Title.Length);
     }
@@ -126,7 +126,7 @@ public class GutenbergSourceProviderTests
     {
         var (provider, _) = Create("""<feed xmlns="http://www.w3.org/2005/Atom"></feed>""");
 
-        Assert.Empty(await provider.SearchAsync("a", 10, CancellationToken.None));
+        Assert.Empty(await provider.SearchAsync("book", 10, CancellationToken.None));
     }
 
     [Fact]
@@ -134,7 +134,7 @@ public class GutenbergSourceProviderTests
     {
         var (provider, _) = Create("<html>maintenance</html>", HttpStatusCode.ServiceUnavailable);
 
-        await Assert.ThrowsAsync<HttpRequestException>(() => provider.SearchAsync("a", 10, CancellationToken.None));
+        await Assert.ThrowsAsync<HttpRequestException>(() => provider.SearchAsync("book", 10, CancellationToken.None));
     }
 
     [Fact]
@@ -142,7 +142,7 @@ public class GutenbergSourceProviderTests
     {
         var (provider, _) = Create("<html><body>Temporarily down");
 
-        await Assert.ThrowsAnyAsync<System.Xml.XmlException>(() => provider.SearchAsync("a", 10, CancellationToken.None));
+        await Assert.ThrowsAnyAsync<System.Xml.XmlException>(() => provider.SearchAsync("book", 10, CancellationToken.None));
     }
 
     [Fact]
