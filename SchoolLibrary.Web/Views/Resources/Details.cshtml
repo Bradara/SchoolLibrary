@@ -53,6 +53,15 @@
             @Html.Raw(Model.MarkdownHtml)
         </article>
     }
+    else if (Model.Resource.File.ContentType == "application/epub+zip")
+    {
+        @* epub.js reads the file (served by Download) in the browser and renders it here *@
+        <div id="sl-epub" class="border rounded mb-2 bg-body" style="height: 70vh;" data-epub-url="@serveUrl"></div>
+        <div class="mb-3 d-flex gap-2">
+            <button type="button" id="sl-epub-prev" class="btn btn-outline-secondary btn-sm">← Назад</button>
+            <button type="button" id="sl-epub-next" class="btn btn-outline-secondary btn-sm">Напред →</button>
+        </div>
+    }
     else
     {
         <div class="alert alert-info mb-3">Прегледът на този файл ще се покаже тук.</div>
@@ -147,3 +156,12 @@ else
 <div class="mt-3">
     <a asp-action="Index" class="btn btn-link">← Към списъка</a>
 </div>
+
+@section Scripts {
+    @if (Model.Resource.Kind == ResourceKind.Upload && Model.Resource.File?.ContentType == "application/epub+zip")
+    {
+        <script src="~/lib/jszip/jszip.min.js"></script>
+        <script src="~/lib/epubjs/epub.min.js"></script>
+        <script src="~/js/sl-epub-reader.js" asp-append-version="true"></script>
+    }
+}
