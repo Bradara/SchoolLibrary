@@ -30,12 +30,6 @@
             </a>
         </li>
         <li class="nav-item">
-            <a class="nav-link @Active("Home", "About")" asp-area="" asp-controller="Home" asp-action="About"
-               data-sl-tip="@(compact ? "За проекта" : null)" aria-label="@(compact ? "За проекта" : null)">
-                <i class="bi bi-info-circle"></i><span class="nav-label"> За проекта</span>
-            </a>
-        </li>
-        <li class="nav-item">
             <a class="nav-link @ActiveKind("External")" asp-area="" asp-controller="Resources" asp-action="Index" asp-route-kind="External"
                data-sl-tip="@(compact ? "Свободни ресурси" : null)" aria-label="@(compact ? "Свободни ресурси" : null)">
                 <i class="bi bi-globe2"></i><span class="nav-label"> Свободни ресурси</span>
@@ -70,12 +64,6 @@
         }
         @if (User.CanAddResources())
         {
-            <li class="nav-item">
-                <a class="nav-link @Active("Resources", "Upload")" asp-area="" asp-controller="Resources" asp-action="Upload"
-                   data-sl-tip="@(compact ? "Качи материал" : null)" aria-label="@(compact ? "Качи материал" : null)">
-                    <i class="bi bi-upload"></i><span class="nav-label"> Качи материал</span>
-                </a>
-            </li>
             <li class="nav-item">
                 <a class="nav-link @Active("Discovery")" asp-area="" asp-controller="Discovery" asp-action="Index"
                    data-sl-tip="@(compact ? "Намери ресурси" : null)" aria-label="@(compact ? "Намери ресурси" : null)">
