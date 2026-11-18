@@ -102,7 +102,7 @@ Forms are bound to view models, not to entities, so a request cannot set fields 
 | `IReportService` | Create (one open report per user and content), moderation, delete reported content |
 | `IUserService` | Roles, teacher approvals, account deletion |
 | `IStatisticsService` | Numbers for the admin dashboard |
-| `IFileStorage` | Stores and serves uploaded file bytes outside the database (`LocalFileStorage` on a disk volume; the abstraction allows swapping in object storage later) |
+| `IFileStorage` | Stores and serves uploaded file bytes outside the database, chosen by configuration: `LocalFileStorage` on a disk volume, or `OciObjectStorage` in an S3-compatible bucket (OCI Object Storage) |
 | `IMarkdownRenderer` | Renders uploaded Markdown to sanitized HTML (Markdig with raw HTML disabled, then HtmlSanitizer) |
 
 ## Validation and security
@@ -198,14 +198,16 @@ dotnet ef database update --project SchoolLibrary.Data --startup-project SchoolL
 |---|---|
 | `ConnectionStrings__DefaultConnection` | PostgreSQL connection string (user secrets or environment) |
 | `DataProtection__KeysPath` | Folder for cookie and antiforgery keys (a volume in Docker, so restarts keep users signed in) |
-| `FileStorage__LocalPath` | Folder for uploaded files (a volume in Docker). Defaults to `App_Data/uploads` under the content root |
+| `FileStorage__LocalPath` | Folder for uploaded files (a volume in Docker). Defaults to `App_Data/uploads` under the content root. Used when the provider is local |
+| `FileStorage__Provider` | `Oci` keeps uploaded files in an S3-compatible bucket (OCI Object Storage), off the server's disk; any other value uses the local folder above |
+| `FileStorage__Oci__Endpoint`, `__Region`, `__Bucket`, `__AccessKey`, `__SecretKey` | S3-compatible endpoint, region, bucket and Customer Secret Key, used only when the provider is `Oci` (secrets come from the environment and are never committed) |
 | `AllowedHosts` | Host names the app answers to, separated by `;` (default `*`) |
 | `Security__AllowInsecureCookies` | `true` only for a local stack opened over plain HTTP |
 | `Seed__DemoData`, `Seed__DemoPassword` | Demo data, Development only |
 
 ## Deployment
 
-The image is built for `linux/arm64` and `linux/amd64` (multi-stage Dockerfile). The production stack runs the app on `127.0.0.1:8080`; a reverse proxy (nginx) terminates TLS and forwards `Host`, `X-Forwarded-For` and `X-Forwarded-Proto`. PostgreSQL runs as a separate container on a shared Docker network. Data Protection keys and uploaded files are kept on named volumes, so they survive container rebuilds and restarts.
+The image is built for `linux/arm64` and `linux/amd64` (multi-stage Dockerfile). The production stack runs the app on `127.0.0.1:8080`; a reverse proxy (nginx) terminates TLS and forwards `Host`, `X-Forwarded-For` and `X-Forwarded-Proto`. PostgreSQL runs as a separate container on a shared Docker network. The Data Protection keys are kept on a named volume, so they survive container rebuilds and restarts. Uploaded files are kept on a named volume as well, or, by setting `FileStorage__Provider=Oci`, in an S3-compatible bucket (OCI Object Storage) so they live off the server's disk.
 
 ```
 docker network create schoolnet

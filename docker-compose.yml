@@ -17,7 +17,7 @@ services:
       - "127.0.0.1:8080:8080"            # reachable only from the host (nginx proxies to it)
     volumes:
       - dp-keys:/keys
-      - uploads:/uploads                 # uploaded files (PDF/EPUB/Markdown) survive container restarts
+      - uploads:/uploads                 # uploaded files survive restarts; unused when FileStorage__Provider=Oci (files go to object storage)
     networks:
       - schoolnet
 

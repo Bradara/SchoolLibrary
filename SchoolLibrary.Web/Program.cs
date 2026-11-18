@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.DataProtection;
+﻿using Amazon.S3;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
@@ -72,14 +73,28 @@ namespace SchoolLibrary
                 options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
             builder.Services.AddApplicationServices();
 
-            // Uploaded files live outside the database. Locally under the content root; in Docker on a
-            // mounted volume set with FileStorage:LocalPath (for example /data/uploads).
-            var uploadsPath = builder.Configuration["FileStorage:LocalPath"];
-            if (string.IsNullOrWhiteSpace(uploadsPath))
+            // Where uploaded files are kept, chosen by FileStorage:Provider:
+            //   "Oci"  -> an S3-compatible bucket (OCI Object Storage), so the files live off the server's disk;
+            //   else   -> a folder: under the content root locally, or a mounted volume (FileStorage:LocalPath) in Docker.
+            if (string.Equals(builder.Configuration["FileStorage:Provider"], "Oci", StringComparison.OrdinalIgnoreCase))
             {
-                uploadsPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "uploads");
+                var objectStorage = builder.Configuration.GetSection("FileStorage:Oci").Get<ObjectStorageOptions>()
+                    ?? new ObjectStorageOptions();
+                objectStorage.Validate(); // fail fast at startup if a setting is missing
+
+                builder.Services.AddSingleton<IAmazonS3>(_ => ObjectStorageClientFactory.Create(objectStorage));
+                builder.Services.AddSingleton<IFileStorage>(sp =>
+                    new OciObjectStorage(sp.GetRequiredService<IAmazonS3>(), objectStorage.Bucket));
             }
-            builder.Services.AddSingleton<IFileStorage>(new LocalFileStorage(uploadsPath));
+            else
+            {
+                var uploadsPath = builder.Configuration["FileStorage:LocalPath"];
+                if (string.IsNullOrWhiteSpace(uploadsPath))
+                {
+                    uploadsPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "uploads");
+                }
+                builder.Services.AddSingleton<IFileStorage>(new LocalFileStorage(uploadsPath));
+            }
 
             var app = builder.Build();
 
