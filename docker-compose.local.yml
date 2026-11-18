@@ -27,13 +27,16 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=schoollibrary;Username=schoollib;Password=${POSTGRES_PASSWORD}"
       DataProtection__KeysPath: /keys
+      FileStorage__LocalPath: /uploads
       AllowedHosts: "localhost;127.0.0.1"
       Security__AllowInsecureCookies: "true"   # the local stack is opened over plain http://localhost
     ports:
       - "8081:8080"                      # host port 8081 -> container port 8080 (8080 may be used by other local software)
     volumes:
       - dp-keys:/keys
+      - uploads:/uploads                 # uploaded files survive container restarts
 
 volumes:
   pgdata:
   dp-keys:
+  uploads:

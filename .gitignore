@@ -481,3 +481,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Uploaded resource files when running locally (dotnet run); in Docker they live on a volume
+SchoolLibrary.Web/App_Data/

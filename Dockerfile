@@ -23,9 +23,10 @@ RUN dotnet publish SchoolLibrary.Web/SchoolLibrary.Web.csproj -c Release -a $TAR
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 
-# Directory for Data Protection keys (mounted as a volume). Created as root,
-# then handed to the unprivileged user that the aspnet image provides ($APP_UID).
-RUN mkdir /keys && chown $APP_UID /keys
+# Directories mounted as volumes (Data Protection keys and uploaded files). Created as root,
+# then handed to the unprivileged user that the aspnet image provides ($APP_UID), so a fresh
+# named volume inherits that ownership and the app can write to it.
+RUN mkdir /keys /uploads && chown $APP_UID /keys /uploads
 
 COPY --from=build /app/publish ./
 
