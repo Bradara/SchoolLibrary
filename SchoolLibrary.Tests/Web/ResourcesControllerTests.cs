@@ -486,4 +486,50 @@ public class ResourcesControllerTests
 
         Assert.IsType(expected, await Controller().DeleteConfirmed(5));
     }
+
+    [Fact]
+    public async Task DeleteConfirmed_AlsoRemovesTheStoredFile_ForAnUpload()
+    {
+        _resources.Setup(r => r.GetFileAsync(5)).ReturnsAsync(PdfFile());
+        _resources.Setup(r => r.DeleteAsync(5, "u1", false)).ReturnsAsync(Saved());
+
+        await Controller().DeleteConfirmed(5);
+
+        _storage.Verify(s => s.DeleteAsync("resources/x.pdf", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteConfirmed_DoesNotTouchStorage_WhenResourceHasNoFile()
+    {
+        _resources.Setup(r => r.GetFileAsync(5)).ReturnsAsync((ResourceFile?)null);
+        _resources.Setup(r => r.DeleteAsync(5, "u1", false)).ReturnsAsync(Saved());
+
+        await Controller().DeleteConfirmed(5);
+
+        _storage.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task DeleteConfirmed_WhenRefused_DoesNotRemoveTheFile()
+    {
+        _resources.Setup(r => r.GetFileAsync(5)).ReturnsAsync(PdfFile());
+        _resources.Setup(r => r.DeleteAsync(5, "u1", false)).ReturnsAsync(Failed(ServiceError.Forbidden));
+
+        await Controller().DeleteConfirmed(5);
+
+        _storage.Verify(s => s.DeleteAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    // ---------- uploading ----------
+
+    [Fact]
+    public async Task Upload_Get_ReturnsTheFormWithOptions()
+    {
+        var result = await Controller().Upload();
+
+        var model = Assert.IsType<ResourceUploadViewModel>(Assert.IsType<ViewResult>(result).Model);
+        Assert.NotEmpty(model.AllLicenses);
+        Assert.NotEmpty(model.AllCategories);
+        Assert.NotEmpty(model.AllGradeLevels);
+    }
 }

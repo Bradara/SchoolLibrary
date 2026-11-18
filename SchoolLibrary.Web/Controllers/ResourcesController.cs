@@ -339,10 +339,19 @@ namespace SchoolLibrary.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
+            // Read the file before deleting, so its bytes can be removed from storage afterwards
+            var file = await _resources.GetFileAsync(id);
+
             var result = await _resources.DeleteAsync(id, CurrentUserId, IsAdministrator);
             if (!result.Succeeded)
             {
                 return ToActionResult(result);
+            }
+
+            // The database row is gone (cascade); now remove the stored file so nothing is orphaned
+            if (file != null)
+            {
+                await _storage.DeleteAsync(file.StorageKey);
             }
 
             TempData["SuccessMessage"] = $"Ресурсът {result.Value!.Title} е изтрит успешно.";

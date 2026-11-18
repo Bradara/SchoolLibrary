@@ -8,6 +8,7 @@
     {
         ResourceKind.External => ("🌐 Свободни ресурси", "+ Нов свободен ресурс"),
         ResourceKind.Lesson => ("🎓 Уроци", "+ Нов урок"),
+        ResourceKind.Upload => ("📤 Качени материали", "+ Качи материал"),
         _ => ("📚 Учебни ресурси", "+ Нов ресурс")
     };
     ViewData["Title"] = heading[3..];
@@ -19,7 +20,14 @@
     <h1>@heading <small class="fs-6 text-body-secondary">(намерени: @Model.TotalCount)</small></h1>
     @if (User.CanAddResources())
     {
-        <a asp-action="Create" asp-route-kind="@(Model.Kind ?? ResourceKind.Lesson)" class="btn btn-primary">@newLabel</a>
+        @if (Model.Kind == ResourceKind.Upload)
+        {
+            <a asp-action="Upload" class="btn btn-primary">@newLabel</a>
+        }
+        else
+        {
+            <a asp-action="Create" asp-route-kind="@(Model.Kind ?? ResourceKind.Lesson)" class="btn btn-primary">@newLabel</a>
+        }
     }
 </div>
 
@@ -151,7 +159,7 @@ else
                                 {
                                     <partial name="_FavoriteButton" model="new FavoriteButtonModel(item.Id, Model.FavoriteIds.Contains(item.Id), returnUrl)" />
                                 }
-                                @if (canEdit)
+                                @if (canEdit && item.Kind != ResourceKind.Upload)
                                 {
                                     <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary"
                                        data-sl-tip="Редактирай" data-sl-placement="top" aria-label="Редактирай"><i class="bi bi-pencil"></i></a>
