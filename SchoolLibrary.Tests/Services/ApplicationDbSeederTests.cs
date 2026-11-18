@@ -286,4 +286,30 @@ public class ApplicationDbSeederTests : IDisposable
         Assert.Equal(2, _db.Resources.Count());
         Assert.All(_db.Resources, r => Assert.Equal("https://example.com/same", r.NormalizedUrl));
     }
+
+    // Uploaded resources have no link; the backfill must leave their NormalizedUrl null, so several of
+    // them can coexist under the unique index instead of all getting the same empty value.
+    [Fact]
+    public async Task SeedDataAsync_LeavesUploadedResourcesWithoutANormalizedUrl()
+    {
+        _db.Resources.AddRange(
+            new Resource { Title = "Файл 1", Author = "x", Url = string.Empty, NormalizedUrl = null, Kind = ResourceKind.Upload, CreatedOn = DateTime.UtcNow },
+            new Resource { Title = "Файл 2", Author = "x", Url = string.Empty, NormalizedUrl = null, Kind = ResourceKind.Upload, CreatedOn = DateTime.UtcNow });
+        await _db.SaveChangesAsync();
+
+        await SeedAsync();
+
+        Assert.All(_db.Resources, r => Assert.Null(r.NormalizedUrl));
+    }
+
+    [Fact]
+    public async Task SeedDataAsync_ResetsAnUploadWithAnEmptyNormalizedUrl_ToNull()
+    {
+        _db.Resources.Add(new Resource { Title = "Стар качен", Author = "x", Url = string.Empty, NormalizedUrl = string.Empty, Kind = ResourceKind.Upload, CreatedOn = DateTime.UtcNow });
+        await _db.SaveChangesAsync();
+
+        await SeedAsync();
+
+        Assert.Null(_db.Resources.Single().NormalizedUrl);
+    }
 }

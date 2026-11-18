@@ -170,10 +170,14 @@ public static class ApplicationDbSeeder
         await db.SaveChangesAsync();
     }
 
-    // Fills the normalized link of resources added before the column existed and reports shared links
+    // Fills the normalized link of resources added before the column existed and reports shared links.
+    // Uploaded resources have no link: their NormalizedUrl stays null (many nulls are allowed by the
+    // unique index), so they are left out of the backfill and the duplicate report.
     private static async Task BackfillNormalizedUrlsAsync(ApplicationDbContext db, ILogger? logger)
     {
-        var pending = await db.Resources.Where(r => r.NormalizedUrl == null).ToListAsync();
+        var pending = await db.Resources
+            .Where(r => r.NormalizedUrl == null && r.Kind != ResourceKind.Upload)
+            .ToListAsync();
         if (pending.Count > 0)
         {
             foreach (var resource in pending)
@@ -185,7 +189,22 @@ public static class ApplicationDbSeeder
             await db.SaveChangesAsync();
         }
 
+        // Repair uploads an earlier version wrote an empty normalized link to (so many can coexist again)
+        var mislabeledUploads = await db.Resources
+            .Where(r => r.Kind == ResourceKind.Upload && r.NormalizedUrl != null)
+            .ToListAsync();
+        if (mislabeledUploads.Count > 0)
+        {
+            foreach (var upload in mislabeledUploads)
+            {
+                upload.NormalizedUrl = null;
+            }
+
+            await db.SaveChangesAsync();
+        }
+
         var duplicates = await db.Resources
+            .Where(r => r.NormalizedUrl != null)
             .GroupBy(r => r.NormalizedUrl)
             .Where(g => g.Count() > 1)
             .Select(g => new { Url = g.Key, Ids = g.Select(r => r.Id).ToList() })
