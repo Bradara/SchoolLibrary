@@ -184,6 +184,12 @@ body {
   margin-inline: auto;
 }
 
+/* A 16:9 embed (e.g. a video) keeps its aspect ratio in normal flow; maximized, drop the ratio
+   spacer so the iframe fills the whole overlay height instead of a short band at the top. */
+.sl-viewer.sl-maximized .sl-viewer-body.ratio::before {
+  display: none;
+}
+
 /* stop the page behind the overlay from scrolling */
 body.sl-maximized-open {
   overflow: hidden;

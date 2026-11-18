@@ -114,14 +114,20 @@
 }
 else if (Model.Resource.IsEmbeddable)
 {
-    <div class="ratio ratio-16x9 mb-4 sl-embed">
-        <iframe src="@Model.Resource.EmbedUrl"
-                title="@Model.Resource.Title"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen
-                loading="lazy"
-                referrerpolicy="strict-origin-when-cross-origin">
-        </iframe>
+    <div class="sl-viewer mb-4">
+        <div class="sl-viewer-bar">
+            <button type="button" class="btn btn-sm btn-outline-secondary ms-auto sl-viewer-toggle"
+                    aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
+        </div>
+        <div class="sl-viewer-body ratio ratio-16x9 sl-embed">
+            <iframe src="@Model.Resource.EmbedUrl"
+                    title="@Model.Resource.Title"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen
+                    loading="lazy"
+                    referrerpolicy="strict-origin-when-cross-origin">
+            </iframe>
+        </div>
     </div>
 
     <a href="@Model.Resource.SafeUrl" target="_blank" rel="noopener" class="btn btn-outline-secondary btn-sm">
@@ -200,7 +206,7 @@ else
 </div>
 
 @section Scripts {
-    @if (Model.Resource.Kind == ResourceKind.Upload && Model.Resource.File != null)
+    @if ((Model.Resource.Kind == ResourceKind.Upload && Model.Resource.File != null) || Model.Resource.IsEmbeddable)
     {
         <script src="~/js/sl-maximize.js" asp-append-version="true"></script>
     }
