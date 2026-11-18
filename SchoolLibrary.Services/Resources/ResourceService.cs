@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
 using SchoolLibrary.Data.Common;
+using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
 
@@ -311,21 +312,25 @@ public class ResourceService : IResourceService
             return $"Описанието не може да бъде по-дълго от {DescriptionMaxLength} символа.";
         }
 
-        if (string.IsNullOrWhiteSpace(input.Url))
+        // Uploaded resources have no user-entered link: the file is served from this site, not from a URL
+        if (input.Kind != ResourceKind.Upload)
         {
-            return "Уеб адресът е задължителен.";
-        }
+            if (string.IsNullOrWhiteSpace(input.Url))
+            {
+                return "Уеб адресът е задължителен.";
+            }
 
-        if (input.Url.Trim().Length > UrlMaxLength)
-        {
-            return $"Уеб адресът не може да бъде по-дълъг от {UrlMaxLength} символа.";
-        }
+            if (input.Url.Trim().Length > UrlMaxLength)
+            {
+                return $"Уеб адресът не може да бъде по-дълъг от {UrlMaxLength} символа.";
+            }
 
-        // Only http(s) links are accepted: a "javascript:" link in an href would run script in the visitor's browser
-        if (!Uri.TryCreate(input.Url.Trim(), UriKind.Absolute, out var uri)
-            || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-        {
-            return "Уеб адресът трябва да започва с http:// или https://.";
+            // Only http(s) links are accepted: a "javascript:" link in an href would run script in the visitor's browser
+            if (!Uri.TryCreate(input.Url.Trim(), UriKind.Absolute, out var uri)
+                || (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            {
+                return "Уеб адресът трябва да започва с http:// или https://.";
+            }
         }
 
         if (input.LicenseId == null)

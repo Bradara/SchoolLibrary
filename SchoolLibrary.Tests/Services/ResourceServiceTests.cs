@@ -622,6 +622,37 @@ public class ResourceServiceTests
     }
 
     [Fact]
+    public async Task CreateAsync_UploadKind_DoesNotRequireUrl()
+    {
+        var input = ValidInput();
+        input.Kind = ResourceKind.Upload;
+        input.Url = "";
+
+        var result = await _service.CreateAsync(input, _ivan.Id);
+
+        Assert.True(result.Succeeded);
+        var saved = _context.Resources.Single();
+        Assert.Equal(ResourceKind.Upload, saved.Kind);
+        Assert.Equal(string.Empty, saved.Url);
+        Assert.Null(saved.NormalizedUrl);
+    }
+
+    [Fact]
+    public async Task CreateAsync_UploadKind_StillRequiresLicenseSubjectAndGrade()
+    {
+        var input = ValidInput();
+        input.Kind = ResourceKind.Upload;
+        input.Url = "";
+        input.LicenseId = null;
+
+        var result = await _service.CreateAsync(input, _ivan.Id);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        Assert.Contains("лиценз", result.Message);
+        Assert.Empty(_context.Resources);
+    }
+
+    [Fact]
     public async Task UpdateAsync_CanMoveResourceToAnotherSection()
     {
         var resource = await AddResourceAsync("Дроби");
