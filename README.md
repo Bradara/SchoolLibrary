@@ -1,6 +1,6 @@
 # SchoolLibrary
 
-A web application for sharing learning resources (links to lessons, videos, documents, interactive pages) between teachers, students and parents. Resources are filed under subjects and grades (5th to 12th), carry a license, and can be shown right inside the page when the source allows embedding.
+A web application for sharing learning resources between teachers, students and parents: links to lessons, videos and interactive pages, or files (PDF, EPUB, Markdown) uploaded to the platform. Resources are filed under subjects and grades (5th to 12th), carry a license, and can be shown right inside the page — embedded when the source allows it, or previewed in the browser when the file is uploaded.
 
 Live version: https://pmglibrary.duckdns.org/
 
@@ -27,6 +27,7 @@ Teachers keep good learning material scattered across bookmarks, chats and drive
 
 - **Lessons** are materials a teacher adds and owns.
 - **External resources** are freely licensed materials from the web (Wikisource, PhET, project Gutenberg, public videos), usually imported in bulk by an administrator from a CSV file.
+- **Uploaded materials** are files a teacher uploads to the platform (PDF, EPUB or Markdown), previewed in the browser.
 
 Every resource has an author, a license (required) and any number of subjects and grades. Students and parents can browse, keep favorites, comment and report content. Administrators moderate.
 
@@ -34,6 +35,7 @@ Every resource has an author, a license (required) and any number of subjects an
 
 - **Resource catalog** with search by title, filters (kind, subject, grade, owner, date), sorting and pagination.
 - **Embedding**: YouTube (privacy-enhanced domain), Google Drive/Docs/Slides/Sheets, `.pdf`, `.html`, GitHub Pages and a short list of trusted domains (Wikisource, Wikibooks, Wikipedia, Gutenberg, Blockly Games, JSPaint). Everything else is shown as a link. Only `http` and `https` addresses are ever linked or embedded.
+- **Uploaded files** (PDF, EPUB, Markdown, up to 25 MB) with an in-browser preview: PDF in a frame, Markdown rendered to sanitized HTML (Markdig + HtmlSanitizer), EPUB read with epub.js. The file type is verified from the content, not from the name. Files are stored outside the database behind a storage abstraction; the same file cannot be uploaded twice (checked by hash).
 - **Licenses**: required for every resource, managed by administrators, shown in the list and the details.
 - **Duplicate protection**: links are normalized and must be unique across the platform.
 - **Favorites** with a personal paged list.
@@ -76,7 +78,8 @@ Forms are bound to view models, not to entities, so a request cannot set fields 
 | Entity | Notes |
 |---|---|
 | `ApplicationUser` | Identity user with first and last name, `CreatedOn`, teacher request flag |
-| `Resource` | Title, description, URL (+ normalized URL, unique), kind, author, source, owner (nullable), license |
+| `Resource` | Title, description, URL (+ normalized URL, unique), kind (lesson, external or upload), author, source, owner (nullable), license |
+| `ResourceFile` | An uploaded file's metadata: storage key (unique), original name, content type, size, SHA-256; one per resource. The bytes live in the file storage, not in the database |
 | `Category` | A subject. Many-to-many with `Resource` |
 | `GradeLevel` | A grade, 5 to 12. Many-to-many with `Resource` |
 | `License` | Name (unique), description, text URL. Restricted delete while resources use it |
@@ -89,6 +92,7 @@ Forms are bound to view models, not to entities, so a request cannot set fields 
 | Service | Responsibility |
 |---|---|
 | `IResourceService` | Search, filter, sort, paging; create, update, delete with ownership rules; duplicate check |
+| `IResourceUploadService` | Validate an uploaded file (type by content, size, hash duplicate), store it and create the resource and its `ResourceFile` in one transaction |
 | `IResourceImportService` | Parse and validate the CSV (`;` separated, UTF-8), match subjects and grades by name, find duplicates, import |
 | `ICategoryService` | Subjects CRUD, unique names, no delete while in use |
 | `IGradeLevelService` | Grades list, resource counts |
@@ -98,13 +102,16 @@ Forms are bound to view models, not to entities, so a request cannot set fields 
 | `IReportService` | Create (one open report per user and content), moderation, delete reported content |
 | `IUserService` | Roles, teacher approvals, account deletion |
 | `IStatisticsService` | Numbers for the admin dashboard |
+| `IFileStorage` | Stores and serves uploaded file bytes outside the database (`LocalFileStorage` on a disk volume; the abstraction allows swapping in object storage later) |
+| `IMarkdownRenderer` | Renders uploaded Markdown to sanitized HTML (Markdig with raw HTML disabled, then HtmlSanitizer) |
 
 ## Validation and security
 
 - **Client and server validation**: data annotations with Bulgarian messages, jQuery validation in the browser, and the same rules enforced again in services.
 - **Database constraints**: required fields and maximum lengths, unique indexes (license name, normalized resource URL), composite keys, foreign keys with restricted delete where data must not disappear.
 - **SQL injection**: only EF Core and parameterized queries, no raw SQL.
-- **XSS**: Razor encodes all output, no `Html.Raw`; links and iframes accept only `http` and `https`; user content is shown with `white-space: pre-line`.
+- **XSS**: Razor encodes all output; links and iframes accept only `http` and `https`; user content is shown with `white-space: pre-line`. The one place HTML is emitted raw is uploaded Markdown, which is first rendered with raw HTML disabled and then run through an HTML sanitizer.
+- **Uploads**: the file type is decided from the content (magic bytes for PDF and EPUB, a valid-UTF-8-text check for Markdown), never from the extension or the browser-supplied content type; a size limit and `RequestSizeLimit` cap the request; storage keys are generated (never a user-supplied name) and validated so a key cannot escape the storage folder; served files set `X-Content-Type-Options: nosniff` and allow framing only by this site.
 - **CSRF**: `AutoValidateAntiforgeryToken` is applied globally to every unsafe request.
 - **Parameter tampering**: view models instead of entity binding, ownership and role checks in services, `[Authorize(Roles = ...)]` on controllers and on the whole Admin area.
 - **Accounts**: the account locks for 5 minutes after 5 failed sign-ins.
@@ -133,7 +140,7 @@ dotnet user-secrets set "Seed:DemoPassword" "<a password>" --project SchoolLibra
 dotnet test SchoolLibrary.slnx
 ```
 
-672 tests (xUnit, Moq, EF Core InMemory). They cover every service (success and failure paths), seeders, DI registration, controllers (redirects, messages, permissions), security conventions, error pages and helpers.
+929 tests (xUnit, Moq, EF Core InMemory). They cover every service (success and failure paths, including file upload validation, the file storage and the Markdown renderer), seeders, DI registration, controllers (redirects, messages, permissions, file serving), security conventions, error pages and helpers.
 
 Line coverage measured with coverlet (`dotnet test -c Release --collect:"XPlat Code Coverage"`):
 
@@ -191,13 +198,14 @@ dotnet ef database update --project SchoolLibrary.Data --startup-project SchoolL
 |---|---|
 | `ConnectionStrings__DefaultConnection` | PostgreSQL connection string (user secrets or environment) |
 | `DataProtection__KeysPath` | Folder for cookie and antiforgery keys (a volume in Docker, so restarts keep users signed in) |
+| `FileStorage__LocalPath` | Folder for uploaded files (a volume in Docker). Defaults to `App_Data/uploads` under the content root |
 | `AllowedHosts` | Host names the app answers to, separated by `;` (default `*`) |
 | `Security__AllowInsecureCookies` | `true` only for a local stack opened over plain HTTP |
 | `Seed__DemoData`, `Seed__DemoPassword` | Demo data, Development only |
 
 ## Deployment
 
-The image is built for `linux/arm64` and `linux/amd64` (multi-stage Dockerfile). The production stack runs the app on `127.0.0.1:8080`; a reverse proxy (nginx) terminates TLS and forwards `Host`, `X-Forwarded-For` and `X-Forwarded-Proto`. PostgreSQL runs as a separate container on a shared Docker network.
+The image is built for `linux/arm64` and `linux/amd64` (multi-stage Dockerfile). The production stack runs the app on `127.0.0.1:8080`; a reverse proxy (nginx) terminates TLS and forwards `Host`, `X-Forwarded-For` and `X-Forwarded-Proto`. PostgreSQL runs as a separate container on a shared Docker network. Data Protection keys and uploaded files are kept on named volumes, so they survive container rebuilds and restarts.
 
 ```
 docker network create schoolnet

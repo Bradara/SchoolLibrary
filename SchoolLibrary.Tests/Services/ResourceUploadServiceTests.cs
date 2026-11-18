@@ -196,6 +196,66 @@ public class ResourceUploadServiceTests
         Assert.Contains("предмет", result.Message);
     }
 
+    [Fact]
+    public async Task UploadAsync_NonexistentSubject_IsRejected()
+    {
+        var input = Input();
+        input.CategoryIds = new List<int> { 999 };
+
+        var result = await UploadAsync("lesson.pdf", Pdf(), input);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        Assert.Contains("несъществуващ предмет", result.Message);
+        Assert.Empty(_storage.Files);
+    }
+
+    [Fact]
+    public async Task UploadAsync_NonexistentGrade_IsRejected()
+    {
+        var input = Input();
+        input.GradeLevelIds = new List<int> { 999 };
+
+        var result = await UploadAsync("lesson.pdf", Pdf(), input);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        Assert.Contains("несъществуващ клас", result.Message);
+    }
+
+    [Fact]
+    public async Task UploadAsync_NonexistentLicense_IsRejected()
+    {
+        var input = Input();
+        input.LicenseId = 999;
+
+        var result = await UploadAsync("lesson.pdf", Pdf(), input);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        Assert.Contains("несъществуващ лиценз", result.Message);
+        Assert.Empty(_storage.Files);
+    }
+
+    [Fact]
+    public async Task UploadAsync_LongFileName_IsTruncatedToTheColumnLimit()
+    {
+        var longName = new string('a', 300) + ".pdf";
+
+        var result = await UploadAsync(longName, Pdf());
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(ResourceFile.FileNameMaxLength, _context.ResourceFiles.Single().FileName.Length);
+    }
+
+    [Fact]
+    public async Task UploadAsync_PositiveDeclaredLengthButEmptyContent_IsRejected()
+    {
+        var file = File("x.pdf", Array.Empty<byte>(), declaredLength: 10);
+
+        var result = await _service.UploadAsync(Input(), file, ownerId: "teacher-1");
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        Assert.Empty(_context.Resources);
+    }
+
     // A simple in-memory file storage that records what was saved
     private sealed class FakeFileStorage : IFileStorage
     {
