@@ -29,6 +29,14 @@
         applyTheme(theme);
         try { localStorage.setItem('theme', theme); } catch (err) { }
         markActive(theme);
+
+        // Close the theme dropdown after a choice is made. The wrapper is .dropend/.dropup, not
+        // .dropdown, so find the toggle through the menu rather than a .dropdown ancestor.
+        var menu = btn.closest('.dropdown-menu');
+        var toggle = menu && menu.parentElement.querySelector('[data-bs-toggle="dropdown"]');
+        if (toggle && window.bootstrap) {
+            bootstrap.Dropdown.getOrCreateInstance(toggle).hide();
+        }
     });
 
     markActive(root.getAttribute('data-theme'));
