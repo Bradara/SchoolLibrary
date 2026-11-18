@@ -25,6 +25,10 @@ body {
   height: 100vh;
   position: sticky;
   top: 0;
+  /* sticky makes the sidebar its own stacking context; lift it above the content and above the
+     maximized preview overlay (z-index 1050), so the theme dropdown stays usable and visible even
+     while a preview is maximized (an iframe or the reader's controls would otherwise cover it) */
+  z-index: 1060;
   padding: .75rem .5rem;
   background: var(--sl-sidebar-bg, var(--bs-tertiary-bg));
   border-right: 1px solid var(--bs-border-color);
@@ -136,25 +140,43 @@ body {
   position: relative;
 }
 
-.sl-viewer-toggle {
-  position: absolute;
-  top: .5rem;
-  right: .5rem;
-  z-index: 3;
-  opacity: .9;
+/* a thin row above the preview that holds the maximize button (and, for EPUB, the reader controls),
+   so the button never sits over the content's own toolbar (e.g. the PDF viewer's bar). It stays put
+   while a long Markdown preview scrolls, so the maximize button is always reachable. */
+.sl-viewer-bar {
+  display: flex;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: .25rem 0;
+  margin-bottom: .5rem;
+  background: var(--bs-body-bg);
 }
 
 .sl-viewer.sl-maximized {
   position: fixed;
-  inset: 0;
+  /* leave the compact sidebar (4.5rem) visible on the left so navigation stays reachable */
+  inset: 0 0 0 4.5rem;
   z-index: 1050;
   margin: 0;
+  display: flex;
+  flex-direction: column;
   background: var(--bs-body-bg);
-  padding: 3rem .75rem .75rem;
+  padding: .75rem;
+}
+
+/* On phones the sidebar is an off-canvas drawer, not a fixed column, so use the whole width */
+@media (max-width: 767.98px) {
+  .sl-viewer.sl-maximized {
+    inset: 0;
+  }
 }
 
 .sl-viewer.sl-maximized .sl-viewer-body {
-  height: 100% !important;
+  flex: 1 1 auto;
+  min-height: 0;
+  height: auto !important;
   overflow: auto;
 }
 
@@ -167,25 +189,25 @@ body.sl-maximized-open {
   overflow: hidden;
 }
 
-/* ---------- EPUB reader: floating page arrows, table of contents ---------- */
+/* ---------- EPUB reader: edge page arrows, table of contents ---------- */
+/* Full-height strips on each edge: invisible until the pointer is over them, so they do not take
+   any page width and only appear when the reader hovers the left or right edge. */
 .sl-epub-nav {
   position: absolute;
-  top: 50%;
-  transform: translateY(-50%);
+  top: 0;
+  bottom: 0;
   z-index: 4;
-  width: 2.4rem;
-  height: 2.4rem;
+  width: 3rem;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  font-size: 1.3rem;
+  background: transparent;
   color: var(--bs-body-color);
-  background: var(--bs-secondary-bg);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
-  opacity: .7;
+  font-size: 1.7rem;
+  cursor: pointer;
+  opacity: 0;
   transition: opacity .15s ease-in-out;
 }
 
@@ -195,16 +217,17 @@ body.sl-maximized-open {
 }
 
 .sl-epub-nav-prev {
-  left: .4rem;
+  left: 0;
+  justify-content: flex-start;
+  padding-left: .4rem;
+  background: linear-gradient(to right, var(--bs-body-bg), transparent);
 }
 
 .sl-epub-nav-next {
-  right: .4rem;
-}
-
-/* inset the rendered page so the arrows sit beside the text, not over it */
-.sl-epub-stage {
-  padding: 0 2.6rem;
+  right: 0;
+  justify-content: flex-end;
+  padding-right: .4rem;
+  background: linear-gradient(to left, var(--bs-body-bg), transparent);
 }
 
 .sl-epub-toc {

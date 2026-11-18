@@ -1,7 +1,7 @@
 // Renders an uploaded EPUB inside the details page, using epub.js (and JSZip).
 // The file is fetched from the Download endpoint of this site, so nothing leaves the server.
-// Adds: table of contents, font size, light/dark theme, a progress bar, and remembering the
-// reading position, the font size and the theme in localStorage (per browser).
+// Adds: table of contents, font size, a progress bar, and remembering the reading position and the
+// font size in localStorage (per browser). The reader colors follow the site theme.
 (function () {
     "use strict";
 
@@ -18,7 +18,6 @@
     // --- small helpers around localStorage (may be blocked or throw in private mode) ---
     var POSITION_KEY = area.getAttribute("data-epub-key") || "epub-pos";
     var FONT_KEY = "sl-epub-font";
-    var THEME_KEY = "sl-epub-theme";
 
     function load(key, fallback) {
         try {
@@ -33,12 +32,44 @@
         try {
             localStorage.setItem(key, value);
         } catch (e) {
-            // ignore: reading still works without a saved position
+            // ignore: reading still works without a saved value
         }
     }
 
     function el(id) {
         return document.getElementById(id);
+    }
+
+    // The reader follows the site theme by reading the page's own colors
+    function readSiteColors() {
+        var body = window.getComputedStyle(document.body);
+        var root = window.getComputedStyle(document.documentElement);
+        var link = root.getPropertyValue("--bs-link-color").trim();
+        return { fg: body.color, bg: body.backgroundColor, link: link || body.color };
+    }
+
+    // !important so it beats a book's own colors (otherwise black text stays black on a dark theme)
+    function readerCss(colors) {
+        return "html,body{color:" + colors.fg + " !important;background:" + colors.bg + " !important;}" +
+            "body *{color:" + colors.fg + " !important;}" +
+            "a,a *{color:" + colors.link + " !important;}";
+    }
+
+    function injectStyle(doc, css) {
+        if (!doc) {
+            return;
+        }
+        try {
+            var style = doc.getElementById("sl-reader-theme");
+            if (!style) {
+                style = doc.createElement("style");
+                style.id = "sl-reader-theme";
+                (doc.head || doc.documentElement).appendChild(style);
+            }
+            style.textContent = css;
+        } catch (e) {
+            // the chapter document may not be reachable yet; ignore
+        }
     }
 
     function showError() {
@@ -53,7 +84,6 @@
     if (isNaN(fontPercent)) {
         fontPercent = 100;
     }
-    var theme = load(THEME_KEY, "light") === "dark" ? "dark" : "light";
 
     fetch(url)
         .then(function (response) {
@@ -74,30 +104,31 @@
             flow: "paginated"
         });
 
-        rendition.themes.register("light", { "body": { "color": "#1a1a1a", "background": "#ffffff" } });
-        rendition.themes.register("dark", {
-            "body": { "color": "#dddddd", "background": "#1e1e1e" },
-            "a": { "color": "#8ab4f8" }
-        });
-
-        function applyTheme() {
-            rendition.themes.select(theme);
-            area.style.background = theme === "dark" ? "#1e1e1e" : "#ffffff";
+        // Inject the site colors into every rendered chapter (epub.js "override" only reaches <body>,
+        // so a book's own text color would otherwise stay dark on a dark theme)
+        function restyle() {
+            var colors = readSiteColors();
+            area.style.background = colors.bg;
+            var css = readerCss(colors);
+            rendition.getContents().forEach(function (contents) {
+                injectStyle(contents.document, css);
+            });
         }
 
         function applyFont() {
             rendition.themes.fontSize(fontPercent + "%");
         }
 
-        applyTheme();
         applyFont();
+        rendition.on("rendered", restyle);
 
         // Continue from the last read position, if any
-        rendition.display(load(POSITION_KEY, undefined) || undefined);
+        rendition.display(load(POSITION_KEY, undefined) || undefined)
+            .then(restyle);
 
+        watchSiteTheme(restyle);
         wireNavigation(rendition);
         wireFont(rendition, applyFont);
-        wireTheme(applyTheme);
         buildToc(book, rendition);
         wireProgress(book, rendition);
 
@@ -112,6 +143,18 @@
                     // ignore transient resize errors
                 }
             }, 150);
+        });
+    }
+
+    // Re-apply the colors whenever the site theme attribute on <html> changes
+    function watchSiteTheme(onChange) {
+        if (typeof MutationObserver === "undefined") {
+            return;
+        }
+        var observer = new MutationObserver(onChange);
+        observer.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["data-bs-theme", "data-theme"]
         });
     }
 
@@ -140,18 +183,6 @@
         }
         if (dec) { dec.addEventListener("click", function () { change(-FONT_STEP); }); }
         if (inc) { inc.addEventListener("click", function () { change(FONT_STEP); }); }
-    }
-
-    function wireTheme(applyTheme) {
-        var button = el("sl-epub-theme");
-        if (!button) {
-            return;
-        }
-        button.addEventListener("click", function () {
-            theme = theme === "dark" ? "light" : "dark";
-            applyTheme();
-            save(THEME_KEY, theme);
-        });
     }
 
     function buildToc(book, rendition) {

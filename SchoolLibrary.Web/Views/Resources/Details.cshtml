@@ -42,8 +42,10 @@
     if (Model.Resource.File.ContentType == "application/pdf")
     {
         <div class="sl-viewer mb-4">
-            <button type="button" class="btn btn-sm btn-outline-secondary sl-viewer-toggle"
-                    aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
+            <div class="sl-viewer-bar">
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-auto sl-viewer-toggle"
+                        aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
+            </div>
             <div class="sl-viewer-body sl-embed" style="height: 80vh;">
                 <iframe src="@serveUrl" title="@Model.Resource.Title" loading="lazy"
                         style="width: 100%; height: 100%; border: 0;"></iframe>
@@ -54,8 +56,10 @@
     {
         @* The HTML is rendered and sanitized on the server (Markdig + HtmlSanitizer) *@
         <div class="sl-viewer mb-3">
-            <button type="button" class="btn btn-sm btn-outline-secondary sl-viewer-toggle"
-                    aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
+            <div class="sl-viewer-bar">
+                <button type="button" class="btn btn-sm btn-outline-secondary ms-auto sl-viewer-toggle"
+                        aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
+            </div>
             <article class="sl-viewer-body sl-markdown border rounded p-3 p-md-4">
                 @Html.Raw(Model.MarkdownHtml)
             </article>
@@ -65,8 +69,6 @@
     {
         @* epub.js reads the file (served by Download) in the browser and renders it here *@
         <div class="sl-viewer sl-epub-reader mb-3">
-            <button type="button" class="btn btn-sm btn-outline-secondary sl-viewer-toggle"
-                    aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
             <div class="sl-viewer-body d-flex flex-column" style="height: 75vh;">
                 <div class="sl-epub-toolbar d-flex flex-wrap align-items-center gap-2 mb-2">
                     <div class="dropdown">
@@ -80,8 +82,8 @@
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-epub-font-dec" aria-label="По-дребен шрифт">A−</button>
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-epub-font-inc" aria-label="По-едър шрифт">A+</button>
                     </div>
-                    <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-epub-theme"
-                            aria-label="Светла или тъмна тема на четеца"><i class="bi bi-circle-half"></i></button>
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-auto sl-viewer-toggle"
+                            aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
                 </div>
 
                 <div class="sl-epub-stage position-relative flex-grow-1">
