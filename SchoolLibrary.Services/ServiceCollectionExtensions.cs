@@ -9,6 +9,7 @@ using SchoolLibrary.Services.OnlineLibraries;
 using SchoolLibrary.Services.Reports;
 using SchoolLibrary.Services.Resources;
 using SchoolLibrary.Services.Statistics;
+using SchoolLibrary.Services.Storage;
 using SchoolLibrary.Services.Users;
 
 namespace SchoolLibrary.Services;
@@ -27,9 +28,15 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<IResourceImportService, ResourceImportService>();
+        services.AddScoped<IResourceUploadService, ResourceUploadService>();
         services.AddScoped<IStatisticsService, StatisticsService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IResourceDiscoveryService, ResourceDiscoveryService>();
+
+        // Default file storage; Program.cs replaces it with the configured path (a mounted volume on the
+        // server). The folder is created lazily on the first upload, so this default touches no disk.
+        services.AddSingleton<IFileStorage>(_ => new LocalFileStorage(
+            Path.Combine(AppContext.BaseDirectory, "App_Data", "uploads")));
 
         // Sources for "Find resources". The hosts are fixed in code: the search never fetches an address a user typed
         foreach (var clientName in new[] { WikimediaSourceProvider.HttpClientName, PhetSourceProvider.HttpClientName, GutenbergSourceProvider.HttpClientName, InternetArchiveSourceProvider.HttpClientName })

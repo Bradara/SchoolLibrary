@@ -34,8 +34,12 @@ public class LocalFileStorageTests : IDisposable
     }
 
     [Fact]
-    public void Constructor_CreatesTheRootFolder()
+    public async Task SaveAsync_CreatesTheRootFolder_WhenMissing()
     {
+        Assert.False(Directory.Exists(_root));
+
+        await _storage.SaveAsync("a.txt", Bytes("x"));
+
         Assert.True(Directory.Exists(_root));
     }
 

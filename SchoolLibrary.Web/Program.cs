@@ -8,6 +8,7 @@ using SchoolLibrary.Middleware;
 using SchoolLibrary.Data.Seeding;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services;
+using SchoolLibrary.Services.Storage;
 
 namespace SchoolLibrary
 {
@@ -70,6 +71,15 @@ namespace SchoolLibrary
             builder.Services.AddControllersWithViews(options =>
                 options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
             builder.Services.AddApplicationServices();
+
+            // Uploaded files live outside the database. Locally under the content root; in Docker on a
+            // mounted volume set with FileStorage:LocalPath (for example /data/uploads).
+            var uploadsPath = builder.Configuration["FileStorage:LocalPath"];
+            if (string.IsNullOrWhiteSpace(uploadsPath))
+            {
+                uploadsPath = Path.Combine(builder.Environment.ContentRootPath, "App_Data", "uploads");
+            }
+            builder.Services.AddSingleton<IFileStorage>(new LocalFileStorage(uploadsPath));
 
             var app = builder.Build();
 

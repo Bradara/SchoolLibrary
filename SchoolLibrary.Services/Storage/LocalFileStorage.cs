@@ -22,8 +22,8 @@ public class LocalFileStorage : IFileStorage
             throw new ArgumentException("The storage root path is required.", nameof(rootPath));
         }
 
+        // The folder is created lazily on the first write, so constructing the storage touches no disk
         _root = Path.GetFullPath(rootPath);
-        Directory.CreateDirectory(_root);
     }
 
     public async Task SaveAsync(string key, Stream content, CancellationToken cancellationToken = default)
