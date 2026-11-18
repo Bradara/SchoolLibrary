@@ -9,10 +9,12 @@ using SchoolLibrary.Services.Common;
 using SchoolLibrary.Services.Favorites;
 using SchoolLibrary.Services.GradeLevels;
 using SchoolLibrary.Services.Licenses;
+using SchoolLibrary.Services.Markdown;
 using SchoolLibrary.Services.Resources;
 using SchoolLibrary.Services.Storage;
 using SchoolLibrary.ViewModels;
 using System.Security.Claims;
+using System.Text;
 
 namespace SchoolLibrary.Controllers
 {
@@ -25,6 +27,7 @@ namespace SchoolLibrary.Controllers
         private readonly IResourceService _resources;
         private readonly IResourceUploadService _uploads;
         private readonly IFileStorage _storage;
+        private readonly IMarkdownRenderer _markdown;
         private readonly ICategoryService _categories;
         private readonly IGradeLevelService _gradeLevels;
         private readonly ILicenseService _licenses;
@@ -35,6 +38,7 @@ namespace SchoolLibrary.Controllers
             IResourceService resources,
             IResourceUploadService uploads,
             IFileStorage storage,
+            IMarkdownRenderer markdown,
             ICategoryService categories,
             IGradeLevelService gradeLevels,
             ILicenseService licenses,
@@ -44,6 +48,7 @@ namespace SchoolLibrary.Controllers
             _resources = resources;
             _uploads = uploads;
             _storage = storage;
+            _markdown = markdown;
             _categories = categories;
             _gradeLevels = gradeLevels;
             _licenses = licenses;
@@ -135,6 +140,7 @@ namespace SchoolLibrary.Controllers
             return View(new ResourceDetailsViewModel
             {
                 Resource = resource,
+                MarkdownHtml = await RenderMarkdownAsync(resource),
                 IsFavorite = IsSignedIn && await _favorites.IsFavoriteAsync(CurrentUserId, resource.Id),
                 FavoriteCount = await _favorites.CountAsync(resource.Id),
                 Comments = comments.Items,
@@ -161,6 +167,11 @@ namespace SchoolLibrary.Controllers
             {
                 return NotFound();
             }
+
+            // The global policy forbids all framing; relax it so this site's own details page can show
+            // the file in a frame (for example the PDF preview), while other sites still cannot frame it.
+            Response.Headers["X-Frame-Options"] = "SAMEORIGIN";
+            Response.Headers["Content-Security-Policy"] = "frame-ancestors 'self'";
 
             // nosniff is set globally; the content type was validated from the bytes when the file was uploaded.
             // Range processing lets the browser seek inside a PDF.
@@ -375,6 +386,27 @@ namespace SchoolLibrary.Controllers
             vm.AllCategories = (await _categories.GetOptionsAsync()).ToList();
             vm.AllGradeLevels = (await _gradeLevels.GetAllAsync()).ToList();
             vm.AllLicenses = (await _licenses.GetOptionsAsync()).ToList();
+        }
+
+        // Reads an uploaded Markdown file and renders it to sanitized HTML for inline display
+        private async Task<string?> RenderMarkdownAsync(Data.Models.Resource resource)
+        {
+            if (resource.Kind != ResourceKind.Upload
+                || resource.File == null
+                || !resource.File.ContentType.StartsWith("text/markdown", StringComparison.OrdinalIgnoreCase))
+            {
+                return null;
+            }
+
+            var stream = await _storage.OpenReadAsync(resource.File.StorageKey);
+            if (stream == null)
+            {
+                return null;
+            }
+
+            using var reader = new StreamReader(stream, Encoding.UTF8);
+            var text = await reader.ReadToEndAsync();
+            return _markdown.RenderToHtml(text);
         }
 
         private async Task LoadUploadOptionsAsync(ResourceUploadViewModel vm)

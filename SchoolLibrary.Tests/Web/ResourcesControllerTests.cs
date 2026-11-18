@@ -10,6 +10,7 @@ using SchoolLibrary.Services.Common;
 using SchoolLibrary.Services.Favorites;
 using SchoolLibrary.Services.GradeLevels;
 using SchoolLibrary.Services.Licenses;
+using SchoolLibrary.Services.Markdown;
 using SchoolLibrary.Services.Resources;
 using SchoolLibrary.Services.Storage;
 using SchoolLibrary.ViewModels;
@@ -21,6 +22,7 @@ public class ResourcesControllerTests
     private readonly Mock<IResourceService> _resources = new();
     private readonly Mock<IResourceUploadService> _uploads = new();
     private readonly Mock<IFileStorage> _storage = new();
+    private readonly Mock<IMarkdownRenderer> _markdown = new();
     private readonly Mock<ICategoryService> _categories = new();
     private readonly Mock<IGradeLevelService> _gradeLevels = new();
     private readonly Mock<ILicenseService> _licenses = new();
@@ -44,8 +46,9 @@ public class ResourcesControllerTests
     }
 
     private ResourcesController Controller(string? userId = "u1", params string[] roles) =>
-        new ResourcesController(_resources.Object, _uploads.Object, _storage.Object, _categories.Object,
-            _gradeLevels.Object, _licenses.Object, _favorites.Object, _comments.Object).WithUser(userId, roles);
+        new ResourcesController(_resources.Object, _uploads.Object, _storage.Object, _markdown.Object,
+            _categories.Object, _gradeLevels.Object, _licenses.Object, _favorites.Object, _comments.Object)
+            .WithUser(userId, roles);
 
     private static ResourceFormViewModel ValidForm() => new()
     {

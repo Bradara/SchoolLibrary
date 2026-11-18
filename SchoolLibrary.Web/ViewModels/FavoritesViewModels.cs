@@ -24,6 +24,9 @@ public class ResourceDetailsViewModel
     /// <summary>How many users saved the resource.</summary>
     public int FavoriteCount { get; set; }
 
+    /// <summary>Sanitized HTML of an uploaded Markdown file, shown inline; null for other resources.</summary>
+    public string? MarkdownHtml { get; set; }
+
     // The comments under the resource (one page, newest first)
     public IReadOnlyList<Comment> Comments { get; set; } = new List<Comment>();
     public int CommentPage { get; set; } = 1;

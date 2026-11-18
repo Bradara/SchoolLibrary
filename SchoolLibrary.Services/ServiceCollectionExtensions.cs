@@ -5,6 +5,7 @@ using SchoolLibrary.Services.Discovery;
 using SchoolLibrary.Services.Favorites;
 using SchoolLibrary.Services.GradeLevels;
 using SchoolLibrary.Services.Licenses;
+using SchoolLibrary.Services.Markdown;
 using SchoolLibrary.Services.OnlineLibraries;
 using SchoolLibrary.Services.Reports;
 using SchoolLibrary.Services.Resources;
@@ -37,6 +38,8 @@ public static class ServiceCollectionExtensions
         // server). The folder is created lazily on the first upload, so this default touches no disk.
         services.AddSingleton<IFileStorage>(_ => new LocalFileStorage(
             Path.Combine(AppContext.BaseDirectory, "App_Data", "uploads")));
+
+        services.AddSingleton<IMarkdownRenderer, MarkdigMarkdownRenderer>();
 
         // Sources for "Find resources". The hosts are fixed in code: the search never fetches an address a user typed
         foreach (var clientName in new[] { WikimediaSourceProvider.HttpClientName, PhetSourceProvider.HttpClientName, GutenbergSourceProvider.HttpClientName, InternetArchiveSourceProvider.HttpClientName })
