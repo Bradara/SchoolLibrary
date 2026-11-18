@@ -18,7 +18,11 @@ namespace SchoolLibrary.Controllers
     [Authorize]
     public class ResourcesController : Controller
     {
+        // The whole upload request (the file plus the form fields): refused by the server beyond this
+        private const long MaxUploadRequestBytes = UploadConstraints.MaxFileSizeBytes + 1024 * 1024;
+
         private readonly IResourceService _resources;
+        private readonly IResourceUploadService _uploads;
         private readonly ICategoryService _categories;
         private readonly IGradeLevelService _gradeLevels;
         private readonly ILicenseService _licenses;
@@ -27,6 +31,7 @@ namespace SchoolLibrary.Controllers
 
         public ResourcesController(
             IResourceService resources,
+            IResourceUploadService uploads,
             ICategoryService categories,
             IGradeLevelService gradeLevels,
             ILicenseService licenses,
@@ -34,6 +39,7 @@ namespace SchoolLibrary.Controllers
             ICommentService comments)
         {
             _resources = resources;
+            _uploads = uploads;
             _categories = categories;
             _gradeLevels = gradeLevels;
             _licenses = licenses;
@@ -166,6 +172,43 @@ namespace SchoolLibrary.Controllers
             }
 
             await LoadOptionsAsync(vm);
+            return View(vm);
+        }
+
+        // GET: Resources/Upload
+        [Authorize(Roles = Roles.TeacherOrAdministrator)]
+        public async Task<IActionResult> Upload()
+        {
+            var vm = new ResourceUploadViewModel();
+            await LoadUploadOptionsAsync(vm);
+            return View(vm);
+        }
+
+        // POST: Resources/Upload
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = Roles.TeacherOrAdministrator)]
+        [RequestSizeLimit(MaxUploadRequestBytes)]
+        public async Task<IActionResult> Upload(ResourceUploadViewModel vm)
+        {
+            ValidateUploadSelections(vm);
+
+            if (ModelState.IsValid)
+            {
+                await using var stream = vm.File!.OpenReadStream();
+                var file = new UploadedFile(vm.File.FileName, vm.File.ContentType, vm.File.Length, stream);
+
+                var result = await _uploads.UploadAsync(ToUploadInput(vm), file, CurrentUserId);
+                if (result.Succeeded)
+                {
+                    TempData["SuccessMessage"] = $"Материалът {result.Value!.Title} е качен успешно.";
+                    return RedirectToAction(nameof(Index), new { kind = ResourceKind.Upload });
+                }
+
+                ModelState.AddModelError(string.Empty, result.Message!);
+            }
+
+            await LoadUploadOptionsAsync(vm);
             return View(vm);
         }
 
@@ -305,6 +348,42 @@ namespace SchoolLibrary.Controllers
             vm.AllCategories = (await _categories.GetOptionsAsync()).ToList();
             vm.AllGradeLevels = (await _gradeLevels.GetAllAsync()).ToList();
             vm.AllLicenses = (await _licenses.GetOptionsAsync()).ToList();
+        }
+
+        private async Task LoadUploadOptionsAsync(ResourceUploadViewModel vm)
+        {
+            vm.AllCategories = (await _categories.GetOptionsAsync()).ToList();
+            vm.AllGradeLevels = (await _gradeLevels.GetAllAsync()).ToList();
+            vm.AllLicenses = (await _licenses.GetOptionsAsync()).ToList();
+        }
+
+        private static ResourceInput ToUploadInput(ResourceUploadViewModel vm) => new()
+        {
+            Title = vm.Title,
+            Author = vm.Author,
+            Source = vm.Source,
+            Description = vm.Description,
+            Kind = ResourceKind.Upload,
+            LicenseId = vm.LicenseId,
+            CategoryIds = vm.SelectedCategoryIds,
+            GradeLevelIds = vm.SelectedGradeLevelIds
+        };
+
+        // Keeps the errors next to the file input and the checkbox groups; the service validates again
+        private void ValidateUploadSelections(ResourceUploadViewModel vm)
+        {
+            if (vm.File == null || vm.File.Length == 0)
+            {
+                ModelState.AddModelError(nameof(vm.File), "Изберете файл за качване.");
+            }
+            if (vm.SelectedCategoryIds.Count == 0)
+            {
+                ModelState.AddModelError(nameof(vm.SelectedCategoryIds), "Изберете поне един предмет.");
+            }
+            if (vm.SelectedGradeLevelIds.Count == 0)
+            {
+                ModelState.AddModelError(nameof(vm.SelectedGradeLevelIds), "Изберете поне един клас.");
+            }
         }
 
         // Keeps the error next to the checkbox groups; the service validates the same rules again
