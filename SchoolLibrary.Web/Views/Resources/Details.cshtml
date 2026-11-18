@@ -41,22 +41,34 @@
 
     if (Model.Resource.File.ContentType == "application/pdf")
     {
-        <div class="mb-4 sl-embed" style="height: 80vh;">
-            <iframe src="@serveUrl" title="@Model.Resource.Title" loading="lazy"
-                    style="width: 100%; height: 100%; border: 0;"></iframe>
+        <div class="sl-viewer mb-4">
+            <button type="button" class="btn btn-sm btn-outline-secondary sl-viewer-toggle"
+                    aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
+            <div class="sl-viewer-body sl-embed" style="height: 80vh;">
+                <iframe src="@serveUrl" title="@Model.Resource.Title" loading="lazy"
+                        style="width: 100%; height: 100%; border: 0;"></iframe>
+            </div>
         </div>
     }
     else if (Model.MarkdownHtml != null)
     {
         @* The HTML is rendered and sanitized on the server (Markdig + HtmlSanitizer) *@
-        <article class="sl-markdown border rounded p-3 p-md-4 mb-3">
-            @Html.Raw(Model.MarkdownHtml)
-        </article>
+        <div class="sl-viewer mb-3">
+            <button type="button" class="btn btn-sm btn-outline-secondary sl-viewer-toggle"
+                    aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
+            <article class="sl-viewer-body sl-markdown border rounded p-3 p-md-4">
+                @Html.Raw(Model.MarkdownHtml)
+            </article>
+        </div>
     }
     else if (Model.Resource.File.ContentType == "application/epub+zip")
     {
         @* epub.js reads the file (served by Download) in the browser and renders it here *@
-        <div id="sl-epub" class="border rounded mb-2 bg-body" style="height: 70vh;" data-epub-url="@serveUrl"></div>
+        <div class="sl-viewer mb-2">
+            <button type="button" class="btn btn-sm btn-outline-secondary sl-viewer-toggle"
+                    aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
+            <div id="sl-epub" class="sl-viewer-body border rounded bg-body" style="height: 70vh;" data-epub-url="@serveUrl"></div>
+        </div>
         <div class="mb-3 d-flex gap-2">
             <button type="button" id="sl-epub-prev" class="btn btn-outline-secondary btn-sm">← Назад</button>
             <button type="button" id="sl-epub-next" class="btn btn-outline-secondary btn-sm">Напред →</button>
@@ -161,6 +173,10 @@ else
 </div>
 
 @section Scripts {
+    @if (Model.Resource.Kind == ResourceKind.Upload && Model.Resource.File != null)
+    {
+        <script src="~/js/sl-maximize.js" asp-append-version="true"></script>
+    }
     @if (Model.Resource.Kind == ResourceKind.Upload && Model.Resource.File?.ContentType == "application/epub+zip")
     {
         <script src="~/lib/jszip/jszip.min.js"></script>

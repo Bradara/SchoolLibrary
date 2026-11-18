@@ -131,6 +131,42 @@ body {
   background: #fff;
 }
 
+/* ---------- Maximize a preview (PDF / EPUB / Markdown) to a full-window overlay ---------- */
+.sl-viewer {
+  position: relative;
+}
+
+.sl-viewer-toggle {
+  position: absolute;
+  top: .5rem;
+  right: .5rem;
+  z-index: 3;
+  opacity: .9;
+}
+
+.sl-viewer.sl-maximized {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  margin: 0;
+  background: var(--bs-body-bg);
+  padding: 3rem .75rem .75rem;
+}
+
+.sl-viewer.sl-maximized .sl-viewer-body {
+  height: 100% !important;
+  overflow: auto;
+}
+
+.sl-viewer.sl-maximized .sl-markdown {
+  margin-inline: auto;
+}
+
+/* stop the page behind the overlay from scrolling */
+body.sl-maximized-open {
+  overflow: hidden;
+}
+
 /* ---------- Rendered Markdown uploads (readable measure, pictures and tables fit) ---------- */
 .sl-markdown {
   max-width: 70ch;
