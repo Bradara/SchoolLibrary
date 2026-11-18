@@ -537,6 +537,56 @@ namespace SchoolLibrary.Data.Migrations
                     b.ToTable("Resources");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.ResourceFile", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int>("ResourceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UploadedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ResourceId")
+                        .IsUnique();
+
+                    b.HasIndex("Sha256");
+
+                    b.HasIndex("StorageKey")
+                        .IsUnique();
+
+                    b.ToTable("ResourceFiles");
+                });
+
             modelBuilder.Entity("CategoryResource", b =>
                 {
                     b.HasOne("SchoolLibrary.Data.Models.Category", null)
@@ -695,6 +745,22 @@ namespace SchoolLibrary.Data.Migrations
                     b.Navigation("License");
 
                     b.Navigation("Owner");
+                });
+
+            modelBuilder.Entity("SchoolLibrary.Data.Models.ResourceFile", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.Resource", "Resource")
+                        .WithOne("File")
+                        .HasForeignKey("SchoolLibrary.Data.Models.ResourceFile", "ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
+                });
+
+            modelBuilder.Entity("SchoolLibrary.Data.Models.Resource", b =>
+                {
+                    b.Navigation("File");
                 });
 #pragma warning restore 612, 618
         }

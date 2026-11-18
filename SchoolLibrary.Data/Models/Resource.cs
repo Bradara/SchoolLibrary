@@ -50,6 +50,9 @@ namespace SchoolLibrary.Data.Models
         public int? LicenseId { get; set; }
         public License? License { get; set; }
 
+        // Set only for uploaded resources (Kind == Upload): the file shown and previewed in the platform
+        public ResourceFile? File { get; set; }
+
         /// <summary>
         /// The address for a link (href), or null when it is not an http(s) address. A "javascript:" or
         /// "data:" address that got into the database must never become a clickable link.

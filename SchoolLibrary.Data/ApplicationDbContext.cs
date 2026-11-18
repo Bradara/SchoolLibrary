@@ -101,9 +101,26 @@ namespace SchoolLibrary.Data
             builder.Entity<OnlineLibrary>()
                 .HasIndex(l => l.Name)
                 .IsUnique();
+
+            // An uploaded resource has exactly one file; deleting the resource deletes the file row.
+            // The stored bytes are removed separately by the service.
+            builder.Entity<ResourceFile>()
+                .HasOne(f => f.Resource)
+                .WithOne(r => r.File)
+                .HasForeignKey<ResourceFile>(f => f.ResourceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // One row per stored key; the hash index finds a file already uploaded
+            builder.Entity<ResourceFile>()
+                .HasIndex(f => f.StorageKey)
+                .IsUnique();
+
+            builder.Entity<ResourceFile>()
+                .HasIndex(f => f.Sha256);
         }
 
         public DbSet<Resource> Resources { get; set; }
+        public DbSet<ResourceFile> ResourceFiles { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<GradeLevel> GradeLevels { get; set; }
         public DbSet<License> Licenses { get; set; }

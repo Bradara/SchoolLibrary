@@ -7,5 +7,8 @@ public enum ResourceKind
     Lesson = 0,
 
     /// <summary>A freely licensed material from the web (direct PDF links, static pages).</summary>
-    External = 1
+    External = 1,
+
+    /// <summary>A file uploaded to the platform (PDF, EPUB or Markdown), stored and previewed here.</summary>
+    Upload = 2
 }
