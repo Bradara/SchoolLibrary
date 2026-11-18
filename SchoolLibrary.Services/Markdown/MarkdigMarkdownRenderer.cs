@@ -17,11 +17,26 @@ public class MarkdigMarkdownRenderer : IMarkdownRenderer
     {
         _pipeline = new MarkdownPipelineBuilder()
             .UseAdvancedExtensions()
+            .UseYamlFrontMatter()  // a "---" metadata header (e.g. source) is parsed, not shown as text
             .DisableHtml()
             .Build();
 
         // The defaults allow common formatting tags and only the http(s) and mailto schemes
         _sanitizer = new HtmlSanitizer();
+
+        // Allow embedded images (data:image/...), so a self-contained Markdown file shows its pictures.
+        // "data" is added to the allowed schemes, then narrowed below to image payloads only: a
+        // data:text/html URL (a phishing/XSS vector in a link) is still dropped.
+        _sanitizer.AllowedSchemes.Add("data");
+        _sanitizer.FilterUrl += (_, e) =>
+        {
+            if (e.OriginalUrl is { } url
+                && url.StartsWith("data:", StringComparison.OrdinalIgnoreCase)
+                && !url.StartsWith("data:image/", StringComparison.OrdinalIgnoreCase))
+            {
+                e.SanitizedUrl = null;
+            }
+        };
     }
 
     public string RenderToHtml(string markdown)
