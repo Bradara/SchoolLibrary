@@ -64,14 +64,39 @@
     else if (Model.Resource.File.ContentType == "application/epub+zip")
     {
         @* epub.js reads the file (served by Download) in the browser and renders it here *@
-        <div class="sl-viewer mb-2">
+        <div class="sl-viewer sl-epub-reader mb-3">
             <button type="button" class="btn btn-sm btn-outline-secondary sl-viewer-toggle"
                     aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
-            <div id="sl-epub" class="sl-viewer-body border rounded bg-body" style="height: 70vh;" data-epub-url="@serveUrl"></div>
-        </div>
-        <div class="mb-3 d-flex gap-2">
-            <button type="button" id="sl-epub-prev" class="btn btn-outline-secondary btn-sm">← Назад</button>
-            <button type="button" id="sl-epub-next" class="btn btn-outline-secondary btn-sm">Напред →</button>
+            <div class="sl-viewer-body d-flex flex-column" style="height: 75vh;">
+                <div class="sl-epub-toolbar d-flex flex-wrap align-items-center gap-2 mb-2">
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button"
+                                id="sl-epub-toc-btn" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-list-ul"></i> Съдържание
+                        </button>
+                        <ul class="dropdown-menu sl-epub-toc" id="sl-epub-toc" aria-labelledby="sl-epub-toc-btn"></ul>
+                    </div>
+                    <div class="btn-group" role="group" aria-label="Размер на шрифта">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-epub-font-dec" aria-label="По-дребен шрифт">A−</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-epub-font-inc" aria-label="По-едър шрифт">A+</button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-epub-theme"
+                            aria-label="Светла или тъмна тема на четеца"><i class="bi bi-circle-half"></i></button>
+                </div>
+
+                <div class="sl-epub-stage position-relative flex-grow-1">
+                    <button type="button" class="sl-epub-nav sl-epub-nav-prev" id="sl-epub-prev" aria-label="Предишна страница"><i class="bi bi-chevron-left"></i></button>
+                    <div id="sl-epub" class="border rounded bg-body h-100"
+                         data-epub-url="@serveUrl" data-epub-key="epub-pos-@Model.Resource.Id"></div>
+                    <button type="button" class="sl-epub-nav sl-epub-nav-next" id="sl-epub-next" aria-label="Следваща страница"><i class="bi bi-chevron-right"></i></button>
+                </div>
+
+                <div class="sl-epub-progress d-flex align-items-center gap-2 mt-2 small text-body-secondary">
+                    <input type="range" class="form-range flex-grow-1" id="sl-epub-range"
+                           min="0" max="100" value="0" step="1" aria-label="Позиция в книгата">
+                    <span id="sl-epub-percent">0%</span>
+                </div>
+            </div>
         </div>
     }
     else

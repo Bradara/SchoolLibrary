@@ -167,6 +167,52 @@ body.sl-maximized-open {
   overflow: hidden;
 }
 
+/* ---------- EPUB reader: floating page arrows, table of contents ---------- */
+.sl-epub-nav {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 4;
+  width: 2.4rem;
+  height: 2.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  font-size: 1.3rem;
+  color: var(--bs-body-color);
+  background: var(--bs-secondary-bg);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, .25);
+  opacity: .7;
+  transition: opacity .15s ease-in-out;
+}
+
+.sl-epub-nav:hover,
+.sl-epub-nav:focus-visible {
+  opacity: 1;
+}
+
+.sl-epub-nav-prev {
+  left: .4rem;
+}
+
+.sl-epub-nav-next {
+  right: .4rem;
+}
+
+/* inset the rendered page so the arrows sit beside the text, not over it */
+.sl-epub-stage {
+  padding: 0 2.6rem;
+}
+
+.sl-epub-toc {
+  max-height: 50vh;
+  overflow-y: auto;
+  min-width: 15rem;
+}
+
 /* ---------- Rendered Markdown uploads (readable measure, pictures and tables fit) ---------- */
 .sl-markdown {
   max-width: 70ch;
