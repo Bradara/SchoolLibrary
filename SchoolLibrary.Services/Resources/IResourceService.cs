@@ -15,6 +15,9 @@ public interface IResourceService
     /// <summary>A resource with its subjects, grades and owner, or null when it does not exist.</summary>
     Task<Resource?> GetDetailsAsync(int id);
 
+    /// <summary>The uploaded file of a resource, or null when it has none.</summary>
+    Task<ResourceFile?> GetFileAsync(int resourceId);
+
     /// <summary>The resource that already uses this link (in any spelling), or null when the link is new.</summary>
     Task<Resource?> FindByUrlAsync(string url);
 

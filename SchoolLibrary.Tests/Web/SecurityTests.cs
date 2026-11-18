@@ -140,7 +140,7 @@ public class SecurityTests
     }
 
     [Fact]
-    public void ResourcesThatAnonymousVisitorsMayRead_AreOnlyTheListAndTheDetails()
+    public void ResourcesThatAnonymousVisitorsMayRead_AreOnlyTheListTheDetailsAndTheFile()
     {
         var anonymous = typeof(ResourcesController)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
@@ -148,6 +148,7 @@ public class SecurityTests
             .Select(m => m.Name)
             .OrderBy(n => n);
 
-        Assert.Equal(new[] { "Details", "Index" }, anonymous);
+        // Download serves a public resource's file, so the preview and download work for anonymous visitors too
+        Assert.Equal(new[] { "Details", "Download", "Index" }, anonymous);
     }
 }

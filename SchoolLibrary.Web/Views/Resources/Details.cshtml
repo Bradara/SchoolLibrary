@@ -1,3 +1,5 @@
+@using SchoolLibrary.Data.Enums
+@using SchoolLibrary.Extensions
 @using SchoolLibrary.ViewModels
 @model ResourceDetailsViewModel
 
@@ -7,7 +9,7 @@
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a asp-action="Index" asp-route-kind="@Model.Resource.Kind">@(Model.Resource.Kind == SchoolLibrary.Data.Enums.ResourceKind.External ? "Свободни ресурси" : "Уроци")</a></li>
+        <li class="breadcrumb-item"><a asp-action="Index" asp-route-kind="@Model.Resource.Kind">@Model.Resource.Kind.SectionTitle()</a></li>
         <li class="breadcrumb-item active">@Model.Resource.Title</li>
     </ol>
 </nav>
@@ -17,7 +19,7 @@
 <h1>@Model.Resource.Title</h1>
 
 <div class="mb-3">
-    <span class="badge text-bg-info">@(Model.Resource.Kind == SchoolLibrary.Data.Enums.ResourceKind.External ? "Свободен ресурс" : "Урок")</span>
+    <span class="badge text-bg-info">@Model.Resource.Kind.Label()</span>
     @foreach (var c in Model.Resource.Categories.OrderBy(c => c.Name))
     {
         <span class="badge bg-primary">@c.Name</span>
@@ -33,7 +35,29 @@
     <p class="lead">@Model.Resource.Description</p>
 }
 
-@if (Model.Resource.IsEmbeddable)
+@if (Model.Resource.Kind == ResourceKind.Upload && Model.Resource.File != null)
+{
+    var serveUrl = Url.Action("Download", new { id = Model.Resource.Id });
+
+    if (Model.Resource.File.ContentType == "application/pdf")
+    {
+        <div class="mb-4 sl-embed" style="height: 80vh;">
+            <iframe src="@serveUrl" title="@Model.Resource.Title" loading="lazy"
+                    style="width: 100%; height: 100%; border: 0;"></iframe>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-info mb-3">Прегледът на този файл ще се покаже тук.</div>
+    }
+
+    <div class="mb-2">
+        <a href="@Url.Action("Download", new { id = Model.Resource.Id, download = true })"
+           class="btn btn-outline-secondary btn-sm">Свали файла ↓</a>
+        <span class="text-body-secondary small ms-2">@Model.Resource.File.FileName</span>
+    </div>
+}
+else if (Model.Resource.IsEmbeddable)
 {
     <div class="ratio ratio-16x9 mb-4 sl-embed">
         <iframe src="@Model.Resource.EmbedUrl"

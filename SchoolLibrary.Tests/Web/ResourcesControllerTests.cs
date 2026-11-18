@@ -11,6 +11,7 @@ using SchoolLibrary.Services.Favorites;
 using SchoolLibrary.Services.GradeLevels;
 using SchoolLibrary.Services.Licenses;
 using SchoolLibrary.Services.Resources;
+using SchoolLibrary.Services.Storage;
 using SchoolLibrary.ViewModels;
 
 namespace SchoolLibrary.Tests.Web;
@@ -19,6 +20,7 @@ public class ResourcesControllerTests
 {
     private readonly Mock<IResourceService> _resources = new();
     private readonly Mock<IResourceUploadService> _uploads = new();
+    private readonly Mock<IFileStorage> _storage = new();
     private readonly Mock<ICategoryService> _categories = new();
     private readonly Mock<IGradeLevelService> _gradeLevels = new();
     private readonly Mock<ILicenseService> _licenses = new();
@@ -42,8 +44,8 @@ public class ResourcesControllerTests
     }
 
     private ResourcesController Controller(string? userId = "u1", params string[] roles) =>
-        new ResourcesController(_resources.Object, _uploads.Object, _categories.Object, _gradeLevels.Object,
-            _licenses.Object, _favorites.Object, _comments.Object).WithUser(userId, roles);
+        new ResourcesController(_resources.Object, _uploads.Object, _storage.Object, _categories.Object,
+            _gradeLevels.Object, _licenses.Object, _favorites.Object, _comments.Object).WithUser(userId, roles);
 
     private static ResourceFormViewModel ValidForm() => new()
     {
@@ -55,6 +57,47 @@ public class ResourcesControllerTests
         SelectedCategoryIds = { 1 },
         SelectedGradeLevelIds = { 1 }
     };
+
+    // ---------- Download ----------
+
+    private static ResourceFile PdfFile() => new()
+    {
+        ResourceId = 5,
+        StorageKey = "resources/x.pdf",
+        ContentType = "application/pdf",
+        FileName = "материал.pdf"
+    };
+
+    [Fact]
+    public async Task Download_ReturnsTheFile_WhenItExists()
+    {
+        _resources.Setup(r => r.GetFileAsync(5)).ReturnsAsync(PdfFile());
+        _storage.Setup(s => s.OpenReadAsync("resources/x.pdf", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MemoryStream(new byte[] { 1, 2, 3 }));
+
+        var result = await Controller().Download(5);
+
+        var file = Assert.IsType<FileStreamResult>(result);
+        Assert.Equal("application/pdf", file.ContentType);
+    }
+
+    [Fact]
+    public async Task Download_ReturnsNotFound_WhenResourceHasNoFile()
+    {
+        _resources.Setup(r => r.GetFileAsync(It.IsAny<int>())).ReturnsAsync((ResourceFile?)null);
+
+        Assert.IsType<NotFoundResult>(await Controller().Download(5));
+    }
+
+    [Fact]
+    public async Task Download_ReturnsNotFound_WhenTheBytesAreMissing()
+    {
+        _resources.Setup(r => r.GetFileAsync(5)).ReturnsAsync(PdfFile());
+        _storage.Setup(s => s.OpenReadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((Stream?)null);
+
+        Assert.IsType<NotFoundResult>(await Controller().Download(5));
+    }
 
     private static ServiceResult<Resource> Saved(int id = 5) =>
         ServiceResult<Resource>.Success(new Resource { Id = id, Title = "Дроби", Url = "https://example.com/a" });

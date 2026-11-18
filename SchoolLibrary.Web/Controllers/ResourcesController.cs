@@ -10,6 +10,7 @@ using SchoolLibrary.Services.Favorites;
 using SchoolLibrary.Services.GradeLevels;
 using SchoolLibrary.Services.Licenses;
 using SchoolLibrary.Services.Resources;
+using SchoolLibrary.Services.Storage;
 using SchoolLibrary.ViewModels;
 using System.Security.Claims;
 
@@ -23,6 +24,7 @@ namespace SchoolLibrary.Controllers
 
         private readonly IResourceService _resources;
         private readonly IResourceUploadService _uploads;
+        private readonly IFileStorage _storage;
         private readonly ICategoryService _categories;
         private readonly IGradeLevelService _gradeLevels;
         private readonly ILicenseService _licenses;
@@ -32,6 +34,7 @@ namespace SchoolLibrary.Controllers
         public ResourcesController(
             IResourceService resources,
             IResourceUploadService uploads,
+            IFileStorage storage,
             ICategoryService categories,
             IGradeLevelService gradeLevels,
             ILicenseService licenses,
@@ -40,6 +43,7 @@ namespace SchoolLibrary.Controllers
         {
             _resources = resources;
             _uploads = uploads;
+            _storage = storage;
             _categories = categories;
             _gradeLevels = gradeLevels;
             _licenses = licenses;
@@ -140,6 +144,29 @@ namespace SchoolLibrary.Controllers
                 CommentError = TempData["CommentError"] as string,
                 CommentDraft = TempData["CommentDraft"] as string
             });
+        }
+
+        // GET: Resources/Download — serves an uploaded file for preview (inline) or download
+        [AllowAnonymous]
+        public async Task<IActionResult> Download(int id, bool download = false)
+        {
+            var file = await _resources.GetFileAsync(id);
+            if (file == null)
+            {
+                return NotFound();
+            }
+
+            var stream = await _storage.OpenReadAsync(file.StorageKey);
+            if (stream == null)
+            {
+                return NotFound();
+            }
+
+            // nosniff is set globally; the content type was validated from the bytes when the file was uploaded.
+            // Range processing lets the browser seek inside a PDF.
+            return download
+                ? File(stream, file.ContentType, file.FileName, enableRangeProcessing: true)
+                : File(stream, file.ContentType, enableRangeProcessing: true);
         }
 
         // GET: Resources/Create

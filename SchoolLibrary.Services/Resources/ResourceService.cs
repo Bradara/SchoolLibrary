@@ -68,8 +68,16 @@ public class ResourceService : IResourceService
             .Include(r => r.GradeLevels)
             .Include(r => r.Owner)
             .Include(r => r.License)
+            .Include(r => r.File)
             .AsSplitQuery()
             .FirstOrDefaultAsync(r => r.Id == id);
+    }
+
+    public async Task<ResourceFile?> GetFileAsync(int resourceId)
+    {
+        return await _context.ResourceFiles
+            .AsNoTracking()
+            .FirstOrDefaultAsync(f => f.ResourceId == resourceId);
     }
 
     public async Task<Resource?> FindByUrlAsync(string url)
