@@ -37,6 +37,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IResourceDiscoveryService, ResourceDiscoveryService>();
         services.AddScoped<ISectionService, SectionService>();
         services.AddScoped<IQuestionBankService, QuestionBankService>();
+        services.AddScoped<IQuizItemService, QuizItemService>();
 
         // Default file storage; Program.cs replaces it with the configured path (a mounted volume on the
         // server). The folder is created lazily on the first upload, so this default touches no disk.
