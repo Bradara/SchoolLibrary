@@ -1,0 +1,155 @@
+using Microsoft.EntityFrameworkCore;
+using SchoolLibrary.Data;
+using SchoolLibrary.Data.Models;
+using SchoolLibrary.Services.Common;
+
+namespace SchoolLibrary.Services.Quizzes;
+
+public class SectionService : ISectionService
+{
+    public const int MaxNameLength = 200;
+    public const int MaxDescriptionLength = 1000;
+    public const int MaxPageSize = 100;
+
+    private readonly ApplicationDbContext _context;
+
+    public SectionService(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public async Task<PagedResult<SectionListItem>> GetManagedAsync(string? ownerId, int page, int pageSize = 10)
+    {
+        var query = _context.Sections.AsNoTracking();
+        if (ownerId != null)
+        {
+            query = query.Where(s => s.OwnerId == ownerId);
+        }
+
+        var totalCount = await query.CountAsync();
+
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        page = Math.Clamp(page, 1, Math.Max(totalPages, 1));
+
+        var sections = await query
+            .OrderBy(s => s.Name)
+            .ThenBy(s => s.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        // Counts loaded separately (grouped) so the projection stays simple for the in-memory provider
+        var ids = sections.Select(s => s.Id).ToList();
+        var counts = await _context.Questions
+            .Where(q => q.SectionId != null && ids.Contains(q.SectionId.Value))
+            .GroupBy(q => q.SectionId!.Value)
+            .Select(g => new { SectionId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.SectionId, g => g.Count);
+
+        var items = sections
+            .Select(s => new SectionListItem(s, counts.GetValueOrDefault(s.Id)))
+            .ToList();
+
+        return new PagedResult<SectionListItem>(items, totalCount, page, pageSize);
+    }
+
+    public async Task<Section?> GetByIdAsync(int id)
+        => await _context.Sections.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
+
+    public async Task<ServiceResult<Section>> CreateAsync(SectionInput input, string ownerId)
+    {
+        var validation = Validate(input);
+        if (validation != null)
+        {
+            return ServiceResult<Section>.Failure(ServiceError.Invalid, validation);
+        }
+
+        var section = new Section
+        {
+            Name = input.Name.Trim(),
+            Description = Clean(input.Description),
+            OwnerId = ownerId,
+            CreatedOn = DateTime.UtcNow
+        };
+
+        _context.Sections.Add(section);
+        await _context.SaveChangesAsync();
+
+        return ServiceResult<Section>.Success(section);
+    }
+
+    public async Task<ServiceResult<Section>> UpdateAsync(int id, SectionInput input, string userId, bool isAdministrator)
+    {
+        var section = await _context.Sections.FirstOrDefaultAsync(s => s.Id == id);
+        if (section == null)
+        {
+            return ServiceResult<Section>.Failure(ServiceError.NotFound, "Разделът не е намерен.");
+        }
+
+        if (!SectionPermissions.CanManage(section, userId, isAdministrator))
+        {
+            return ServiceResult<Section>.Failure(ServiceError.Forbidden, "Нямате права за това действие.");
+        }
+
+        var validation = Validate(input);
+        if (validation != null)
+        {
+            return ServiceResult<Section>.Failure(ServiceError.Invalid, validation);
+        }
+
+        section.Name = input.Name.Trim();
+        section.Description = Clean(input.Description);
+        await _context.SaveChangesAsync();
+
+        return ServiceResult<Section>.Success(section);
+    }
+
+    public async Task<ServiceResult<Section>> DeleteAsync(int id, string userId, bool isAdministrator)
+    {
+        var section = await _context.Sections.FirstOrDefaultAsync(s => s.Id == id);
+        if (section == null)
+        {
+            return ServiceResult<Section>.Failure(ServiceError.NotFound, "Разделът не е намерен.");
+        }
+
+        if (!SectionPermissions.CanManage(section, userId, isAdministrator))
+        {
+            return ServiceResult<Section>.Failure(ServiceError.Forbidden, "Нямате права за това действие.");
+        }
+
+        if (await _context.Questions.AnyAsync(q => q.SectionId == id))
+        {
+            return ServiceResult<Section>.Failure(ServiceError.Conflict,
+                "Разделът съдържа въпроси и не може да бъде изтрит.");
+        }
+
+        _context.Sections.Remove(section);
+        await _context.SaveChangesAsync();
+
+        return ServiceResult<Section>.Success(section);
+    }
+
+    private static string? Clean(string? value)
+        => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
+    private static string? Validate(SectionInput input)
+    {
+        if (string.IsNullOrWhiteSpace(input.Name))
+        {
+            return "Името на раздела е задължително.";
+        }
+
+        if (input.Name.Trim().Length > MaxNameLength)
+        {
+            return $"Името не може да бъде по-дълго от {MaxNameLength} символа.";
+        }
+
+        if (input.Description != null && input.Description.Trim().Length > MaxDescriptionLength)
+        {
+            return $"Описанието не може да бъде по-дълго от {MaxDescriptionLength} символа.";
+        }
+
+        return null;
+    }
+}

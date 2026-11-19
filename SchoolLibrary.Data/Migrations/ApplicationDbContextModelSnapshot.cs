@@ -496,6 +496,9 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<int>("QuizId")
                         .HasColumnType("integer");
 
+                    b.Property<int?>("SectionId")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -507,6 +510,8 @@ namespace SchoolLibrary.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("QuizId");
+
+                    b.HasIndex("SectionId");
 
                     b.ToTable("Questions");
                 });
@@ -786,6 +791,36 @@ namespace SchoolLibrary.Data.Migrations
                     b.ToTable("ResourceFiles");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.Section", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("OwnerId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId");
+
+                    b.ToTable("Sections");
+                });
+
             modelBuilder.Entity("CategoryResource", b =>
                 {
                     b.HasOne("SchoolLibrary.Data.Models.Category", null)
@@ -950,7 +985,14 @@ namespace SchoolLibrary.Data.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("SchoolLibrary.Data.Models.Section", "Section")
+                        .WithMany("Questions")
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Quiz");
+
+                    b.Navigation("Section");
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Quiz", b =>
@@ -1033,6 +1075,16 @@ namespace SchoolLibrary.Data.Migrations
                     b.Navigation("Resource");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.Section", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Owner");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Question", b =>
                 {
                     b.Navigation("Options");
@@ -1051,6 +1103,11 @@ namespace SchoolLibrary.Data.Migrations
             modelBuilder.Entity("SchoolLibrary.Data.Models.Resource", b =>
                 {
                     b.Navigation("File");
+                });
+
+            modelBuilder.Entity("SchoolLibrary.Data.Models.Section", b =>
+                {
+                    b.Navigation("Questions");
                 });
 #pragma warning restore 612, 618
         }

@@ -35,6 +35,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IStatisticsService, StatisticsService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IResourceDiscoveryService, ResourceDiscoveryService>();
+        services.AddScoped<ISectionService, SectionService>();
 
         // Default file storage; Program.cs replaces it with the configured path (a mounted volume on the
         // server). The folder is created lazily on the first upload, so this default touches no disk.

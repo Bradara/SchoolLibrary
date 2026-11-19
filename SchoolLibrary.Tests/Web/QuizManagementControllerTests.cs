@@ -214,17 +214,22 @@ public class QuizManagementControllerTests
     }
 
     [Fact]
-    public async Task AddQuestion_Failure_RedirectsToDetailsWithAnErrorMessage()
+    public async Task AddQuestion_Invalid_RedisplaysTheManagePageWithTheTypedQuestionKept()
     {
         _service.Setup(s => s.AddQuestionAsync(5, It.IsAny<QuestionInput>(), It.IsAny<string>(), It.IsAny<bool>()))
-            .ReturnsAsync(ServiceResult<Question>.Failure(ServiceError.Invalid, "Добавете поне 2 отговора."));
+            .ReturnsAsync(ServiceResult<Question>.Failure(ServiceError.Invalid, "Посочете кой е верният отговор."));
+        _service.Setup(s => s.GetByIdAsync(5)).ReturnsAsync(new Quiz { Id = 5, OwnerId = "t1", Title = "Тест" });
 
         var controller = Controller("t1", Roles.Teacher);
-        var result = await controller.AddQuestion(5, new QuestionFormViewModel { Text = "В", Options = new List<string> { "само един" }, CorrectIndex = 0 });
+        var vm = new QuestionFormViewModel { Text = "Моят въпрос", Options = new List<string> { "A", "B" }, CorrectIndex = -1, Points = 2 };
+        var result = await controller.AddQuestion(5, vm);
 
-        var redirect = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal("Details", redirect.ActionName);
-        Assert.Equal("Добавете поне 2 отговора.", controller.TempDataText("ErrorMessage"));
+        var view = Assert.IsType<ViewResult>(result);
+        Assert.Equal("Details", view.ViewName);
+        var model = Assert.IsType<QuizManageViewModel>(view.Model);
+        Assert.Equal("Моят въпрос", model.NewQuestion.Text);
+        Assert.Equal(2, model.NewQuestion.Points);
+        Assert.False(controller.ModelState.IsValid);
     }
 
     [Fact]

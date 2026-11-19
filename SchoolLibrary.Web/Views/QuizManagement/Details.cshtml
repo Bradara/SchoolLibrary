@@ -116,25 +116,33 @@ else
     }
 }
 
+@{
+    var newQuestion = Model.NewQuestion;
+    var rowCount = Math.Min(10, Math.Max(4, newQuestion.Options.Count));
+    var points = newQuestion.Points < 1 ? 1 : newQuestion.Points;
+}
 <div class="card mt-3">
     <div class="card-body">
         <h2 class="h6 card-title">Нов въпрос</h2>
         <form method="post" asp-action="AddQuestion" asp-route-id="@quiz.Id">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
             <div class="mb-2">
-                <input name="Text" class="form-control" maxlength="1000" placeholder="Текст на въпроса" required />
+                <input name="Text" value="@newQuestion.Text" class="form-control" maxlength="1000" placeholder="Текст на въпроса" required />
             </div>
             <div class="mb-2" style="max-width: 9rem;">
                 <label class="form-label small mb-0" for="q-points">Точки</label>
-                <input id="q-points" name="Points" type="number" min="1" max="100" value="1" class="form-control" />
+                <input id="q-points" name="Points" type="number" min="1" max="100" value="@points" class="form-control" />
             </div>
             <p class="form-text mb-1">Попълни поне 2 отговора и посочи верния. Празните редове се пропускат.</p>
-            @for (var i = 0; i < 4; i++)
+            @for (var i = 0; i < rowCount; i++)
             {
+                var optionText = i < newQuestion.Options.Count ? newQuestion.Options[i] : string.Empty;
                 <div class="input-group mb-2">
                     <div class="input-group-text">
-                        <input class="form-check-input mt-0" type="radio" name="CorrectIndex" value="@i" aria-label="Верен отговор @(i + 1)" />
+                        <input class="form-check-input mt-0" type="radio" name="CorrectIndex" value="@i"
+                               aria-label="Верен отговор @(i + 1)" @(newQuestion.CorrectIndex == i ? "checked" : "") />
                     </div>
-                    <input name="Options[@i]" class="form-control" maxlength="500" placeholder="Отговор @(i + 1)" />
+                    <input name="Options[@i]" value="@optionText" class="form-control" maxlength="500" placeholder="Отговор @(i + 1)" />
                 </div>
             }
             <button type="submit" class="btn btn-primary">Добави въпрос</button>

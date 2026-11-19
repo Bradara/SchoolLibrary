@@ -151,6 +151,21 @@ namespace SchoolLibrary.Data
                 .HasForeignKey(q => q.QuizId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // A question is filed in a section (bank topic); a section cannot be deleted while it holds
+            // questions (enforced in the service and by Restrict here)
+            builder.Entity<Question>()
+                .HasOne(q => q.Section)
+                .WithMany(s => s.Questions)
+                .HasForeignKey(q => q.SectionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Deleting a teacher keeps their sections (OwnerId becomes NULL, like quizzes)
+            builder.Entity<Section>()
+                .HasOne(s => s.Owner)
+                .WithMany()
+                .HasForeignKey(s => s.OwnerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
             builder.Entity<AnswerOption>()
                 .HasOne(o => o.Question)
                 .WithMany(q => q.Options)
@@ -203,6 +218,7 @@ namespace SchoolLibrary.Data
         public DbSet<Favorite> Favorites { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Report> Reports { get; set; }
+        public DbSet<Section> Sections { get; set; }
         public DbSet<Quiz> Quizzes { get; set; }
         public DbSet<Question> Questions { get; set; }
         public DbSet<AnswerOption> AnswerOptions { get; set; }

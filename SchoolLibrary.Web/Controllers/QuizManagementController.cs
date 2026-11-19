@@ -151,7 +151,31 @@ namespace SchoolLibrary.Controllers
         public async Task<IActionResult> AddQuestion(int id, QuestionFormViewModel vm)
         {
             var result = await _quizzes.AddQuestionAsync(id, ToQuestionInput(vm), CurrentUserId, IsAdministrator);
-            return AfterQuestionChange(id, result, "Въпросът е добавен.");
+            if (result.Error == ServiceError.NotFound)
+            {
+                return NotFound();
+            }
+
+            if (result.Error == ServiceError.Forbidden)
+            {
+                return Forbid();
+            }
+
+            if (result.Succeeded)
+            {
+                TempData["SuccessMessage"] = "Въпросът е добавен.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            // Invalid (or a conflict): re-render the manage page with the typed-in question kept
+            var quiz = await _quizzes.GetByIdAsync(id);
+            if (quiz == null)
+            {
+                return NotFound();
+            }
+
+            ModelState.AddModelError(string.Empty, result.Message!);
+            return View(nameof(Details), new QuizManageViewModel { Quiz = quiz, NewQuestion = vm });
         }
 
         // GET: QuizManagement/EditQuestion/5?questionId=9

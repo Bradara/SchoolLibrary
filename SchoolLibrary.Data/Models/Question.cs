@@ -24,6 +24,10 @@ namespace SchoolLibrary.Data.Models
         public int QuizId { get; set; }
         public Quiz Quiz { get; set; } = null!;
 
+        /// <summary>The section (bank topic) this question belongs to; null until it is filed in one.</summary>
+        public int? SectionId { get; set; }
+        public Section? Section { get; set; }
+
         public ICollection<AnswerOption> Options { get; set; } = new List<AnswerOption>();
     }
 }
