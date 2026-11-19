@@ -1,0 +1,35 @@
+using SchoolLibrary.Data.Models;
+using SchoolLibrary.Services.Common;
+
+namespace SchoolLibrary.Services.Quizzes;
+
+/// <summary>Creates and manages quizzes and their questions (the teacher-facing authoring side).</summary>
+public interface IQuizService
+{
+    /// <summary>A quiz with its questions and options (ordered), or null when it does not exist.</summary>
+    Task<Quiz?> GetByIdAsync(int id);
+
+    /// <summary>
+    /// One page of quizzes for management, newest first. A null <paramref name="ownerId"/> returns every
+    /// quiz (for an administrator); otherwise only that teacher's quizzes.
+    /// </summary>
+    Task<PagedResult<QuizListItem>> GetManagedAsync(string? ownerId, int page, int pageSize = 10);
+
+    /// <summary>Creates a quiz owned by the teacher. An exam gets a unique code. Fails on invalid input.</summary>
+    Task<ServiceResult<Quiz>> CreateAsync(QuizInput input, string ownerId);
+
+    /// <summary>Changes a quiz's details. Fails when missing, not allowed, invalid, or the mode change is blocked by existing attempts.</summary>
+    Task<ServiceResult<Quiz>> UpdateAsync(int id, QuizInput input, string userId, bool isAdministrator);
+
+    /// <summary>Deletes a quiz with its questions and attempts. Fails when missing or not allowed.</summary>
+    Task<ServiceResult<Quiz>> DeleteAsync(int id, string userId, bool isAdministrator);
+
+    /// <summary>Publishes or unpublishes a quiz. Publishing needs at least one question. Fails when missing or not allowed.</summary>
+    Task<ServiceResult<Quiz>> SetPublishedAsync(int id, bool published, string userId, bool isAdministrator);
+
+    /// <summary>Adds a question with its options. Fails when the quiz is missing, not allowed, already has attempts, or the input is invalid.</summary>
+    Task<ServiceResult<Question>> AddQuestionAsync(int quizId, QuestionInput input, string userId, bool isAdministrator);
+
+    /// <summary>Removes a question. Fails when it is missing, not allowed, or the quiz already has attempts.</summary>
+    Task<ServiceResult<Question>> DeleteQuestionAsync(int questionId, string userId, bool isAdministrator);
+}

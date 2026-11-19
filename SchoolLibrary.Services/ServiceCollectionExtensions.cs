@@ -7,6 +7,7 @@ using SchoolLibrary.Services.GradeLevels;
 using SchoolLibrary.Services.Licenses;
 using SchoolLibrary.Services.Markdown;
 using SchoolLibrary.Services.OnlineLibraries;
+using SchoolLibrary.Services.Quizzes;
 using SchoolLibrary.Services.Reports;
 using SchoolLibrary.Services.Resources;
 using SchoolLibrary.Services.Statistics;
@@ -26,6 +27,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IGradeLevelService, GradeLevelService>();
         services.AddScoped<ILicenseService, LicenseService>();
         services.AddScoped<IOnlineLibraryService, OnlineLibraryService>();
+        services.AddScoped<IQuizService, QuizService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<IResourceImportService, ResourceImportService>();
