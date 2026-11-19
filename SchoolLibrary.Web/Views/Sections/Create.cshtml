@@ -1,17 +1,31 @@
 @model SchoolLibrary.ViewModels.SectionFormViewModel
 
 @{
-    ViewData["Title"] = "Нов раздел";
+    var isSubsection = Model.ParentId != null;
+    ViewData["Title"] = isSubsection ? "Нов подраздел" : "Нов раздел";
 }
 
-<h1 class="h3 mb-3">Нов раздел</h1>
+<h1 class="h3 mb-3">@ViewData["Title"]</h1>
+
+@if (isSubsection)
+{
+    <p class="text-body-secondary">В раздел „<strong>@Model.ParentName</strong>“</p>
+}
 
 <div class="row">
     <div class="col-lg-7">
         <form method="post" asp-action="Create">
+            <input type="hidden" asp-for="ParentId" />
             <partial name="_SectionForm" model="Model" />
             <button type="submit" class="btn btn-primary">Създай</button>
-            <a asp-action="Index" class="btn btn-link">Отказ</a>
+            @if (isSubsection)
+            {
+                <a asp-action="Details" asp-route-id="@Model.ParentId" class="btn btn-link">Отказ</a>
+            }
+            else
+            {
+                <a asp-action="Index" class="btn btn-link">Отказ</a>
+            }
         </form>
     </div>
 </div>

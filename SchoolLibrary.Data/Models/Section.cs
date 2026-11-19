@@ -21,9 +21,15 @@ namespace SchoolLibrary.Data.Models
 
         public DateTime CreatedOn { get; set; }
 
+        /// <summary>The parent section, for a tree of sections; null for a top-level (root) section.</summary>
+        public int? ParentId { get; set; }
+        public Section? Parent { get; set; }
+
         /// <summary>The teacher who owns the section; null if the account was deleted.</summary>
         public string? OwnerId { get; set; }
         public ApplicationUser? Owner { get; set; }
+
+        public ICollection<Section> Children { get; set; } = new List<Section>();
 
         public ICollection<Question> Questions { get; set; } = new List<Question>();
     }

@@ -43,15 +43,63 @@ public class SectionsControllerTests
     // ---------- Details ----------
 
     [Fact]
-    public async Task Details_ForOwnSection_ShowsItWithQuestions()
+    public async Task Details_ForOwnSection_ShowsItWithSubsectionsAndQuestions()
     {
         _sections.Setup(s => s.GetByIdAsync(5)).ReturnsAsync(new Section { Id = 5, OwnerId = "t1", Name = "Дроби" });
+        _sections.Setup(s => s.GetChildrenAsync(5)).ReturnsAsync(new List<SectionListItem>());
+        _sections.Setup(s => s.GetAncestorsAsync(5)).ReturnsAsync(new List<Section>());
         _questions.Setup(q => q.GetBySectionAsync(5)).ReturnsAsync(new List<Question>());
 
         var result = await Controller("t1", Roles.Teacher).Details(5);
 
         var model = Assert.IsType<SectionManageViewModel>(Assert.IsType<ViewResult>(result).Model);
         Assert.Equal(5, model.Section.Id);
+    }
+
+    // ---------- Create (subsection) ----------
+
+    [Fact]
+    public async Task Create_Get_WithParent_ShowsTheParentContext()
+    {
+        _sections.Setup(s => s.GetByIdAsync(5)).ReturnsAsync(new Section { Id = 5, OwnerId = "t1", Name = "Корен" });
+
+        var result = await Controller("t1", Roles.Teacher).Create(parentId: 5);
+
+        var model = Assert.IsType<SectionFormViewModel>(Assert.IsType<ViewResult>(result).Model);
+        Assert.Equal(5, model.ParentId);
+        Assert.Equal("Корен", model.ParentName);
+    }
+
+    [Fact]
+    public async Task Create_Get_WithMissingParent_ReturnsNotFound()
+    {
+        _sections.Setup(s => s.GetByIdAsync(5)).ReturnsAsync((Section?)null);
+
+        Assert.IsType<NotFoundResult>(await Controller("t1", Roles.Teacher).Create(parentId: 5));
+    }
+
+    [Fact]
+    public async Task Create_Get_WithAnotherTeachersParent_ReturnsForbid()
+    {
+        _sections.Setup(s => s.GetByIdAsync(5)).ReturnsAsync(new Section { Id = 5, OwnerId = "someone-else" });
+
+        Assert.IsType<ForbidResult>(await Controller("t1", Roles.Teacher).Create(parentId: 5));
+    }
+
+    [Fact]
+    public async Task Create_Post_WithParent_CreatesTheSubsection()
+    {
+        _sections.Setup(s => s.GetByIdAsync(5)).ReturnsAsync(new Section { Id = 5, OwnerId = "t1", Name = "Корен" });
+        _sections.Setup(s => s.CreateAsync(It.IsAny<SectionInput>(), "t1", 5))
+            .ReturnsAsync(ServiceResult<Section>.Success(new Section { Id = 8, Name = "Дете" }));
+
+        var result = await Controller("t1", Roles.Teacher)
+            .Create(new SectionFormViewModel { Name = "Дете", ParentId = 5 });
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Details", redirect.ActionName);
+        Assert.Equal(8, redirect.RouteValues!["id"]);
+        _sections.Verify(s => s.CreateAsync(It.IsAny<SectionInput>(), "t1", 5), Times.Once);
     }
 
     [Fact]

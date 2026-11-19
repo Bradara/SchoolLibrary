@@ -37,6 +37,10 @@ else
                     <tr>
                         <td class="fw-semibold">
                             <a asp-action="Details" asp-route-id="@item.Section.Id" class="text-decoration-none">@item.Section.Name</a>
+                            @if (item.ChildCount > 0)
+                            {
+                                <span class="badge text-bg-light">@item.ChildCount подр.</span>
+                            }
                             @if (!string.IsNullOrEmpty(item.Section.Description))
                             {
                                 <div class="small text-body-secondary fw-normal">@item.Section.Description</div>

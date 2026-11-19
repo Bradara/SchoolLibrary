@@ -166,6 +166,14 @@ namespace SchoolLibrary.Data
                 .HasForeignKey(s => s.OwnerId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            // Sections form a tree; a section cannot be deleted while it has subsections (enforced in
+            // the service and by Restrict here)
+            builder.Entity<Section>()
+                .HasOne(s => s.Parent)
+                .WithMany(s => s.Children)
+                .HasForeignKey(s => s.ParentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.Entity<AnswerOption>()
                 .HasOne(o => o.Question)
                 .WithMany(q => q.Options)

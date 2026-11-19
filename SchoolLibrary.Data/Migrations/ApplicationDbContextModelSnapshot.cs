@@ -814,9 +814,14 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<string>("OwnerId")
                         .HasColumnType("text");
 
+                    b.Property<int?>("ParentId")
+                        .HasColumnType("integer");
+
                     b.HasKey("Id");
 
                     b.HasIndex("OwnerId");
+
+                    b.HasIndex("ParentId");
 
                     b.ToTable("Sections");
                 });
@@ -1081,7 +1086,14 @@ namespace SchoolLibrary.Data.Migrations
                         .HasForeignKey("OwnerId")
                         .OnDelete(DeleteBehavior.SetNull);
 
+                    b.HasOne("SchoolLibrary.Data.Models.Section", "Parent")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.Navigation("Owner");
+
+                    b.Navigation("Parent");
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Question", b =>
@@ -1106,6 +1118,8 @@ namespace SchoolLibrary.Data.Migrations
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Section", b =>
                 {
+                    b.Navigation("Children");
+
                     b.Navigation("Questions");
                 });
 #pragma warning restore 612, 618

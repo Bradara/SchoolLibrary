@@ -20,7 +20,8 @@ public class SectionService : ISectionService
 
     public async Task<PagedResult<SectionListItem>> GetManagedAsync(string? ownerId, int page, int pageSize = 10)
     {
-        var query = _context.Sections.AsNoTracking();
+        // The list shows the top level of the tree; subsections are reached through their parent
+        var query = _context.Sections.AsNoTracking().Where(s => s.ParentId == null);
         if (ownerId != null)
         {
             query = query.Where(s => s.OwnerId == ownerId);
@@ -39,25 +40,69 @@ public class SectionService : ISectionService
             .Take(pageSize)
             .ToListAsync();
 
-        // Counts loaded separately (grouped) so the projection stays simple for the in-memory provider
-        var ids = sections.Select(s => s.Id).ToList();
-        var counts = await _context.Questions
-            .Where(q => q.SectionId != null && ids.Contains(q.SectionId.Value))
-            .GroupBy(q => q.SectionId!.Value)
-            .Select(g => new { SectionId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(g => g.SectionId, g => g.Count);
+        return new PagedResult<SectionListItem>(await BuildItemsAsync(sections), totalCount, page, pageSize);
+    }
 
-        var items = sections
-            .Select(s => new SectionListItem(s, counts.GetValueOrDefault(s.Id)))
-            .ToList();
+    public async Task<IReadOnlyList<SectionListItem>> GetChildrenAsync(int parentId)
+    {
+        var children = await _context.Sections.AsNoTracking()
+            .Where(s => s.ParentId == parentId)
+            .OrderBy(s => s.Name)
+            .ThenBy(s => s.Id)
+            .ToListAsync();
 
-        return new PagedResult<SectionListItem>(items, totalCount, page, pageSize);
+        return await BuildItemsAsync(children);
     }
 
     public async Task<Section?> GetByIdAsync(int id)
         => await _context.Sections.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
 
-    public async Task<ServiceResult<Section>> CreateAsync(SectionInput input, string ownerId)
+    public async Task<IReadOnlyList<Section>> GetAncestorsAsync(int id)
+    {
+        var chain = new List<Section>();
+        var current = await _context.Sections.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
+        var parentId = current?.ParentId;
+
+        // Walk up to the root; a depth guard protects against an unexpected cycle
+        for (var guard = 0; parentId != null && guard < 100; guard++)
+        {
+            var parent = await _context.Sections.AsNoTracking().FirstOrDefaultAsync(s => s.Id == parentId);
+            if (parent == null)
+            {
+                break;
+            }
+
+            chain.Add(parent);
+            parentId = parent.ParentId;
+        }
+
+        chain.Reverse();
+        return chain;
+    }
+
+    // Loads the question and subsection counts for a set of sections (grouped, in-memory-provider friendly)
+    private async Task<List<SectionListItem>> BuildItemsAsync(List<Section> sections)
+    {
+        var ids = sections.Select(s => s.Id).ToList();
+
+        var questionCounts = await _context.Questions
+            .Where(q => q.SectionId != null && ids.Contains(q.SectionId.Value))
+            .GroupBy(q => q.SectionId!.Value)
+            .Select(g => new { SectionId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.SectionId, g => g.Count);
+
+        var childCounts = await _context.Sections
+            .Where(s => s.ParentId != null && ids.Contains(s.ParentId.Value))
+            .GroupBy(s => s.ParentId!.Value)
+            .Select(g => new { ParentId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.ParentId, g => g.Count);
+
+        return sections
+            .Select(s => new SectionListItem(s, questionCounts.GetValueOrDefault(s.Id), childCounts.GetValueOrDefault(s.Id)))
+            .ToList();
+    }
+
+    public async Task<ServiceResult<Section>> CreateAsync(SectionInput input, string ownerId, int? parentId = null)
     {
         var validation = Validate(input);
         if (validation != null)
@@ -65,10 +110,16 @@ public class SectionService : ISectionService
             return ServiceResult<Section>.Failure(ServiceError.Invalid, validation);
         }
 
+        if (parentId != null && !await _context.Sections.AnyAsync(s => s.Id == parentId))
+        {
+            return ServiceResult<Section>.Failure(ServiceError.Invalid, "Родителският раздел не е намерен.");
+        }
+
         var section = new Section
         {
             Name = input.Name.Trim(),
             Description = Clean(input.Description),
+            ParentId = parentId,
             OwnerId = ownerId,
             CreatedOn = DateTime.UtcNow
         };
@@ -116,6 +167,12 @@ public class SectionService : ISectionService
         if (!SectionPermissions.CanManage(section, userId, isAdministrator))
         {
             return ServiceResult<Section>.Failure(ServiceError.Forbidden, "Нямате права за това действие.");
+        }
+
+        if (await _context.Sections.AnyAsync(s => s.ParentId == id))
+        {
+            return ServiceResult<Section>.Failure(ServiceError.Conflict,
+                "Разделът съдържа подраздели и не може да бъде изтрит.");
         }
 
         if (await _context.Questions.AnyAsync(q => q.SectionId == id))

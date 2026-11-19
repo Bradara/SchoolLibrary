@@ -45,27 +45,60 @@ namespace SchoolLibrary.Controllers
                 return Forbid();
             }
 
-            return View(new SectionManageViewModel
-            {
-                Section = section,
-                Questions = await _questions.GetBySectionAsync(id)
-            });
+            return View(await BuildManageAsync(section));
         }
 
-        // GET: Sections/Create
-        public IActionResult Create() => View(new SectionFormViewModel());
+        // GET: Sections/Create (optionally a subsection, with ?parentId=5)
+        public async Task<IActionResult> Create(int? parentId)
+        {
+            var vm = new SectionFormViewModel { ParentId = parentId };
+            if (parentId != null)
+            {
+                var parent = await _sections.GetByIdAsync(parentId.Value);
+                if (parent == null)
+                {
+                    return NotFound();
+                }
+
+                if (!SectionPermissions.CanManage(parent, CurrentUserId, IsAdministrator))
+                {
+                    return Forbid();
+                }
+
+                vm.ParentName = parent.Name;
+            }
+
+            return View(vm);
+        }
 
         // POST: Sections/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(SectionFormViewModel vm)
         {
+            // When creating a subsection, the current user must be able to manage the parent
+            if (vm.ParentId != null)
+            {
+                var parent = await _sections.GetByIdAsync(vm.ParentId.Value);
+                if (parent == null)
+                {
+                    return NotFound();
+                }
+
+                if (!SectionPermissions.CanManage(parent, CurrentUserId, IsAdministrator))
+                {
+                    return Forbid();
+                }
+
+                vm.ParentName = parent.Name;
+            }
+
             if (!ModelState.IsValid)
             {
                 return View(vm);
             }
 
-            var result = await _sections.CreateAsync(new SectionInput(vm.Name, vm.Description), CurrentUserId);
+            var result = await _sections.CreateAsync(new SectionInput(vm.Name, vm.Description), CurrentUserId, vm.ParentId);
             if (!result.Succeeded)
             {
                 ModelState.AddModelError(string.Empty, result.Message!);
@@ -180,12 +213,7 @@ namespace SchoolLibrary.Controllers
             }
 
             ModelState.AddModelError(string.Empty, result.Message!);
-            return View(nameof(Details), new SectionManageViewModel
-            {
-                Section = section,
-                Questions = await _questions.GetBySectionAsync(id),
-                NewQuestion = vm
-            });
+            return View(nameof(Details), await BuildManageAsync(section, vm));
         }
 
         // GET: Sections/EditQuestion/5?questionId=9
@@ -261,5 +289,16 @@ namespace SchoolLibrary.Controllers
             TempData["SuccessMessage"] = "Въпросът е изтрит.";
             return RedirectToAction(nameof(Details), new { id });
         }
+
+        // Loads a section's subsections, ancestors (for the breadcrumb) and questions for the manage page
+        private async Task<SectionManageViewModel> BuildManageAsync(Data.Models.Section section, QuestionFormViewModel? newQuestion = null)
+            => new()
+            {
+                Section = section,
+                Subsections = await _sections.GetChildrenAsync(section.Id),
+                Ancestors = await _sections.GetAncestorsAsync(section.Id),
+                Questions = await _questions.GetBySectionAsync(section.Id),
+                NewQuestion = newQuestion ?? new QuestionFormViewModel()
+            };
     }
 }

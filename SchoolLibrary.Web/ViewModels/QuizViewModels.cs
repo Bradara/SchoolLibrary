@@ -81,7 +81,7 @@ public class QuizManageViewModel
     public QuestionFormViewModel NewQuestion { get; set; } = new();
 }
 
-/// <summary>The new/edit section form.</summary>
+/// <summary>The new/edit section form. <see cref="ParentId"/> is set when creating a subsection.</summary>
 public class SectionFormViewModel
 {
     [Required(ErrorMessage = "Въведете име на раздела")]
@@ -92,12 +92,22 @@ public class SectionFormViewModel
     [StringLength(1000, ErrorMessage = "Описанието е най-много 1000 символа")]
     [Display(Name = "Описание")]
     public string? Description { get; set; }
+
+    /// <summary>The parent section when creating a subsection; null for a top-level section.</summary>
+    public int? ParentId { get; set; }
+
+    /// <summary>The parent's name, shown on the create form (not posted back).</summary>
+    public string? ParentName { get; set; }
 }
 
-/// <summary>The section page: a section with its bank questions and an empty add-question form.</summary>
+/// <summary>The section page: the section, its subsections and bank questions, plus an add-question form.</summary>
 public class SectionManageViewModel
 {
     public Section Section { get; set; } = null!;
+
+    public IReadOnlyList<SectionListItem> Subsections { get; set; } = new List<SectionListItem>();
+
+    public IReadOnlyList<Section> Ancestors { get; set; } = new List<Section>();
 
     public IReadOnlyList<Question> Questions { get; set; } = new List<Question>();
 

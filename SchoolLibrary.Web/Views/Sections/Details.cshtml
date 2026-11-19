@@ -11,6 +11,10 @@
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a asp-action="Index">Банка с въпроси</a></li>
+        @foreach (var ancestor in Model.Ancestors)
+        {
+            <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@ancestor.Id">@ancestor.Name</a></li>
+        }
         <li class="breadcrumb-item active">@topic.Name</li>
     </ol>
 </nav>
@@ -31,6 +35,25 @@
 @if (!string.IsNullOrEmpty(topic.Description))
 {
     <p class="text-body-secondary">@topic.Description</p>
+}
+
+<div class="d-flex justify-content-between align-items-center mt-4">
+    <h2 class="h5 mb-0">Подраздели (@Model.Subsections.Count)</h2>
+    <a asp-action="Create" asp-route-parentId="@topic.Id" class="btn btn-sm btn-outline-primary">+ Нов подраздел</a>
+</div>
+@if (Model.Subsections.Count > 0)
+{
+    <ul class="list-group mt-2">
+        @foreach (var sub in Model.Subsections)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a asp-action="Details" asp-route-id="@sub.Section.Id" class="text-decoration-none">
+                    <i class="bi bi-folder"></i> @sub.Section.Name
+                </a>
+                <span class="small text-body-secondary">@sub.QuestionCount въпр. · @sub.ChildCount подр.</span>
+            </li>
+        }
+    </ul>
 }
 
 <h2 class="h5 mt-4">Въпроси (@Model.Questions.Count)</h2>

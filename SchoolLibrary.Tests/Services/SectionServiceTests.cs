@@ -188,6 +188,88 @@ public class SectionServiceTests
         Assert.Null(await service.GetByIdAsync(1));
     }
 
+    // ---------- Tree: subsections ----------
+
+    [Fact]
+    public async Task CreateAsync_UnderAParent_SetsTheParent()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new SectionService(context);
+        var root = (await service.CreateAsync(new SectionInput("Корен", null), Owner)).Value!;
+
+        var child = await service.CreateAsync(new SectionInput("Подраздел", null), Owner, parentId: root.Id);
+
+        Assert.True(child.Succeeded);
+        Assert.Equal(root.Id, child.Value!.ParentId);
+    }
+
+    [Fact]
+    public async Task CreateAsync_UnderMissingParent_FailsAsInvalid()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new SectionService(context);
+
+        var result = await service.CreateAsync(new SectionInput("Подраздел", null), Owner, parentId: 999);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+    }
+
+    [Fact]
+    public async Task GetManagedAsync_ReturnsOnlyRoots_WithSubsectionCount()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new SectionService(context);
+        var root = (await service.CreateAsync(new SectionInput("Корен", null), Owner)).Value!;
+        await service.CreateAsync(new SectionInput("Подраздел", null), Owner, parentId: root.Id);
+
+        var page = await service.GetManagedAsync(Owner, page: 1);
+
+        Assert.Equal(1, page.TotalCount);
+        Assert.Equal("Корен", page.Items[0].Section.Name);
+        Assert.Equal(1, page.Items[0].ChildCount);
+    }
+
+    [Fact]
+    public async Task GetChildrenAsync_ReturnsTheDirectSubsections()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new SectionService(context);
+        var root = (await service.CreateAsync(new SectionInput("Корен", null), Owner)).Value!;
+        await service.CreateAsync(new SectionInput("А", null), Owner, parentId: root.Id);
+        await service.CreateAsync(new SectionInput("Б", null), Owner, parentId: root.Id);
+
+        var children = await service.GetChildrenAsync(root.Id);
+
+        Assert.Equal(new[] { "А", "Б" }, children.Select(c => c.Section.Name));
+    }
+
+    [Fact]
+    public async Task GetAncestorsAsync_ReturnsTheChainFromRootToParent()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new SectionService(context);
+        var root = (await service.CreateAsync(new SectionInput("Корен", null), Owner)).Value!;
+        var child = (await service.CreateAsync(new SectionInput("Дете", null), Owner, parentId: root.Id)).Value!;
+        var grandchild = (await service.CreateAsync(new SectionInput("Внуче", null), Owner, parentId: child.Id)).Value!;
+
+        var ancestors = await service.GetAncestorsAsync(grandchild.Id);
+
+        Assert.Equal(new[] { "Корен", "Дете" }, ancestors.Select(a => a.Name));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_WithSubsections_FailsAsConflict()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new SectionService(context);
+        var root = (await service.CreateAsync(new SectionInput("Корен", null), Owner)).Value!;
+        await service.CreateAsync(new SectionInput("Подраздел", null), Owner, parentId: root.Id);
+
+        var result = await service.DeleteAsync(root.Id, Owner, false);
+
+        Assert.Equal(ServiceError.Conflict, result.Error);
+    }
+
     // ---------- SectionPermissions ----------
 
     [Fact]
