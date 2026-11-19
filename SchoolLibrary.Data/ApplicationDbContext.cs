@@ -187,6 +187,11 @@ namespace SchoolLibrary.Data
             // Teacher review: the attempts of one quiz, newest submission first
             builder.Entity<QuizAttempt>()
                 .HasIndex(a => new { a.QuizId, a.SubmittedOn });
+
+            // An attempt is addressed by its token in the exam URLs
+            builder.Entity<QuizAttempt>()
+                .HasIndex(a => a.Token)
+                .IsUnique();
         }
 
         public DbSet<Resource> Resources { get; set; }

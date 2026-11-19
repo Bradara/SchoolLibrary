@@ -41,4 +41,23 @@ public interface IQuizService
 
     /// <summary>Grades answers to a published practice quiz. Fails when the quiz is missing, an exam, or unpublished.</summary>
     Task<ServiceResult<QuizResult>> GradePracticeAsync(int quizId, IReadOnlyDictionary<int, int?> answers);
+
+    /// <summary>
+    /// Starts (or resumes) an exam entered by its code. A student who already submitted this exam is
+    /// blocked; an unfinished attempt for the same name and number is resumed. Fails when the code is
+    /// unknown or the name is missing.
+    /// </summary>
+    Task<ServiceResult<QuizAttempt>> StartExamAsync(string code, string studentName, string? studentNumber);
+
+    /// <summary>An exam attempt with its quiz, questions and options, found by its token, or null.</summary>
+    Task<QuizAttempt?> GetExamAttemptAsync(Guid token);
+
+    /// <summary>
+    /// Grades and stores an exam attempt. Resubmitting an already-submitted attempt returns the stored
+    /// result unchanged. Fails when the token is unknown.
+    /// </summary>
+    Task<ServiceResult<QuizResult>> SubmitExamAsync(Guid token, IReadOnlyDictionary<int, int?> answers);
+
+    /// <summary>The graded result of a submitted exam attempt. Fails when the token is unknown or not yet submitted.</summary>
+    Task<ServiceResult<QuizResult>> GetExamResultAsync(Guid token);
 }

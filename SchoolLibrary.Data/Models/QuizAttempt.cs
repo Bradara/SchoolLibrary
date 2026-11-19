@@ -10,6 +10,9 @@ namespace SchoolLibrary.Data.Models
     {
         public int Id { get; set; }
 
+        /// <summary>Unguessable id used in the exam URLs, so one student cannot open another's attempt.</summary>
+        public Guid Token { get; set; }
+
         public int QuizId { get; set; }
         public Quiz Quiz { get; set; } = null!;
 

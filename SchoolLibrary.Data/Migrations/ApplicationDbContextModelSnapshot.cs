@@ -593,7 +593,13 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<DateTime?>("SubmittedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<Guid>("Token")
+                        .HasColumnType("uuid");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
 
                     b.HasIndex("QuizId", "SubmittedOn");
 
