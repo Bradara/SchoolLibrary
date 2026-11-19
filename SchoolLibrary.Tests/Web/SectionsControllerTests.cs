@@ -14,6 +14,12 @@ public class SectionsControllerTests
     private readonly Mock<ISectionService> _sections = new();
     private readonly Mock<IQuestionBankService> _questions = new();
 
+    public SectionsControllerTests()
+    {
+        // The manage page always asks for the owner's other sections (the move-to picker)
+        _sections.Setup(s => s.GetAllForOwnerAsync(It.IsAny<string>())).ReturnsAsync(new List<Section>());
+    }
+
     private SectionsController Controller(string userId, params string[] roles) =>
         new SectionsController(_sections.Object, _questions.Object).WithUser(userId, roles);
 
@@ -290,6 +296,54 @@ public class SectionsControllerTests
         var redirect = Assert.IsType<RedirectToActionResult>(result);
         Assert.Equal("Details", redirect.ActionName);
         Assert.Equal(5, redirect.RouteValues!["id"]);
+    }
+
+    // ---------- MoveQuestions ----------
+
+    [Fact]
+    public async Task MoveQuestions_Success_RedirectsToDetailsWithACount()
+    {
+        _questions.Setup(q => q.MoveQuestionsAsync(It.IsAny<IReadOnlyCollection<int>>(), 8, "t1", false))
+            .ReturnsAsync(ServiceResult<int>.Success(2));
+
+        var controller = Controller("t1", Roles.Teacher);
+        var result = await controller.MoveQuestions(5, new[] { 1, 2 }, targetSectionId: 8);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Details", redirect.ActionName);
+        Assert.Equal(5, redirect.RouteValues!["id"]);
+        Assert.Equal("Преместени въпроси: 2.", controller.TempDataText("SuccessMessage"));
+    }
+
+    [Fact]
+    public async Task MoveQuestions_WithNoSelection_RedirectsWithAnErrorWithoutCallingTheService()
+    {
+        var controller = Controller("t1", Roles.Teacher);
+        var result = await controller.MoveQuestions(5, Array.Empty<int>(), targetSectionId: 8);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Details", redirect.ActionName);
+        Assert.Equal("Изберете поне един въпрос.", controller.TempDataText("ErrorMessage"));
+        _questions.Verify(q => q.MoveQuestionsAsync(It.IsAny<IReadOnlyCollection<int>>(),
+            It.IsAny<int>(), It.IsAny<string>(), It.IsAny<bool>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task MoveQuestions_MissingTarget_ReturnsNotFound()
+    {
+        _questions.Setup(q => q.MoveQuestionsAsync(It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<bool>()))
+            .ReturnsAsync(ServiceResult<int>.Failure(ServiceError.NotFound, "Разделът не е намерен."));
+
+        Assert.IsType<NotFoundResult>(await Controller("t1", Roles.Teacher).MoveQuestions(5, new[] { 1 }, 8));
+    }
+
+    [Fact]
+    public async Task MoveQuestions_ForAnotherTeachersTarget_ReturnsForbid()
+    {
+        _questions.Setup(q => q.MoveQuestionsAsync(It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<bool>()))
+            .ReturnsAsync(ServiceResult<int>.Failure(ServiceError.Forbidden, "Нямате права за това действие."));
+
+        Assert.IsType<ForbidResult>(await Controller("t1", Roles.Teacher).MoveQuestions(5, new[] { 1 }, 8));
     }
 
     // ---------- ImportAiken ----------

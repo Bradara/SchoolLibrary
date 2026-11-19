@@ -135,6 +135,57 @@ public class QuestionBankService : IQuestionBankService
         return ServiceResult<Question>.Success(question);
     }
 
+    public async Task<ServiceResult<int>> MoveQuestionsAsync(IReadOnlyCollection<int> questionIds, int targetSectionId, string userId, bool isAdministrator)
+    {
+        var target = await _context.Sections.FirstOrDefaultAsync(s => s.Id == targetSectionId);
+        if (target == null)
+        {
+            return ServiceResult<int>.Failure(ServiceError.NotFound, "Разделът не е намерен.");
+        }
+
+        if (!SectionPermissions.CanManage(target, userId, isAdministrator))
+        {
+            return ServiceResult<int>.Failure(ServiceError.Forbidden, "Нямате права за това действие.");
+        }
+
+        if (questionIds.Count == 0)
+        {
+            return ServiceResult<int>.Success(0);
+        }
+
+        var ids = questionIds.Distinct().ToList();
+        var questions = await _context.Questions
+            .Include(q => q.Section)
+            .Where(q => ids.Contains(q.Id) && q.SectionId != null)
+            .ToListAsync();
+
+        var order = await _context.Questions
+            .Where(q => q.SectionId == targetSectionId)
+            .Select(q => (int?)q.Order)
+            .MaxAsync() ?? 0;
+
+        var moved = 0;
+        foreach (var question in questions)
+        {
+            // A teacher can only move questions out of sections they own; skip the rest
+            if (question.SectionId == targetSectionId || !SectionPermissions.CanManage(question.Section!, userId, isAdministrator))
+            {
+                continue;
+            }
+
+            question.SectionId = targetSectionId;
+            question.Order = ++order;
+            moved++;
+        }
+
+        if (moved > 0)
+        {
+            await _context.SaveChangesAsync();
+        }
+
+        return ServiceResult<int>.Success(moved);
+    }
+
     public async Task<ServiceResult<ImportSummary>> ImportAikenAsync(int sectionId, string text, string userId, bool isAdministrator)
     {
         var section = await _context.Sections.FirstOrDefaultAsync(s => s.Id == sectionId);

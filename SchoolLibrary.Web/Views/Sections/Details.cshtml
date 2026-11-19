@@ -64,6 +64,25 @@
 }
 else
 {
+    var canMove = Model.TargetSections.Count > 0;
+    if (canMove)
+    {
+        <form id="moveForm" method="post" asp-action="MoveQuestions" asp-route-id="@topic.Id"
+              class="card card-body py-2 mb-2"
+              onsubmit="return this.querySelectorAll('input[name=questionIds]:checked').length > 0 || (alert('Изберете поне един въпрос.'), false);">
+            <div class="d-flex flex-wrap align-items-center gap-2">
+                <span class="small text-body-secondary">Отметни въпроси и ги премести в:</span>
+                <select name="targetSectionId" class="form-select form-select-sm" style="max-width: 20rem;" aria-label="Целеви раздел">
+                    @foreach (var target in Model.TargetSections)
+                    {
+                        <option value="@target.Id">@target.Name</option>
+                    }
+                </select>
+                <button type="submit" class="btn btn-sm btn-outline-primary">Премести избраните</button>
+            </div>
+        </form>
+    }
+
     var number = 0;
     foreach (var question in Model.Questions)
     {
@@ -71,7 +90,14 @@ else
         <div class="card mb-2">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start gap-2">
-                    <h3 class="h6 mb-1">@number. @question.Text <span class="badge text-bg-light">@question.Points т.</span></h3>
+                    <h3 class="h6 mb-1 d-flex align-items-start gap-2">
+                        @if (canMove)
+                        {
+                            <input class="form-check-input mt-1 flex-shrink-0" type="checkbox" name="questionIds"
+                                   value="@question.Id" form="moveForm" aria-label="Избери въпроса" />
+                        }
+                        <span>@number. @question.Text <span class="badge text-bg-light">@question.Points т.</span></span>
+                    </h3>
                     <div class="d-inline-flex gap-1">
                         <a asp-action="EditQuestion" asp-route-id="@topic.Id" asp-route-questionId="@question.Id"
                            class="btn btn-sm btn-outline-primary" aria-label="Редактирай въпроса"><i class="bi bi-pencil"></i></a>

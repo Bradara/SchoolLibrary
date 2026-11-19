@@ -198,6 +198,93 @@ public class QuestionBankServiceTests
         Assert.Null(await service.GetQuestionAsync(1));
     }
 
+    // ---------- MoveQuestionsAsync ----------
+
+    [Fact]
+    public async Task MoveQuestionsAsync_MovesCheckedQuestionsAndAppendsThem()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuestionBankService(context);
+        var from = await SectionAsync(context);
+        var to = new Section { Name = "Геометрия", OwnerId = Owner, CreatedOn = DateTime.UtcNow };
+        context.Sections.Add(to);
+        await context.SaveChangesAsync();
+
+        var q1 = (await service.CreateAsync(from.Id, Input(text: "Първи"), Owner, false)).Value!;
+        var q2 = (await service.CreateAsync(from.Id, Input(text: "Втори"), Owner, false)).Value!;
+        var existing = (await service.CreateAsync(to.Id, Input(text: "Вече тук"), Owner, false)).Value!;
+
+        var result = await service.MoveQuestionsAsync(new[] { q1.Id, q2.Id }, to.Id, Owner, false);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, result.Value);
+        Assert.Empty(await service.GetBySectionAsync(from.Id));
+        var moved = await service.GetBySectionAsync(to.Id);
+        // Existing question keeps its place; the moved ones are appended after it, in order
+        Assert.Equal(new[] { "Вече тук", "Първи", "Втори" }, moved.Select(q => q.Text));
+    }
+
+    [Fact]
+    public async Task MoveQuestionsAsync_SkipsQuestionsFromAnotherTeachersSection()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuestionBankService(context);
+        var mine = await SectionAsync(context);
+        var theirs = new Section { Name = "Чужд", OwnerId = Other, CreatedOn = DateTime.UtcNow };
+        context.Sections.Add(theirs);
+        await context.SaveChangesAsync();
+
+        var ownQuestion = (await service.CreateAsync(mine.Id, Input(text: "Мой"), Owner, false)).Value!;
+        var foreignQuestion = (await service.CreateAsync(theirs.Id, Input(text: "Чужд"), Other, false)).Value!;
+
+        var result = await service.MoveQuestionsAsync(new[] { ownQuestion.Id, foreignQuestion.Id }, mine.Id, Owner, false);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(0, result.Value); // own question is already in the target; the foreign one is skipped
+        Assert.Equal(theirs.Id, (await service.GetQuestionAsync(foreignQuestion.Id))!.SectionId);
+    }
+
+    [Fact]
+    public async Task MoveQuestionsAsync_MissingTarget_FailsAsNotFound()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuestionBankService(context);
+
+        var result = await service.MoveQuestionsAsync(new[] { 1 }, 999, Owner, false);
+
+        Assert.Equal(ServiceError.NotFound, result.Error);
+    }
+
+    [Fact]
+    public async Task MoveQuestionsAsync_TargetOfAnotherTeacher_FailsAsForbidden()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuestionBankService(context);
+        var target = await SectionAsync(context);
+
+        var result = await service.MoveQuestionsAsync(new[] { 1 }, target.Id, Other, false);
+
+        Assert.Equal(ServiceError.Forbidden, result.Error);
+    }
+
+    [Fact]
+    public async Task MoveQuestionsAsync_AdministratorMovesAcrossOwners()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuestionBankService(context);
+        var from = await SectionAsync(context, Other);
+        var to = new Section { Name = "Админ цел", OwnerId = Owner, CreatedOn = DateTime.UtcNow };
+        context.Sections.Add(to);
+        await context.SaveChangesAsync();
+        var question = (await service.CreateAsync(from.Id, Input(), Other, false)).Value!;
+
+        var result = await service.MoveQuestionsAsync(new[] { question.Id }, to.Id, "admin", true);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, result.Value);
+        Assert.Equal(to.Id, (await service.GetQuestionAsync(question.Id))!.SectionId);
+    }
+
     // ---------- ImportAikenAsync ----------
 
     [Fact]

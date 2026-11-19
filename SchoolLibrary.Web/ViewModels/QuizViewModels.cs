@@ -120,6 +120,9 @@ public class SectionManageViewModel
 
     public IReadOnlyList<Question> Questions { get; set; } = new List<Question>();
 
+    /// <summary>The owner's other sections, for the "move selected questions to…" picker (excludes this one).</summary>
+    public IReadOnlyList<Section> TargetSections { get; set; } = new List<Section>();
+
     public QuestionFormViewModel NewQuestion { get; set; } = new();
 }
 

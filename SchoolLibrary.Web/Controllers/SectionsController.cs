@@ -342,15 +342,45 @@ namespace SchoolLibrary.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        // POST: Sections/MoveQuestions/5 — bulk-move the checked questions into another section
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MoveQuestions(int id, int[] questionIds, int targetSectionId)
+        {
+            if (questionIds is not { Length: > 0 })
+            {
+                TempData["ErrorMessage"] = "Изберете поне един въпрос.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var result = await _questions.MoveQuestionsAsync(questionIds, targetSectionId, CurrentUserId, IsAdministrator);
+            if (result.Error == ServiceError.NotFound)
+            {
+                return NotFound();
+            }
+
+            if (result.Error == ServiceError.Forbidden)
+            {
+                return Forbid();
+            }
+
+            TempData["SuccessMessage"] = $"Преместени въпроси: {result.Value}.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         // Loads a section's subsections, ancestors (for the breadcrumb) and questions for the manage page
         private async Task<SectionManageViewModel> BuildManageAsync(Data.Models.Section section, QuestionFormViewModel? newQuestion = null)
-            => new()
+        {
+            var siblings = await _sections.GetAllForOwnerAsync(section.OwnerId);
+            return new()
             {
                 Section = section,
                 Subsections = await _sections.GetChildrenAsync(section.Id),
                 Ancestors = await _sections.GetAncestorsAsync(section.Id),
                 Questions = await _questions.GetBySectionAsync(section.Id),
+                TargetSections = siblings.Where(s => s.Id != section.Id).ToList(),
                 NewQuestion = newQuestion ?? new QuestionFormViewModel()
             };
+        }
     }
 }

@@ -25,6 +25,13 @@ public interface IQuestionBankService
     Task<ServiceResult<Question>> DeleteAsync(int questionId, string userId, bool isAdministrator);
 
     /// <summary>
+    /// Moves the given bank questions into another section, appending them after its current questions.
+    /// Skips ids the user may not manage or that are missing; returns how many were actually moved.
+    /// Fails when the target section is missing or not allowed.
+    /// </summary>
+    Task<ServiceResult<int>> MoveQuestionsAsync(IReadOnlyCollection<int> questionIds, int targetSectionId, string userId, bool isAdministrator);
+
+    /// <summary>
     /// Imports Aiken-format questions into a section, adding the valid ones and reporting the rest.
     /// Fails when the section is missing or not allowed.
     /// </summary>
