@@ -117,6 +117,76 @@ namespace SchoolLibrary.Data
 
             builder.Entity<ResourceFile>()
                 .HasIndex(f => f.Sha256);
+
+            // ---------- Quizzes ----------
+
+            // Deleting a teacher keeps their quizzes (OwnerId becomes NULL, like resources)
+            builder.Entity<Quiz>()
+                .HasOne(q => q.Owner)
+                .WithMany()
+                .HasForeignKey(q => q.OwnerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // A quiz may point at a lesson; deleting the lesson keeps the quiz (link becomes NULL)
+            builder.Entity<Quiz>()
+                .HasOne(q => q.Resource)
+                .WithMany()
+                .HasForeignKey(q => q.ResourceId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // One exam per code. PostgreSQL allows several NULLs in a unique index, so practice
+            // quizzes (Code = NULL) do not clash
+            builder.Entity<Quiz>()
+                .HasIndex(q => q.Code)
+                .IsUnique();
+
+            // Listing: practice vs exam, published first
+            builder.Entity<Quiz>()
+                .HasIndex(q => new { q.Mode, q.IsPublished });
+
+            // A quiz owns its questions, a question owns its options: deleting the parent removes them
+            builder.Entity<Question>()
+                .HasOne(q => q.Quiz)
+                .WithMany(z => z.Questions)
+                .HasForeignKey(q => q.QuizId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<AnswerOption>()
+                .HasOne(o => o.Question)
+                .WithMany(q => q.Options)
+                .HasForeignKey(o => o.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Deleting a quiz removes its attempts; an attempt removes its answers
+            builder.Entity<QuizAttempt>()
+                .HasOne(a => a.Quiz)
+                .WithMany()
+                .HasForeignKey(a => a.QuizId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<AttemptAnswer>()
+                .HasOne(a => a.Attempt)
+                .WithMany(t => t.Answers)
+                .HasForeignKey(a => a.AttemptId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // An answer points at a question and the chosen option without cascading from them, so
+            // these are the only paths that delete answer rows (avoids multiple cascade paths)
+            builder.Entity<AttemptAnswer>()
+                .HasOne(a => a.Question)
+                .WithMany()
+                .HasForeignKey(a => a.QuestionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<AttemptAnswer>()
+                .HasOne(a => a.SelectedOption)
+                .WithMany()
+                .HasForeignKey(a => a.SelectedOptionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // Teacher review: the attempts of one quiz, newest submission first
+            builder.Entity<QuizAttempt>()
+                .HasIndex(a => new { a.QuizId, a.SubmittedOn });
         }
 
         public DbSet<Resource> Resources { get; set; }
@@ -128,5 +198,10 @@ namespace SchoolLibrary.Data
         public DbSet<Favorite> Favorites { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<Report> Reports { get; set; }
+        public DbSet<Quiz> Quizzes { get; set; }
+        public DbSet<Question> Questions { get; set; }
+        public DbSet<AnswerOption> AnswerOptions { get; set; }
+        public DbSet<QuizAttempt> QuizAttempts { get; set; }
+        public DbSet<AttemptAnswer> AttemptAnswers { get; set; }
     }
 }
