@@ -234,7 +234,8 @@ namespace SchoolLibrary.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddQuestion(int id, QuestionFormViewModel vm)
         {
-            var result = await _quizzes.AddQuestionAsync(id, vm.ToInput(), CurrentUserId, IsAdministrator);
+            // The question is created in the bank and pinned to the quiz as a fixed item
+            var result = await _items.AddNewQuestionAsync(id, vm.ToInput(), CurrentUserId, IsAdministrator);
             if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();
@@ -247,7 +248,7 @@ namespace SchoolLibrary.Controllers
 
             if (result.Succeeded)
             {
-                TempData["SuccessMessage"] = "Въпросът е добавен.";
+                TempData["SuccessMessage"] = "Въпросът е добавен в банката и към теста.";
                 return RedirectToAction(nameof(Details), new { id });
             }
 

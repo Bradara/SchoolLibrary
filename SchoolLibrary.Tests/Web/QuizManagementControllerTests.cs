@@ -200,9 +200,9 @@ public class QuizManagementControllerTests
     public async Task AddQuestion_DropsEmptyOptions_AndRemapsTheCorrectIndex()
     {
         QuestionInput? captured = null;
-        _service.Setup(s => s.AddQuestionAsync(5, It.IsAny<QuestionInput>(), "t1", false))
+        _items.Setup(s => s.AddNewQuestionAsync(5, It.IsAny<QuestionInput>(), "t1", false))
             .Callback<int, QuestionInput, string, bool>((_, input, _, _) => captured = input)
-            .ReturnsAsync(ServiceResult<Question>.Success(new Question()));
+            .ReturnsAsync(ServiceResult<QuizItem>.Success(new QuizItem()));
 
         // Raw options: [A, (empty), B, (empty)] with the correct one being B at raw index 2
         var vm = new QuestionFormViewModel
@@ -226,8 +226,8 @@ public class QuizManagementControllerTests
     [Fact]
     public async Task AddQuestion_Invalid_RedisplaysTheManagePageWithTheTypedQuestionKept()
     {
-        _service.Setup(s => s.AddQuestionAsync(5, It.IsAny<QuestionInput>(), It.IsAny<string>(), It.IsAny<bool>()))
-            .ReturnsAsync(ServiceResult<Question>.Failure(ServiceError.Invalid, "Посочете кой е верният отговор."));
+        _items.Setup(s => s.AddNewQuestionAsync(5, It.IsAny<QuestionInput>(), It.IsAny<string>(), It.IsAny<bool>()))
+            .ReturnsAsync(ServiceResult<QuizItem>.Failure(ServiceError.Invalid, "Посочете кой е верният отговор."));
         _service.Setup(s => s.GetByIdAsync(5)).ReturnsAsync(new Quiz { Id = 5, OwnerId = "t1", Title = "Тест" });
 
         var controller = Controller("t1", Roles.Teacher);
@@ -245,8 +245,8 @@ public class QuizManagementControllerTests
     [Fact]
     public async Task AddQuestion_WhenQuizMissing_ReturnsNotFound()
     {
-        _service.Setup(s => s.AddQuestionAsync(It.IsAny<int>(), It.IsAny<QuestionInput>(), It.IsAny<string>(), It.IsAny<bool>()))
-            .ReturnsAsync(ServiceResult<Question>.Failure(ServiceError.NotFound, "Тестът не е намерен."));
+        _items.Setup(s => s.AddNewQuestionAsync(It.IsAny<int>(), It.IsAny<QuestionInput>(), It.IsAny<string>(), It.IsAny<bool>()))
+            .ReturnsAsync(ServiceResult<QuizItem>.Failure(ServiceError.NotFound, "Тестът не е намерен."));
 
         var result = await Controller("t1", Roles.Teacher).AddQuestion(5, new QuestionFormViewModel { Text = "В", Options = new List<string> { "а", "б" }, CorrectIndex = 0 });
 

@@ -141,6 +141,63 @@ public class QuizItemServiceTests
         Assert.Equal(ServiceError.NotFound, result.Error);
     }
 
+    // ---------- AddNewQuestionAsync (into the bank root) ----------
+
+    [Fact]
+    public async Task AddNewQuestionAsync_CreatesABankQuestionInTheRootSectionAndPinsIt()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizItemService(context);
+        var quiz = await QuizAsync(context);
+
+        var result = await service.AddNewQuestionAsync(quiz.Id, new QuestionInput("В?", new[] { "а", "б" }, 0), Owner, false);
+
+        Assert.True(result.Succeeded);
+        var section = context.Sections.Single(s => s.OwnerId == Owner && s.ParentId == null && s.Name == QuizItemService.DefaultSectionName);
+        Assert.Equal(1, context.Questions.Count(q => q.SectionId == section.Id && q.QuizId == null));
+        var items = await service.GetItemsAsync(quiz.Id);
+        Assert.Single(items);
+        Assert.Equal(QuizItemKind.FixedQuestion, items[0].Kind);
+    }
+
+    [Fact]
+    public async Task AddNewQuestionAsync_ReusesTheExistingRootSection()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizItemService(context);
+        var quiz = await QuizAsync(context);
+
+        await service.AddNewQuestionAsync(quiz.Id, new QuestionInput("В1", new[] { "а", "б" }, 0), Owner, false);
+        await service.AddNewQuestionAsync(quiz.Id, new QuestionInput("В2", new[] { "а", "б" }, 0), Owner, false);
+
+        Assert.Equal(1, context.Sections.Count(s => s.OwnerId == Owner && s.Name == QuizItemService.DefaultSectionName));
+        Assert.Equal(2, (await service.GetItemsAsync(quiz.Id)).Count);
+    }
+
+    [Fact]
+    public async Task AddNewQuestionAsync_Invalid_FailsAsInvalid()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizItemService(context);
+        var quiz = await QuizAsync(context);
+
+        var result = await service.AddNewQuestionAsync(quiz.Id, new QuestionInput("В?", new[] { "само един" }, 0), Owner, false);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+    }
+
+    [Fact]
+    public async Task AddNewQuestionAsync_ByAnotherTeacher_FailsAsForbidden()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizItemService(context);
+        var quiz = await QuizAsync(context);
+
+        var result = await service.AddNewQuestionAsync(quiz.Id, new QuestionInput("В?", new[] { "а", "б" }, 0), Other, false);
+
+        Assert.Equal(ServiceError.Forbidden, result.Error);
+    }
+
     // ---------- Order, delete, move ----------
 
     [Fact]

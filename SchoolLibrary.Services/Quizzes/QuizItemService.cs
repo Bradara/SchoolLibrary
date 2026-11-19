@@ -10,6 +10,9 @@ public class QuizItemService : IQuizItemService
 {
     public const int MaxPickCount = 100;
 
+    /// <summary>The root bank section new quiz questions land in when they are not filed elsewhere.</summary>
+    public const string DefaultSectionName = "Некласифицирани";
+
     private readonly ApplicationDbContext _context;
 
     public QuizItemService(ApplicationDbContext context)
@@ -49,6 +52,74 @@ public class QuizItemService : IQuizItemService
 
         _context.QuizItems.Add(item);
         await _context.SaveChangesAsync();
+        return ServiceResult<QuizItem>.Success(item);
+    }
+
+    public async Task<ServiceResult<QuizItem>> AddNewQuestionAsync(int quizId, QuestionInput input, string userId, bool isAdministrator)
+    {
+        var quiz = await _context.Quizzes.FirstOrDefaultAsync(q => q.Id == quizId);
+        if (quiz == null)
+        {
+            return ServiceResult<QuizItem>.Failure(ServiceError.NotFound, "Тестът не е намерен.");
+        }
+
+        if (!QuizPermissions.CanManage(quiz, userId, isAdministrator))
+        {
+            return ServiceResult<QuizItem>.Failure(ServiceError.Forbidden, "Нямате права за това действие.");
+        }
+
+        var validation = QuizService.ValidateQuestion(input);
+        if (validation != null)
+        {
+            return ServiceResult<QuizItem>.Failure(ServiceError.Invalid, validation);
+        }
+
+        // The question lives in the bank; use (or create) the owner's root "unclassified" section
+        var bankOwner = quiz.OwnerId ?? userId;
+        var section = await _context.Sections
+            .FirstOrDefaultAsync(s => s.OwnerId == bankOwner && s.ParentId == null && s.Name == DefaultSectionName);
+        if (section == null)
+        {
+            section = new Section { Name = DefaultSectionName, OwnerId = bankOwner, CreatedOn = DateTime.UtcNow };
+            _context.Sections.Add(section);
+            await _context.SaveChangesAsync();
+        }
+
+        var maxQuestionOrder = await _context.Questions
+            .Where(q => q.SectionId == section.Id)
+            .Select(q => (int?)q.Order)
+            .MaxAsync() ?? 0;
+
+        var question = new Question
+        {
+            SectionId = section.Id,
+            Text = input.Text.Trim(),
+            Type = QuestionType.SingleChoice,
+            Points = input.Points,
+            Order = maxQuestionOrder + 1
+        };
+        for (var i = 0; i < input.Options.Count; i++)
+        {
+            question.Options.Add(new AnswerOption
+            {
+                Text = input.Options[i].Trim(),
+                IsCorrect = i == input.CorrectIndex,
+                Order = i + 1
+            });
+        }
+        _context.Questions.Add(question);
+        await _context.SaveChangesAsync();
+
+        var item = new QuizItem
+        {
+            QuizId = quizId,
+            Kind = QuizItemKind.FixedQuestion,
+            QuestionId = question.Id,
+            Order = await NextOrderAsync(quizId)
+        };
+        _context.QuizItems.Add(item);
+        await _context.SaveChangesAsync();
+
         return ServiceResult<QuizItem>.Success(item);
     }
 
