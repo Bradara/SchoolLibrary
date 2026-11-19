@@ -13,9 +13,19 @@ namespace SchoolLibrary.Tests.Web;
 public class QuizManagementControllerTests
 {
     private readonly Mock<IQuizService> _service = new();
+    private readonly Mock<IQuizItemService> _items = new();
+    private readonly Mock<ISectionService> _sections = new();
+    private readonly Mock<IQuestionBankService> _bank = new();
+
+    public QuizManagementControllerTests()
+    {
+        _items.Setup(x => x.GetItemsAsync(It.IsAny<int>())).ReturnsAsync(new List<QuizItem>());
+        _sections.Setup(x => x.GetAllForOwnerAsync(It.IsAny<string?>())).ReturnsAsync(new List<Section>());
+        _bank.Setup(x => x.GetForOwnerAsync(It.IsAny<string?>())).ReturnsAsync(new List<Question>());
+    }
 
     private QuizManagementController Controller(string userId, params string[] roles) =>
-        new QuizManagementController(_service.Object).WithUser(userId, roles);
+        new QuizManagementController(_service.Object, _items.Object, _sections.Object, _bank.Object).WithUser(userId, roles);
 
     private static PagedResult<QuizListItem> EmptyPage() =>
         new(new List<QuizListItem>(), totalCount: 0, page: 1, pageSize: 10);
@@ -393,5 +403,76 @@ public class QuizManagementControllerTests
             .ReturnsAsync(ServiceResult<Quiz>.Failure(ServiceError.NotFound, "Тестът не е намерен."));
 
         Assert.IsType<NotFoundResult>(await Controller("t1", Roles.Teacher).Delete(5));
+    }
+
+    // ---------- Composition (bank items) ----------
+
+    [Fact]
+    public async Task AddRandomItem_Success_RedirectsToDetails()
+    {
+        _items.Setup(i => i.AddRandomSectionAsync(5, 3, 4, "t1", false))
+            .ReturnsAsync(ServiceResult<QuizItem>.Success(new QuizItem()));
+
+        var result = await Controller("t1", Roles.Teacher).AddRandomItem(5, sectionId: 3, pickCount: 4);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Details", redirect.ActionName);
+        Assert.Equal(5, redirect.RouteValues!["id"]);
+        _items.Verify(i => i.AddRandomSectionAsync(5, 3, 4, "t1", false), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddRandomItem_Invalid_RedirectsToDetailsWithAnError()
+    {
+        _items.Setup(i => i.AddRandomSectionAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<bool>()))
+            .ReturnsAsync(ServiceResult<QuizItem>.Failure(ServiceError.Invalid, "Броят въпроси трябва да е между 1 и 100."));
+
+        var controller = Controller("t1", Roles.Teacher);
+        var result = await controller.AddRandomItem(5, sectionId: 3, pickCount: 0);
+
+        Assert.Equal("Details", Assert.IsType<RedirectToActionResult>(result).ActionName);
+        Assert.Equal("Броят въпроси трябва да е между 1 и 100.", controller.TempDataText("ErrorMessage"));
+    }
+
+    [Fact]
+    public async Task AddFixedItem_Success_RedirectsToDetails()
+    {
+        _items.Setup(i => i.AddFixedQuestionAsync(5, 9, "t1", false))
+            .ReturnsAsync(ServiceResult<QuizItem>.Success(new QuizItem()));
+
+        var result = await Controller("t1", Roles.Teacher).AddFixedItem(5, questionId: 9);
+
+        Assert.Equal("Details", Assert.IsType<RedirectToActionResult>(result).ActionName);
+    }
+
+    [Fact]
+    public async Task MoveItem_Success_RedirectsToDetails()
+    {
+        _items.Setup(i => i.MoveItemAsync(9, true, "t1", false))
+            .ReturnsAsync(ServiceResult<QuizItem>.Success(new QuizItem()));
+
+        var result = await Controller("t1", Roles.Teacher).MoveItem(5, itemId: 9, up: true);
+
+        Assert.Equal("Details", Assert.IsType<RedirectToActionResult>(result).ActionName);
+    }
+
+    [Fact]
+    public async Task DeleteItem_Success_RedirectsToDetails()
+    {
+        _items.Setup(i => i.DeleteItemAsync(9, "t1", false))
+            .ReturnsAsync(ServiceResult<QuizItem>.Success(new QuizItem()));
+
+        var result = await Controller("t1", Roles.Teacher).DeleteItem(5, itemId: 9);
+
+        Assert.Equal("Details", Assert.IsType<RedirectToActionResult>(result).ActionName);
+    }
+
+    [Fact]
+    public async Task AddRandomItem_WhenQuizMissing_ReturnsNotFound()
+    {
+        _items.Setup(i => i.AddRandomSectionAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<int>(), It.IsAny<string>(), It.IsAny<bool>()))
+            .ReturnsAsync(ServiceResult<QuizItem>.Failure(ServiceError.NotFound, "Тестът не е намерен."));
+
+        Assert.IsType<NotFoundResult>(await Controller("t1", Roles.Teacher).AddRandomItem(5, 3, 4));
     }
 }

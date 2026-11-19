@@ -54,6 +54,13 @@ public class SectionService : ISectionService
         return await BuildItemsAsync(children);
     }
 
+    public async Task<IReadOnlyList<Section>> GetAllForOwnerAsync(string? ownerId)
+        => await _context.Sections.AsNoTracking()
+            .Where(s => ownerId == null || s.OwnerId == ownerId)
+            .OrderBy(s => s.Name)
+            .ThenBy(s => s.Id)
+            .ToListAsync();
+
     public async Task<Section?> GetByIdAsync(int id)
         => await _context.Sections.AsNoTracking().FirstOrDefaultAsync(s => s.Id == id);
 

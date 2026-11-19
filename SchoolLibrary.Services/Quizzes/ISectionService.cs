@@ -15,6 +15,9 @@ public interface ISectionService
     /// <summary>The direct subsections of a section, by name, each with its counts.</summary>
     Task<IReadOnlyList<SectionListItem>> GetChildrenAsync(int parentId);
 
+    /// <summary>Every section of the owner (flat, by name), for pickers. Null owner returns all.</summary>
+    Task<IReadOnlyList<Section>> GetAllForOwnerAsync(string? ownerId);
+
     /// <summary>A section by id, or null when it does not exist.</summary>
     Task<Section?> GetByIdAsync(int id);
 

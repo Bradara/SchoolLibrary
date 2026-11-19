@@ -9,6 +9,9 @@ public interface IQuestionBankService
     /// <summary>The questions of a section, ordered, each with its options. Empty when the section has none.</summary>
     Task<IReadOnlyList<Question>> GetBySectionAsync(int sectionId);
 
+    /// <summary>Every bank question of the owner, with its section, for a picker. Null owner returns all.</summary>
+    Task<IReadOnlyList<Question>> GetForOwnerAsync(string? ownerId);
+
     /// <summary>A bank question with its section and options (ordered), or null when it does not exist.</summary>
     Task<Question?> GetQuestionAsync(int questionId);
 

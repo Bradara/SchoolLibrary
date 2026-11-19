@@ -14,10 +14,16 @@ namespace SchoolLibrary.Controllers
     public class QuizManagementController : Controller
     {
         private readonly IQuizService _quizzes;
+        private readonly IQuizItemService _items;
+        private readonly ISectionService _sections;
+        private readonly IQuestionBankService _bank;
 
-        public QuizManagementController(IQuizService quizzes)
+        public QuizManagementController(IQuizService quizzes, IQuizItemService items, ISectionService sections, IQuestionBankService bank)
         {
             _quizzes = quizzes;
+            _items = items;
+            _sections = sections;
+            _bank = bank;
         }
 
         private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -63,7 +69,85 @@ namespace SchoolLibrary.Controllers
                 return Forbid();
             }
 
-            return View(new QuizManageViewModel { Quiz = quiz });
+            return View(await BuildManageAsync(quiz));
+        }
+
+        private async Task<QuizManageViewModel> BuildManageAsync(Quiz quiz, QuestionFormViewModel? newQuestion = null)
+        {
+            // An administrator editing someone else's quiz sees that owner's bank
+            var ownerScope = IsAdministrator ? quiz.OwnerId : CurrentUserId;
+            return new QuizManageViewModel
+            {
+                Quiz = quiz,
+                NewQuestion = newQuestion ?? new QuestionFormViewModel(),
+                Items = await _items.GetItemsAsync(quiz.Id),
+                Sections = await _sections.GetAllForOwnerAsync(ownerScope),
+                BankQuestions = await _bank.GetForOwnerAsync(ownerScope)
+            };
+        }
+
+        // POST: QuizManagement/AddRandomItem/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddRandomItem(int id, int sectionId, int pickCount)
+        {
+            var result = await _items.AddRandomSectionAsync(id, sectionId, pickCount, CurrentUserId, IsAdministrator);
+            return AfterItemChange(id, result, "Добавен е произволен раздел към състава.");
+        }
+
+        // POST: QuizManagement/AddFixedItem/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddFixedItem(int id, int questionId)
+        {
+            var result = await _items.AddFixedQuestionAsync(id, questionId, CurrentUserId, IsAdministrator);
+            return AfterItemChange(id, result, "Въпросът е добавен към състава.");
+        }
+
+        // POST: QuizManagement/MoveItem/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MoveItem(int id, int itemId, bool up)
+        {
+            var result = await _items.MoveItemAsync(itemId, up, CurrentUserId, IsAdministrator);
+            return AfterItemChange(id, result, null);
+        }
+
+        // POST: QuizManagement/DeleteItem/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteItem(int id, int itemId)
+        {
+            var result = await _items.DeleteItemAsync(itemId, CurrentUserId, IsAdministrator);
+            return AfterItemChange(id, result, "Елементът е премахнат от състава.");
+        }
+
+        // Shared handling for composition changes: map the outcome to a response
+        private IActionResult AfterItemChange(int quizId, ServiceResult<SchoolLibrary.Data.Models.QuizItem> result, string? successMessage)
+        {
+            if (result.Error == ServiceError.NotFound)
+            {
+                return NotFound();
+            }
+
+            if (result.Error == ServiceError.Forbidden)
+            {
+                return Forbid();
+            }
+
+            if (result.Succeeded)
+            {
+                if (successMessage != null)
+                {
+                    TempData["SuccessMessage"] = successMessage;
+                }
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.Message;
+            }
+
+            return RedirectToAction(nameof(Details), new { id = quizId });
         }
 
         // GET: QuizManagement/Create
@@ -175,7 +259,7 @@ namespace SchoolLibrary.Controllers
             }
 
             ModelState.AddModelError(string.Empty, result.Message!);
-            return View(nameof(Details), new QuizManageViewModel { Quiz = quiz, NewQuestion = vm });
+            return View(nameof(Details), await BuildManageAsync(quiz, vm));
         }
 
         // GET: QuizManagement/EditQuestion/5?questionId=9

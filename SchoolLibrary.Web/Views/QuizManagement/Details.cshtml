@@ -69,6 +69,99 @@
     <p class="text-body-secondary">@quiz.Description</p>
 }
 
+<h2 class="h5 mt-4">Състав от банката (@Model.Items.Count)</h2>
+<p class="form-text mt-0">Въпроси, изтеглени от банката: конкретни или „N произволни от раздел" (разпъват се при всяко влизане на ученик).</p>
+
+@if (Model.Items.Count > 0)
+{
+    <ol class="list-group list-group-numbered mb-3">
+        @foreach (var item in Model.Items)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center gap-2">
+                @if (item.Kind == QuizItemKind.RandomFromSection)
+                {
+                    <span><i class="bi bi-shuffle"></i> <strong>@item.PickCount</strong> произволни от раздел: @item.Section?.Name</span>
+                }
+                else
+                {
+                    <span><i class="bi bi-pin-angle"></i> @item.Question?.Text</span>
+                }
+                <span class="d-inline-flex gap-1">
+                    <form method="post" asp-action="MoveItem" asp-route-id="@quiz.Id" class="d-inline">
+                        <input type="hidden" name="itemId" value="@item.Id" />
+                        <input type="hidden" name="up" value="true" />
+                        <button type="submit" class="btn btn-sm btn-outline-secondary" aria-label="Нагоре"><i class="bi bi-arrow-up"></i></button>
+                    </form>
+                    <form method="post" asp-action="MoveItem" asp-route-id="@quiz.Id" class="d-inline">
+                        <input type="hidden" name="itemId" value="@item.Id" />
+                        <input type="hidden" name="up" value="false" />
+                        <button type="submit" class="btn btn-sm btn-outline-secondary" aria-label="Надолу"><i class="bi bi-arrow-down"></i></button>
+                    </form>
+                    <form method="post" asp-action="DeleteItem" asp-route-id="@quiz.Id" class="d-inline">
+                        <input type="hidden" name="itemId" value="@item.Id" />
+                        <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Премахни"><i class="bi bi-trash"></i></button>
+                    </form>
+                </span>
+            </li>
+        }
+    </ol>
+}
+
+@if (Model.Sections.Count == 0)
+{
+    <div class="alert alert-light border">Създай раздели и въпроси в <a asp-controller="Sections" asp-action="Index">Банката с въпроси</a>, за да съставяш оттам.</div>
+}
+else
+{
+    <div class="row g-2 mb-2">
+        <div class="col-md-6">
+            <form method="post" asp-action="AddRandomItem" asp-route-id="@quiz.Id" class="card h-100">
+                <div class="card-body">
+                    <h3 class="h6">Произволни от раздел</h3>
+                    <div class="input-group">
+                        <select name="sectionId" class="form-select" aria-label="Раздел">
+                            @foreach (var sec in Model.Sections)
+                            {
+                                <option value="@sec.Id">@sec.Name</option>
+                            }
+                        </select>
+                        <input name="pickCount" type="number" min="1" max="100" value="1" class="form-control" style="max-width: 6rem;" aria-label="Брой" />
+                        <button type="submit" class="btn btn-outline-primary">Добави</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="col-md-6">
+            <form method="post" asp-action="AddFixedItem" asp-route-id="@quiz.Id" class="card h-100">
+                <div class="card-body">
+                    <h3 class="h6">Конкретен въпрос</h3>
+                    @if (Model.BankQuestions.Count == 0)
+                    {
+                        <p class="form-text mb-0">Няма въпроси в банката.</p>
+                    }
+                    else
+                    {
+                        <div class="input-group">
+                            <select name="questionId" class="form-select" aria-label="Въпрос">
+                                @foreach (var group in Model.BankQuestions.GroupBy(q => q.Section!.Name))
+                                {
+                                    <optgroup label="@group.Key">
+                                        @foreach (var question in group)
+                                        {
+                                            <option value="@question.Id">@question.Text</option>
+                                        }
+                                    </optgroup>
+                                }
+                            </select>
+                            <button type="submit" class="btn btn-outline-primary">Добави</button>
+                        </div>
+                    }
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
 <h2 class="h5 mt-4">Въпроси (@quiz.Questions.Count)</h2>
 
 @if (!quiz.Questions.Any())

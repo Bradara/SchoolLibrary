@@ -73,12 +73,21 @@ public class QuestionFormViewModel
     }
 }
 
-/// <summary>The manage page: a quiz with its questions and an empty add-question form.</summary>
+/// <summary>The manage page: a quiz with its questions, bank composition and an add-question form.</summary>
 public class QuizManageViewModel
 {
     public Quiz Quiz { get; set; } = null!;
 
     public QuestionFormViewModel NewQuestion { get; set; } = new();
+
+    /// <summary>The quiz's composition items (pinned questions and random-from-section draws), ordered.</summary>
+    public IReadOnlyList<QuizItem> Items { get; set; } = new List<QuizItem>();
+
+    /// <summary>The teacher's sections, for the "draw N random" picker.</summary>
+    public IReadOnlyList<Section> Sections { get; set; } = new List<Section>();
+
+    /// <summary>The teacher's bank questions (with section), for the "pin a question" picker.</summary>
+    public IReadOnlyList<Question> BankQuestions { get; set; } = new List<Question>();
 }
 
 /// <summary>The new/edit section form. <see cref="ParentId"/> is set when creating a subsection.</summary>

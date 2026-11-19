@@ -23,6 +23,15 @@ public class QuestionBankService : IQuestionBankService
             .Include(q => q.Options.OrderBy(o => o.Order))
             .ToListAsync();
 
+    public async Task<IReadOnlyList<Question>> GetForOwnerAsync(string? ownerId)
+        => await _context.Questions
+            .AsNoTracking()
+            .Where(q => q.SectionId != null && (ownerId == null || q.Section!.OwnerId == ownerId))
+            .Include(q => q.Section)
+            .OrderBy(q => q.Section!.Name)
+            .ThenBy(q => q.Order)
+            .ToListAsync();
+
     public async Task<Question?> GetQuestionAsync(int questionId)
         => await _context.Questions
             .AsNoTracking()
