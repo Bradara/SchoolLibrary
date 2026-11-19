@@ -136,10 +136,15 @@ else
     <div class="card-body">
         <h2 class="h6 card-title">Импорт от Aiken</h2>
         <p class="form-text mt-0">Поставете въпроси във формат Aiken, за да ги налеете наведнъж в раздела.</p>
-        <form method="post" asp-action="ImportAiken" asp-route-id="@topic.Id">
+        <form method="post" asp-action="ImportAiken" asp-route-id="@topic.Id" enctype="multipart/form-data">
             <textarea name="aikenText" class="form-control font-monospace" rows="8" spellcheck="false"
                       placeholder="Колко е 2 + 2?&#10;A. 3&#10;B. 4&#10;C. 5&#10;ANSWER: B"></textarea>
-            <button type="submit" class="btn btn-outline-primary mt-2">Импортирай</button>
+            <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                <button type="submit" class="btn btn-outline-primary">Импортирай</button>
+                <span class="text-body-secondary small">или качи файл:</span>
+                <input type="file" name="aikenFile" accept=".txt,text/plain" class="form-control form-control-sm" style="max-width: 18rem;" />
+            </div>
+            <div class="form-text">Качен файл има предимство пред текста. Поддържа се .txt (Aiken).</div>
         </form>
         <details class="mt-2">
             <summary class="small text-body-secondary">Формат Aiken</summary>

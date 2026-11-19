@@ -137,24 +137,19 @@ public class QuizItemService : IQuizItemService
     {
         rng ??= Random.Shared;
 
+        // Questions attached directly to the quiz come first, then the bank items
+        var resolved = await _context.Questions
+            .AsNoTracking()
+            .Where(q => q.QuizId == quizId)
+            .OrderBy(q => q.Order)
+            .Include(q => q.Options.OrderBy(o => o.Order))
+            .ToListAsync();
+
         var items = await _context.QuizItems
             .AsNoTracking()
             .Where(i => i.QuizId == quizId)
             .OrderBy(i => i.Order)
             .ToListAsync();
-
-        // A quiz with no items still carries questions attached directly (legacy quizzes); use those
-        if (items.Count == 0)
-        {
-            return await _context.Questions
-                .AsNoTracking()
-                .Where(q => q.QuizId == quizId)
-                .OrderBy(q => q.Order)
-                .Include(q => q.Options.OrderBy(o => o.Order))
-                .ToListAsync();
-        }
-
-        var resolved = new List<Question>();
 
         foreach (var item in items)
         {

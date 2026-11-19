@@ -162,11 +162,12 @@ else
     </div>
 }
 
-<h2 class="h5 mt-4">Въпроси (@quiz.Questions.Count)</h2>
+<h2 class="h5 mt-4">Въпроси директно в теста (@quiz.Questions.Count)</h2>
+<p class="form-text mt-0">По избор — добавени само към този тест. Тестът съдържа тези въпроси плюс състава от банката по-горе.</p>
 
 @if (!quiz.Questions.Any())
 {
-    <div class="alert alert-warning">Няма въпроси. Добавете поне един, за да можете да публикувате теста.</div>
+    <p class="text-body-secondary">Няма въпроси, добавени директно.</p>
 }
 else
 {

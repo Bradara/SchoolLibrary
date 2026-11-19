@@ -241,6 +241,39 @@ public class QuizItemServiceTests
     }
 
     [Fact]
+    public async Task ResolveAsync_IncludesDirectQuizQuestionsBeforeItems()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizItemService(context);
+        var quiz = await QuizAsync(context);
+
+        // A question attached directly to the quiz
+        context.Questions.Add(new Question
+        {
+            QuizId = quiz.Id,
+            Text = "Пряк въпрос",
+            Points = 1,
+            Order = 1,
+            Options = new List<AnswerOption>
+            {
+                new() { Text = "верен", IsCorrect = true, Order = 1 },
+                new() { Text = "грешен", Order = 2 }
+            }
+        });
+        await context.SaveChangesAsync();
+
+        // Plus a pinned bank question
+        var section = await SectionWithQuestionsAsync(context, 1);
+        var bankId = context.Questions.First(q => q.SectionId != null).Id;
+        await service.AddFixedQuestionAsync(quiz.Id, bankId, Owner, false);
+
+        var resolved = await service.ResolveAsync(quiz.Id);
+
+        Assert.Equal(2, resolved.Count);
+        Assert.Equal("Пряк въпрос", resolved[0].Text);
+    }
+
+    [Fact]
     public async Task ResolveAsync_KeepsItemOrder_FixedThenRandom()
     {
         using var context = TestDbContextFactory.Create();

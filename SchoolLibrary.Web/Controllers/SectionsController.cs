@@ -286,12 +286,21 @@ namespace SchoolLibrary.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        // POST: Sections/ImportAiken/5 — bulk-load questions from pasted Aiken text
+        // POST: Sections/ImportAiken/5 — bulk-load questions from pasted Aiken text or an uploaded .txt
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ImportAiken(int id, string? aikenText)
+        [RequestSizeLimit(2 * 1024 * 1024)]
+        public async Task<IActionResult> ImportAiken(int id, string? aikenText, IFormFile? aikenFile = null)
         {
-            var result = await _questions.ImportAikenAsync(id, aikenText ?? string.Empty, CurrentUserId, IsAdministrator);
+            // An uploaded file wins over the textarea when present
+            var text = aikenText ?? string.Empty;
+            if (aikenFile is { Length: > 0 })
+            {
+                using var reader = new StreamReader(aikenFile.OpenReadStream());
+                text = await reader.ReadToEndAsync();
+            }
+
+            var result = await _questions.ImportAikenAsync(id, text, CurrentUserId, IsAdministrator);
             if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();
