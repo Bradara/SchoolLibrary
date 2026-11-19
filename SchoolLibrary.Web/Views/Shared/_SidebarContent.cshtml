@@ -29,29 +29,32 @@
                 <i class="bi bi-house"></i><span class="nav-label"> Начало</span>
             </a>
         </li>
-        <li class="nav-item">
-            <a class="nav-link @ActiveKind("External")" asp-area="" asp-controller="Resources" asp-action="Index" asp-route-kind="External"
-               data-sl-tip="@(compact ? "Свободни ресурси" : null)" aria-label="@(compact ? "Свободни ресурси" : null)">
-                <i class="bi bi-globe2"></i><span class="nav-label"> Свободни ресурси</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @ActiveKind("Lesson")" asp-area="" asp-controller="Resources" asp-action="Index" asp-route-kind="Lesson"
-               data-sl-tip="@(compact ? "Уроци" : null)" aria-label="@(compact ? "Уроци" : null)">
-                <i class="bi bi-mortarboard"></i><span class="nav-label"> Уроци</span>
-            </a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link @ActiveKind("Upload")" asp-area="" asp-controller="Resources" asp-action="Index" asp-route-kind="Upload"
-               data-sl-tip="@(compact ? "Качени материали" : null)" aria-label="@(compact ? "Качени материали" : null)">
-                <i class="bi bi-file-earmark-arrow-up"></i><span class="nav-label"> Качени материали</span>
-            </a>
-        </li>
         @{
             var onPractice = area == null && controller == "Quizzes" && (action == "Index" || action == "Solve" || action == "Result");
+            var resourcesActive = onResources || Active("Favorites") != "";
+            var quizzesActive = onPractice || Active("QuizManagement") != "" || Active("Sections") != "";
+            var authenticated = User.Identity?.IsAuthenticated == true;
+            var menuDirection = compact ? "dropend" : "dropdown";
+            string Item(bool on) => on ? "dropdown-item active" : "dropdown-item";
         }
-
-        @if (User.Identity?.IsAuthenticated == true)
+        @* Grouped sections open like the theme menu; picking an item navigates and closes it *@
+        <li class="nav-item @menuDirection">
+            <button type="button" class="nav-link w-100 @(compact ? "" : "text-start") @(resourcesActive ? "active" : "")"
+                    data-bs-toggle="dropdown" aria-expanded="false"
+                    data-sl-tip="@(compact ? "Ресурси" : null)" aria-label="Ресурси">
+                <i class="bi bi-journals"></i><span class="nav-label"> Ресурси</span>
+            </button>
+            <ul class="dropdown-menu">
+                <li><a class="@Item(ActiveKind("External") != "")" asp-area="" asp-controller="Resources" asp-action="Index" asp-route-kind="External"><i class="bi bi-globe2"></i> Свободни ресурси</a></li>
+                <li><a class="@Item(ActiveKind("Lesson") != "")" asp-area="" asp-controller="Resources" asp-action="Index" asp-route-kind="Lesson"><i class="bi bi-mortarboard"></i> Уроци</a></li>
+                <li><a class="@Item(ActiveKind("Upload") != "")" asp-area="" asp-controller="Resources" asp-action="Index" asp-route-kind="Upload"><i class="bi bi-file-earmark-arrow-up"></i> Качени материали</a></li>
+                @if (authenticated)
+                {
+                    <li><a class="@Item(Active("Favorites") != "")" asp-area="" asp-controller="Favorites" asp-action="Index"><i class="bi bi-heart"></i> Любими</a></li>
+                }
+            </ul>
+        </li>
+        @if (authenticated)
         {
             <li class="nav-item">
                 <a class="nav-link @Active("Libraries")" asp-area="" asp-controller="Libraries" asp-action="Index"
@@ -59,32 +62,20 @@
                     <i class="bi bi-bookshelf"></i><span class="nav-label"> Библиотеки</span>
                 </a>
             </li>
-            <li class="nav-item">
-                <a class="nav-link @Active("Favorites")" asp-area="" asp-controller="Favorites" asp-action="Index"
-                   data-sl-tip="@(compact ? "Любими" : null)" aria-label="@(compact ? "Любими" : null)">
-                    <i class="bi bi-heart"></i><span class="nav-label"> Любими</span>
-                </a>
-            </li>
-                    <li class="nav-item">
-            <a class="nav-link @(onPractice ? "active" : "")" asp-area="" asp-controller="Quizzes" asp-action="Index"
-               data-sl-tip="@(compact ? "Упражнения" : null)" aria-label="@(compact ? "Упражнения" : null)">
-                <i class="bi bi-card-checklist"></i><span class="nav-label"> Упражнения</span>
-            </a>
-        </li>
-        }
-        @if (User.CanAddResources())
-        {
-            <li class="nav-item">
-                <a class="nav-link @Active("QuizManagement")" asp-area="" asp-controller="QuizManagement" asp-action="Index"
-                   data-sl-tip="@(compact ? "Моите тестове" : null)" aria-label="@(compact ? "Моите тестове" : null)">
-                    <i class="bi bi-ui-checks"></i><span class="nav-label"> Моите тестове</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link @Active("Sections")" asp-area="" asp-controller="Sections" asp-action="Index"
-                   data-sl-tip="@(compact ? "Банка с въпроси" : null)" aria-label="@(compact ? "Банка с въпроси" : null)">
-                    <i class="bi bi-collection"></i><span class="nav-label"> Банка с въпроси</span>
-                </a>
+            <li class="nav-item @menuDirection">
+                <button type="button" class="nav-link w-100 @(compact ? "" : "text-start") @(quizzesActive ? "active" : "")"
+                        data-bs-toggle="dropdown" aria-expanded="false"
+                        data-sl-tip="@(compact ? "Тестове" : null)" aria-label="Тестове">
+                    <i class="bi bi-ui-checks"></i><span class="nav-label"> Тестове</span>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="@Item(onPractice)" asp-area="" asp-controller="Quizzes" asp-action="Index"><i class="bi bi-card-checklist"></i> Упражнения</a></li>
+                    @if (User.CanAddResources())
+                    {
+                        <li><a class="@Item(Active("QuizManagement") != "")" asp-area="" asp-controller="QuizManagement" asp-action="Index"><i class="bi bi-ui-checks-grid"></i> Моите тестове</a></li>
+                        <li><a class="@Item(Active("Sections") != "")" asp-area="" asp-controller="Sections" asp-action="Index"><i class="bi bi-collection"></i> Банка с въпроси</a></li>
+                    }
+                </ul>
             </li>
         }
         @if (User.IsInRole(Roles.Administrator))
