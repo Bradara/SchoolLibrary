@@ -1,0 +1,30 @@
+@model SchoolLibrary.ViewModels.QuizFormViewModel
+
+<div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+<div class="mb-3">
+    <label asp-for="Title" class="form-label"></label>
+    <input asp-for="Title" class="form-control" />
+    <span asp-validation-for="Title" class="text-danger small"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Description" class="form-label"></label>
+    <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+    <span asp-validation-for="Description" class="text-danger small"></span>
+</div>
+
+<div class="mb-3">
+    <label asp-for="Mode" class="form-label"></label>
+    <select asp-for="Mode" class="form-select">
+        <option value="Practice">Упражнение (отворено, моментална обратна връзка)</option>
+        <option value="Exam">Изпит (по код, с таймер, един опит)</option>
+    </select>
+</div>
+
+<div class="mb-3">
+    <label asp-for="TimeLimitMinutes" class="form-label"></label>
+    <input asp-for="TimeLimitMinutes" class="form-control" type="number" min="1" max="600" />
+    <span asp-validation-for="TimeLimitMinutes" class="text-danger small"></span>
+    <div class="form-text">Само за изпит. Празно = без ограничение във времето.</div>
+</div>

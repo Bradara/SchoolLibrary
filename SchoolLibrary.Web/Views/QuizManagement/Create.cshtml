@@ -1,0 +1,21 @@
+@model SchoolLibrary.ViewModels.QuizFormViewModel
+
+@{
+    ViewData["Title"] = "Нов тест";
+}
+
+<h1 class="h3 mb-3">Нов тест</h1>
+
+<div class="row">
+    <div class="col-lg-7">
+        <form method="post" asp-action="Create">
+            <partial name="_QuizForm" model="Model" />
+            <button type="submit" class="btn btn-primary">Създай</button>
+            <a asp-action="Index" class="btn btn-link">Отказ</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

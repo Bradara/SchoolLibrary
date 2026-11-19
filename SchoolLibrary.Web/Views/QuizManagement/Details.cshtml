@@ -1,0 +1,139 @@
+@using SchoolLibrary.Data.Enums
+@model SchoolLibrary.ViewModels.QuizManageViewModel
+
+@{
+    var quiz = Model.Quiz;
+    ViewData["Title"] = quiz.Title;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Моите тестове</a></li>
+        <li class="breadcrumb-item active">@quiz.Title</li>
+    </ol>
+</nav>
+
+<partial name="_MessagePartial" />
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+    <h1 class="h3 mb-0">@quiz.Title</h1>
+    <div class="d-flex flex-wrap gap-1">
+        <a asp-action="Edit" asp-route-id="@quiz.Id" class="btn btn-sm btn-outline-primary">Редактирай</a>
+        <a asp-action="Attempts" asp-route-id="@quiz.Id" class="btn btn-sm btn-outline-secondary">Решения</a>
+        <form method="post" asp-action="SetPublished" asp-route-id="@quiz.Id" class="d-inline">
+            <input type="hidden" name="publish" value="@((!quiz.IsPublished).ToString().ToLowerInvariant())" />
+            <button type="submit" class="btn btn-sm @(quiz.IsPublished ? "btn-outline-secondary" : "btn-success")">
+                @(quiz.IsPublished ? "Скрий" : "Публикувай")
+            </button>
+        </form>
+        <form method="post" asp-action="Delete" asp-route-id="@quiz.Id" class="d-inline"
+              onsubmit="return confirm('Да изтрия ли теста и всички негови решения? Действието е необратимо.');">
+            <button type="submit" class="btn btn-sm btn-outline-danger">Изтрий</button>
+        </form>
+    </div>
+</div>
+
+<div class="mb-3">
+    @if (quiz.Mode == QuizMode.Exam)
+    {
+        <span class="badge text-bg-warning">Изпит</span>
+    }
+    else
+    {
+        <span class="badge text-bg-info">Упражнение</span>
+    }
+    @if (quiz.IsPublished)
+    {
+        <span class="badge text-bg-success">Публикуван</span>
+    }
+    else
+    {
+        <span class="badge text-bg-secondary">Чернова</span>
+    }
+    @if (quiz.Mode == QuizMode.Exam && quiz.TimeLimitMinutes.HasValue)
+    {
+        <span class="badge text-bg-light">@quiz.TimeLimitMinutes мин.</span>
+    }
+</div>
+
+@if (quiz.Mode == QuizMode.Exam && !string.IsNullOrEmpty(quiz.Code))
+{
+    <div class="alert alert-light border">
+        Код за учениците: <code class="fs-5 user-select-all">@quiz.Code</code>
+        <div class="form-text mb-0">Учениците влизат от „Изпит по код“ с този код, името и номера си.</div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(quiz.Description))
+{
+    <p class="text-body-secondary">@quiz.Description</p>
+}
+
+<h2 class="h5 mt-4">Въпроси (@quiz.Questions.Count)</h2>
+
+@if (!quiz.Questions.Any())
+{
+    <div class="alert alert-warning">Няма въпроси. Добавете поне един, за да можете да публикувате теста.</div>
+}
+else
+{
+    var number = 0;
+    foreach (var question in quiz.Questions)
+    {
+        number++;
+        <div class="card mb-2">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start gap-2">
+                    <h3 class="h6 mb-1">@number. @question.Text</h3>
+                    <form method="post" asp-action="DeleteQuestion" asp-route-id="@quiz.Id" class="d-inline"
+                          onsubmit="return confirm('Да изтрия ли въпроса?');">
+                        <input type="hidden" name="questionId" value="@question.Id" />
+                        <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Изтрий въпроса"><i class="bi bi-trash"></i></button>
+                    </form>
+                </div>
+                <ul class="list-unstyled mb-0">
+                    @foreach (var option in question.Options)
+                    {
+                        <li class="@(option.IsCorrect ? "text-success fw-semibold" : "")">
+                            @if (option.IsCorrect)
+                            {
+                                <i class="bi bi-check-circle-fill"></i>
+                            }
+                            else
+                            {
+                                <i class="bi bi-circle"></i>
+                            }
+                            @option.Text
+                        </li>
+                    }
+                </ul>
+            </div>
+        </div>
+    }
+}
+
+<div class="card mt-3">
+    <div class="card-body">
+        <h2 class="h6 card-title">Нов въпрос</h2>
+        <form method="post" asp-action="AddQuestion" asp-route-id="@quiz.Id">
+            <div class="mb-2">
+                <input name="Text" class="form-control" maxlength="1000" placeholder="Текст на въпроса" required />
+            </div>
+            <p class="form-text mb-1">Попълни поне 2 отговора и посочи верния. Празните редове се пропускат.</p>
+            @for (var i = 0; i < 4; i++)
+            {
+                <div class="input-group mb-2">
+                    <div class="input-group-text">
+                        <input class="form-check-input mt-0" type="radio" name="CorrectIndex" value="@i" aria-label="Верен отговор @(i + 1)" />
+                    </div>
+                    <input name="Options[@i]" class="form-control" maxlength="500" placeholder="Отговор @(i + 1)" />
+                </div>
+            }
+            <button type="submit" class="btn btn-primary">Добави въпрос</button>
+        </form>
+    </div>
+</div>
+
+<div class="mt-3">
+    <a asp-action="Index" class="btn btn-link">← Към тестовете</a>
+</div>

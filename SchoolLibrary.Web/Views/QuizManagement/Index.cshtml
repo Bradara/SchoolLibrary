@@ -11,12 +11,14 @@
 
 <div class="d-flex justify-content-between align-items-center mb-4">
     <h1><i class="bi bi-ui-checks"></i> Моите тестове <small class="fs-6 text-body-secondary">(@Model.TotalCount)</small></h1>
+    <a asp-action="Create" class="btn btn-primary">+ Нов тест</a>
 </div>
 
 @if (Model.TotalCount == 0)
 {
     <div class="alert alert-info text-center py-5">
-        <p class="mb-0">Все още нямате тестове.</p>
+        <p class="mb-3">Все още нямате тестове.</p>
+        <a asp-action="Create" class="btn btn-primary">Създай първия</a>
     </div>
 }
 else
@@ -38,7 +40,9 @@ else
                 @foreach (var item in Model.Items)
                 {
                     <tr>
-                        <td class="fw-semibold">@item.Quiz.Title</td>
+                        <td class="fw-semibold">
+                            <a asp-action="Details" asp-route-id="@item.Quiz.Id" class="text-decoration-none">@item.Quiz.Title</a>
+                        </td>
                         <td>
                             @if (item.Quiz.Mode == QuizMode.Exam)
                             {
@@ -72,8 +76,12 @@ else
                         <td class="text-center">@item.QuestionCount</td>
                         <td class="text-center">@item.AttemptCount</td>
                         <td class="text-end text-nowrap">
-                            <a asp-action="Attempts" asp-route-id="@item.Quiz.Id" class="btn btn-sm btn-outline-secondary"
-                               data-sl-tip="Решения" data-sl-placement="top" aria-label="Решения"><i class="bi bi-list-check"></i></a>
+                            <div class="d-inline-flex gap-1">
+                                <a asp-action="Details" asp-route-id="@item.Quiz.Id" class="btn btn-sm btn-outline-primary"
+                                   data-sl-tip="Управлявай" data-sl-placement="top" aria-label="Управлявай"><i class="bi bi-pencil-square"></i></a>
+                                <a asp-action="Attempts" asp-route-id="@item.Quiz.Id" class="btn btn-sm btn-outline-secondary"
+                                   data-sl-tip="Решения" data-sl-placement="top" aria-label="Решения"><i class="bi bi-list-check"></i></a>
+                            </div>
                         </td>
                     </tr>
                 }
