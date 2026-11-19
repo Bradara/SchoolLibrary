@@ -32,4 +32,13 @@ public interface IQuizService
 
     /// <summary>Removes a question. Fails when it is missing, not allowed, or the quiz already has attempts.</summary>
     Task<ServiceResult<Question>> DeleteQuestionAsync(int questionId, string userId, bool isAdministrator);
+
+    /// <summary>One page of published practice quizzes to browse, each with its question count.</summary>
+    Task<PagedResult<QuizListItem>> GetPublishedPracticeAsync(int page, int pageSize = 10);
+
+    /// <summary>A published practice quiz with its questions and options for solving, or null otherwise.</summary>
+    Task<Quiz?> GetPracticeForSolvingAsync(int id);
+
+    /// <summary>Grades answers to a published practice quiz. Fails when the quiz is missing, an exam, or unpublished.</summary>
+    Task<ServiceResult<QuizResult>> GradePracticeAsync(int quizId, IReadOnlyDictionary<int, int?> answers);
 }

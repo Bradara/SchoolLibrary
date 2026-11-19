@@ -290,6 +290,59 @@ public class QuizService : IQuizService
         return ServiceResult<Question>.Success(question);
     }
 
+    public async Task<PagedResult<QuizListItem>> GetPublishedPracticeAsync(int page, int pageSize = 10)
+    {
+        var query = _context.Quizzes.AsNoTracking()
+            .Where(q => q.Mode == QuizMode.Practice && q.IsPublished);
+
+        var totalCount = await query.CountAsync();
+
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        page = Math.Clamp(page, 1, Math.Max(totalPages, 1));
+
+        var quizzes = await query
+            .OrderBy(q => q.Title)
+            .ThenBy(q => q.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var ids = quizzes.Select(q => q.Id).ToList();
+        var questionCounts = await _context.Questions
+            .Where(x => ids.Contains(x.QuizId))
+            .GroupBy(x => x.QuizId)
+            .Select(g => new { QuizId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.QuizId, g => g.Count);
+
+        var items = quizzes
+            .Select(q => new QuizListItem(q, questionCounts.GetValueOrDefault(q.Id), 0))
+            .ToList();
+
+        return new PagedResult<QuizListItem>(items, totalCount, page, pageSize);
+    }
+
+    public async Task<Quiz?> GetPracticeForSolvingAsync(int id)
+    {
+        return await _context.Quizzes
+            .AsNoTracking()
+            .Include(q => q.Questions.OrderBy(x => x.Order))
+                .ThenInclude(q => q.Options.OrderBy(o => o.Order))
+            .FirstOrDefaultAsync(q => q.Id == id && q.Mode == QuizMode.Practice && q.IsPublished);
+    }
+
+    public async Task<ServiceResult<QuizResult>> GradePracticeAsync(int quizId, IReadOnlyDictionary<int, int?> answers)
+    {
+        var quiz = await GetPracticeForSolvingAsync(quizId);
+        if (quiz == null)
+        {
+            return ServiceResult<QuizResult>.Failure(ServiceError.NotFound, "Упражнението не е намерено.");
+        }
+
+        var result = QuizGrading.Grade(quiz, answers);
+        return ServiceResult<QuizResult>.Success(result);
+    }
+
     private Task<bool> HasAttemptsAsync(int quizId)
         => _context.QuizAttempts.AnyAsync(a => a.QuizId == quizId);
 

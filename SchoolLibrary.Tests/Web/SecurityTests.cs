@@ -112,10 +112,15 @@ public class SecurityTests
     }
 
     [Fact]
-    public void EveryController_ExceptTheHomePage_RequiresASignedInUser()
+    public void EveryController_ExceptThePublicPages_RequiresASignedInUser()
     {
+        // Intentionally public: the home page, and the open practice quizzes (both the list and the
+        // grading, which only computes a score and writes nothing). Their write actions still check
+        // the anti-forgery token (covered by the test above).
+        var publicControllers = new[] { typeof(PublicHomeController), typeof(QuizzesController) };
+
         var open = Controllers()
-            .Where(c => c != typeof(PublicHomeController))
+            .Where(c => !publicControllers.Contains(c))
             .Where(c => c.GetCustomAttributes<AuthorizeAttribute>(inherit: true).Count() == 0)
             .Select(c => c.Name)
             .ToList();

@@ -1,0 +1,71 @@
+@using SchoolLibrary.Services.Quizzes
+@model QuizResult
+
+@{
+    ViewData["Title"] = "Резултат";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Упражнения</a></li>
+        <li class="breadcrumb-item"><a asp-action="Solve" asp-route-id="@Model.Quiz.Id">@Model.Quiz.Title</a></li>
+        <li class="breadcrumb-item active">Резултат</li>
+    </ol>
+</nav>
+
+<h1>Резултат</h1>
+<p class="lead">@Model.Quiz.Title</p>
+
+<div class="alert @(Model.Score == Model.MaxScore ? "alert-success" : "alert-info")">
+    Верни отговори: <strong>@Model.Score от @Model.MaxScore</strong>
+</div>
+
+@{ var number = 0; }
+@foreach (var result in Model.Questions)
+{
+    number++;
+    <div class="card mb-3 border-@(result.IsCorrect ? "success" : "danger")">
+        <div class="card-body">
+            <h2 class="h6 card-title">
+                @number. @result.Question.Text
+                @if (result.IsCorrect)
+                {
+                    <span class="badge text-bg-success">Вярно</span>
+                }
+                else
+                {
+                    <span class="badge text-bg-danger">Грешно</span>
+                }
+            </h2>
+            <ul class="list-unstyled mb-0">
+                @foreach (var option in result.Question.Options)
+                {
+                    var isCorrect = option.Id == result.CorrectOptionId;
+                    var isChosen = option.Id == result.SelectedOptionId;
+                    <li class="@(isCorrect ? "text-success fw-semibold" : isChosen ? "text-danger" : "")">
+                        @if (isCorrect)
+                        {
+                            <i class="bi bi-check-circle-fill"></i>
+                        }
+                        else if (isChosen)
+                        {
+                            <i class="bi bi-x-circle-fill"></i>
+                        }
+                        else
+                        {
+                            <i class="bi bi-circle"></i>
+                        }
+                        @option.Text
+                        @if (isChosen && !isCorrect)
+                        {
+                            <span class="small text-body-secondary">(вашият отговор)</span>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
+    </div>
+}
+
+<a asp-action="Solve" asp-route-id="@Model.Quiz.Id" class="btn btn-primary">Опитай пак</a>
+<a asp-action="Index" class="btn btn-link">← Към упражненията</a>

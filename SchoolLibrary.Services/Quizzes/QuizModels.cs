@@ -13,3 +13,9 @@ public record QuestionInput(string Text, IReadOnlyList<string> Options, int Corr
 
 /// <summary>A quiz with its question and (submitted) attempt counts, for the management list.</summary>
 public record QuizListItem(Quiz Quiz, int QuestionCount, int AttemptCount);
+
+/// <summary>How one question was answered: what was picked, which option was correct, and the outcome.</summary>
+public record QuestionResult(Question Question, int? SelectedOptionId, int? CorrectOptionId, bool IsCorrect);
+
+/// <summary>The graded outcome of a quiz: the score and the per-question breakdown.</summary>
+public record QuizResult(Quiz Quiz, int Score, int MaxScore, IReadOnlyList<QuestionResult> Questions);
