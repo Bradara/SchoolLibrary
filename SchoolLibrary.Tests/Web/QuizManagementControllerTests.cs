@@ -199,7 +199,8 @@ public class QuizManagementControllerTests
         {
             Text = "Въпрос?",
             Options = new List<string> { "A", "", "B", "" },
-            CorrectIndex = 2
+            CorrectIndex = 2,
+            Points = 3
         };
 
         var result = await Controller("t1", Roles.Teacher).AddQuestion(5, vm);
@@ -209,6 +210,7 @@ public class QuizManagementControllerTests
         Assert.Equal(new[] { "A", "B" }, captured!.Options);
         Assert.Equal(1, captured.CorrectIndex);
         Assert.Equal("Въпрос?", captured.Text);
+        Assert.Equal(3, captured.Points);
     }
 
     [Fact]
@@ -246,6 +248,7 @@ public class QuizManagementControllerTests
             Id = 9,
             QuizId = 5,
             Text = "Въпрос?",
+            Points = 4,
             Quiz = new Quiz { Id = 5, OwnerId = "t1" },
             Options = new List<AnswerOption>
             {
@@ -260,6 +263,7 @@ public class QuizManagementControllerTests
         Assert.Equal("Въпрос?", model.Text);
         Assert.Equal(new[] { "A", "B" }, model.Options);
         Assert.Equal(1, model.CorrectIndex);
+        Assert.Equal(4, model.Points);
     }
 
     [Fact]

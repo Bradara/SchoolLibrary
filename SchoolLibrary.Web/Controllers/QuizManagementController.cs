@@ -175,7 +175,8 @@ namespace SchoolLibrary.Controllers
             {
                 Text = question.Text,
                 Options = options.Select(o => o.Text).ToList(),
-                CorrectIndex = options.FindIndex(o => o.IsCorrect)
+                CorrectIndex = options.FindIndex(o => o.IsCorrect),
+                Points = question.Points
             });
         }
 
@@ -229,7 +230,7 @@ namespace SchoolLibrary.Controllers
                 options.Add(text);
             }
 
-            return new QuestionInput(vm.Text ?? string.Empty, options, correctIndex);
+            return new QuestionInput(vm.Text ?? string.Empty, options, correctIndex, vm.Points);
         }
 
         // POST: QuizManagement/DeleteQuestion

@@ -28,6 +28,12 @@
                 <span asp-validation-for="Text" class="text-danger small"></span>
             </div>
 
+            <div class="mb-2" style="max-width: 9rem;">
+                <label asp-for="Points" class="form-label"></label>
+                <input asp-for="Points" class="form-control" type="number" min="1" max="100" />
+                <span asp-validation-for="Points" class="text-danger small"></span>
+            </div>
+
             <p class="form-text mb-1">Попълни поне 2 отговора и посочи верния. Празните редове се пропускат.</p>
             @for (var i = 0; i < rowCount; i++)
             {

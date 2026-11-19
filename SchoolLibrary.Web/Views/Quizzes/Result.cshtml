@@ -16,9 +16,7 @@
 <h1>Резултат</h1>
 <p class="lead">@Model.Quiz.Title</p>
 
-<div class="alert @(Model.Score == Model.MaxScore ? "alert-success" : "alert-info")">
-    Верни отговори: <strong>@Model.Score от @Model.MaxScore</strong>
-</div>
+<partial name="_GradeSummary" model="Model" />
 
 @{ var number = 0; }
 @foreach (var result in Model.Questions)
@@ -36,6 +34,7 @@
                 {
                     <span class="badge text-bg-danger">Грешно</span>
                 }
+                <span class="badge text-bg-light">@result.Question.Points т.</span>
             </h2>
             <ul class="list-unstyled mb-0">
                 @foreach (var option in result.Question.Options)

@@ -16,9 +16,7 @@
     }
 </div>
 
-<div class="alert @(result.Score == result.MaxScore ? "alert-success" : "alert-info")">
-    Верни отговори: <strong>@result.Score от @result.MaxScore</strong>
-</div>
+<partial name="_GradeSummary" model="result" />
 
 @{ var number = 0; }
 @foreach (var questionResult in result.Questions)
@@ -36,6 +34,7 @@
                 {
                     <span class="badge text-bg-danger">Грешно</span>
                 }
+                <span class="badge text-bg-light">@questionResult.Question.Points т.</span>
             </h2>
             <ul class="list-unstyled mb-0">
                 @foreach (var option in questionResult.Question.Options)

@@ -42,6 +42,10 @@ public class QuestionFormViewModel
 
     /// <summary>The position of the correct option; -1 when none is chosen.</summary>
     public int CorrectIndex { get; set; } = -1;
+
+    [Range(1, 100, ErrorMessage = "Точките са между 1 и 100")]
+    [Display(Name = "Точки")]
+    public int Points { get; set; } = 1;
 }
 
 /// <summary>The manage page: a quiz with its questions and an empty add-question form.</summary>

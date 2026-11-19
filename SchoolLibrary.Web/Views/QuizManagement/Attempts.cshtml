@@ -38,7 +38,8 @@ else
                 <tr>
                     <th>Име</th>
                     <th>Номер</th>
-                    <th class="text-center">Резултат</th>
+                    <th class="text-center">Точки</th>
+                    <th class="text-center">Оценка</th>
                     @if (Model.Quiz.MaxLeaves.HasValue)
                     {
                         <th class="text-center">Надзор</th>
@@ -53,6 +54,13 @@ else
                         <td>@attempt.StudentName</td>
                         <td>@(string.IsNullOrEmpty(attempt.StudentNumber) ? "—" : attempt.StudentNumber)</td>
                         <td class="text-center fw-semibold">@attempt.Score / @attempt.MaxScore</td>
+                        @{
+                            var grade = QuizGradeScale.Grade(attempt.Score, attempt.MaxScore);
+                        }
+                        <td class="text-center">
+                            <span class="badge @(grade >= 3 ? "text-bg-success" : "text-bg-danger")"
+                                  title="@QuizGradeScale.Label(grade) · @QuizGradeScale.Percent(attempt.Score, attempt.MaxScore)%">@grade</span>
+                        </td>
                         @if (Model.Quiz.MaxLeaves.HasValue)
                         {
                             <td class="text-center">
