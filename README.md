@@ -31,6 +31,8 @@ Teachers keep good learning material scattered across bookmarks, chats and drive
 
 Every resource has an author, a license (required) and any number of subjects and grades. Students and parents can browse, keep favorites, comment and report content. Administrators moderate.
 
+Teachers also build **quizzes**: open practice tests students can take any time, and code-entered, timed exams students solve without an account.
+
 ## Features
 
 - **Resource catalog** with search by title, filters (kind, subject, grade, owner, date), sorting and pagination.
@@ -40,6 +42,7 @@ Every resource has an author, a license (required) and any number of subjects an
 - **Duplicate protection**: links are normalized and must be unique across the platform.
 - **Favorites** with a personal paged list.
 - **Comments** under a resource (up to 500 characters, newest first, paged).
+- **Quizzes** (single choice) in two modes. *Practice* quizzes are open to everyone, with instant feedback and unlimited retries. *Exams* are entered by a short code together with the student's name and class number (no account needed), are timed, allow one attempt, and support light proctoring: a fullscreen button, counting how many times the student leaves the tab/window, and auto-submit once a set limit is passed. Teachers manage their quizzes and review the submissions (score, time, leave count) with pagination.
 - **Reports** for a resource or a comment (copyright, inappropriate content, broken link, other) with moderation in the Admin area.
 - **Admin area**: dashboard, subjects, grades overview, licenses, users and roles, teacher approvals, reports, and CSV import of resources (preview with new/duplicate/invalid rows, then confirm).
 - **Accounts**: registration as student, parent or teacher; account deletion (resources stay in the catalog, comments and favorites are removed).
@@ -57,6 +60,8 @@ Every registered user has the base role `User` plus one more role.
 | `Administrator` | Manage subjects, licenses, users, reports and imports; delete any resource (but not edit someone else's) |
 
 Registration lets a user choose student, parent or teacher. Students and parents get the role at once. A teacher request waits for an administrator's approval and until then works as a student. The first registered user becomes the administrator.
+
+Teachers (and administrators) build and review quizzes. Practice quizzes are open to any visitor; exams are solved anonymously by code, so a student needs no account to sit one.
 
 ## Architecture
 
@@ -86,6 +91,11 @@ Forms are bound to view models, not to entities, so a request cannot set fields 
 | `Favorite` | Composite key (user, resource) |
 | `Comment` | Text up to 500 characters, author, resource |
 | `Report` | Reported resource or comment, reason, description, status, a copy of the reported text |
+| `Quiz` | Title, description, mode (practice or exam), exam code (unique), time limit, leave allowance, published flag, owner (nullable) |
+| `Question` | A single-choice question with display order; belongs to a quiz |
+| `AnswerOption` | Option text, whether it is correct, display order; belongs to a question |
+| `QuizAttempt` | One run of a quiz: unguessable token (unique), student name and class number, start and submit times, score, leave count and flag |
+| `AttemptAnswer` | The option a student picked for one question and whether it was correct |
 
 ## Services
 
@@ -100,6 +110,7 @@ Forms are bound to view models, not to entities, so a request cannot set fields 
 | `IFavoriteService` | Add, remove, paged list |
 | `ICommentService` | Add, delete (author or administrator), paged list |
 | `IReportService` | Create (one open report per user and content), moderation, delete reported content |
+| `IQuizService` | Create, edit and delete quizzes and questions (owner or administrator), publish, generate unique exam codes; grade practice; start, submit and grade exam attempts (one attempt, entered by code); record proctoring leaves; paged review of submissions |
 | `IUserService` | Roles, teacher approvals, account deletion |
 | `IStatisticsService` | Numbers for the admin dashboard |
 | `IFileStorage` | Stores and serves uploaded file bytes outside the database, chosen by configuration: `LocalFileStorage` on a disk volume, or `OciObjectStorage` in an S3-compatible bucket (OCI Object Storage) |
@@ -113,7 +124,8 @@ Forms are bound to view models, not to entities, so a request cannot set fields 
 - **XSS**: Razor encodes all output; links and iframes accept only `http` and `https`; user content is shown with `white-space: pre-line`. The one place HTML is emitted raw is uploaded Markdown, which is first rendered with raw HTML disabled and then run through an HTML sanitizer.
 - **Uploads**: the file type is decided from the content (magic bytes for PDF and EPUB, a valid-UTF-8-text check for Markdown), never from the extension or the browser-supplied content type; a size limit and `RequestSizeLimit` cap the request; storage keys are generated (never a user-supplied name) and validated so a key cannot escape the storage folder; served files set `X-Content-Type-Options: nosniff` and allow framing only by this site.
 - **CSRF**: `AutoValidateAntiforgeryToken` is applied globally to every unsafe request.
-- **Parameter tampering**: view models instead of entity binding, ownership and role checks in services, `[Authorize(Roles = ...)]` on controllers and on the whole Admin area.
+- **Parameter tampering**: view models instead of entity binding, ownership and role checks in services, `[Authorize(Roles = ...)]` on controllers and on the whole Admin area. Each exam attempt is addressed by an unguessable GUID token in the URL, not a sequential id, so one student cannot open or submit another's attempt.
+- **Anonymous exams**: students sit exams without an account, so the start, submit and proctoring-ping endpoints are open — but they are POST actions that still validate the antiforgery token, and they change nothing a signed-in user owns. The exam timer, the single-attempt rule and the proctoring limit are enforced on the server (it holds the start time, the code and the leave count); the browser scripts only show the clock and send pings, and a web page cannot truly prevent switching tabs.
 - **Accounts**: the account locks for 5 minutes after 5 failed sign-ins.
 - **Headers and cookies**: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and a Content-Security-Policy for framing, plugins, base URI and form targets; in Production every cookie is `Secure`; `AllowedHosts` limits the host names.
 - **Size limits** on the CSV upload.
@@ -140,15 +152,15 @@ dotnet user-secrets set "Seed:DemoPassword" "<a password>" --project SchoolLibra
 dotnet test SchoolLibrary.slnx
 ```
 
-929 tests (xUnit, Moq, EF Core InMemory). They cover every service (success and failure paths, including file upload validation, the file storage and the Markdown renderer), seeders, DI registration, controllers (redirects, messages, permissions, file serving), security conventions, error pages and helpers.
+1087 tests (xUnit, Moq, EF Core InMemory). They cover every service (success and failure paths, including file upload validation, the file storage, the Markdown renderer and the full quiz flow — authoring, practice grading, exam attempts and proctoring), seeders, DI registration, controllers (redirects, messages, permissions, file serving), security conventions, error pages and helpers.
 
 Line coverage measured with coverlet (`dotnet test -c Release --collect:"XPlat Code Coverage"`):
 
 | Part | Coverage |
 |---|---|
-| `SchoolLibrary.Services` (the logic the assignment asks for) | **99.5%** |
-| `SchoolLibrary.Data` without generated migrations | 97.9% |
-| `SchoolLibrary.Web` without Razor views, Identity scaffolding and `Program.cs` | 99.1% |
+| `SchoolLibrary.Services` (the logic the assignment asks for) | **98.1%** |
+| `SchoolLibrary.Data` without generated migrations | 96.9% |
+| `SchoolLibrary.Web` without compiled Razor views, Identity scaffolding and `Program.cs` | 93.8% |
 
 The raw numbers per assembly are lower for Data and Web because generated migrations and compiled Razor views count as code; they are excluded above.
 
