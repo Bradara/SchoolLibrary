@@ -62,6 +62,13 @@ public interface IQuizService
     Task<ServiceResult<QuizResult>> GetExamResultAsync(Guid token);
 
     /// <summary>
+    /// Records that the student left the exam tab/window. Increments the leave count and, once the
+    /// exam's allowance is exceeded, flags the attempt and asks the client to submit. Fails when the
+    /// token is unknown.
+    /// </summary>
+    Task<ServiceResult<ProctorStatus>> RecordLeaveAsync(Guid token);
+
+    /// <summary>
     /// A quiz with one page of its submitted attempts, for the owner (or an administrator) to review.
     /// Fails when the quiz is missing or the requester may not manage it.
     /// </summary>

@@ -29,6 +29,12 @@ namespace SchoolLibrary.Data.Models
         /// <summary>Minutes allowed for an exam attempt. Null means no time limit (practice).</summary>
         public int? TimeLimitMinutes { get; set; }
 
+        /// <summary>
+        /// Exam proctoring: how many times a student may leave the tab/window before the attempt is
+        /// flagged and auto-submitted. Null means no proctoring.
+        /// </summary>
+        public int? MaxLeaves { get; set; }
+
         /// <summary>Whether students can currently see and take the quiz.</summary>
         public bool IsPublished { get; set; }
 

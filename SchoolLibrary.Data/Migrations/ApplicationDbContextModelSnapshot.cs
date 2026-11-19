@@ -530,6 +530,9 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<bool>("IsPublished")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("MaxLeaves")
+                        .HasColumnType("integer");
+
                     b.Property<int>("Mode")
                         .HasColumnType("integer");
 
@@ -568,6 +571,12 @@ namespace SchoolLibrary.Data.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("Flagged")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("LeaveCount")
+                        .HasColumnType("integer");
 
                     b.Property<int>("MaxScore")
                         .HasColumnType("integer");

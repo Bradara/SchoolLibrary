@@ -361,4 +361,123 @@ public class QuizExamTests
         Assert.Equal(3, result.Value.Attempts.TotalPages);
         Assert.Equal(2, result.Value.Attempts.Items.Count);
     }
+
+    // ---------- Proctoring (RecordLeaveAsync + MaxLeaves) ----------
+
+    private static async Task<Quiz> PublishedExamWithLeavesAsync(QuizService service, int? maxLeaves)
+    {
+        var quiz = (await service.CreateAsync(new QuizInput("Изпит", null, QuizMode.Exam, 30, null, maxLeaves), Owner)).Value!;
+        await service.AddQuestionAsync(quiz.Id, new QuestionInput("В", new[] { "верен", "грешен" }, 0), Owner, false);
+        await service.SetPublishedAsync(quiz.Id, true, Owner, false);
+        return quiz;
+    }
+
+    [Fact]
+    public async Task CreateAsync_Exam_StoresTheLeaveAllowance()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+
+        var result = await service.CreateAsync(new QuizInput("Изпит", null, QuizMode.Exam, 30, null, MaxLeaves: 2), Owner);
+
+        Assert.Equal(2, result.Value!.MaxLeaves);
+    }
+
+    [Fact]
+    public async Task CreateAsync_Practice_IgnoresTheLeaveAllowance()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+
+        var result = await service.CreateAsync(new QuizInput("Упражнение", null, QuizMode.Practice, null, null, MaxLeaves: 2), Owner);
+
+        Assert.Null(result.Value!.MaxLeaves);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(QuizService.MaxProctorLeaves + 1)]
+    public async Task CreateAsync_ExamWithLeaveAllowanceOutOfRange_FailsAsInvalid(int leaves)
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+
+        var result = await service.CreateAsync(new QuizInput("Изпит", null, QuizMode.Exam, 30, null, leaves), Owner);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+    }
+
+    [Fact]
+    public async Task RecordLeaveAsync_IncrementsTheCount_WithinTheAllowance()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var exam = await PublishedExamWithLeavesAsync(service, maxLeaves: 2);
+        var attempt = (await service.StartExamAsync(exam.Code!, "Иван", "5")).Value!;
+
+        var result = await service.RecordLeaveAsync(attempt.Token);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, result.Value!.LeaveCount);
+        Assert.False(result.Value.Flagged);
+        Assert.False(result.Value.ShouldSubmit);
+    }
+
+    [Fact]
+    public async Task RecordLeaveAsync_FlagsAndAsksToSubmit_WhenTheAllowanceIsExceeded()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var exam = await PublishedExamWithLeavesAsync(service, maxLeaves: 1);
+        var attempt = (await service.StartExamAsync(exam.Code!, "Иван", "5")).Value!;
+
+        await service.RecordLeaveAsync(attempt.Token);           // 1 — still allowed
+        var second = await service.RecordLeaveAsync(attempt.Token); // 2 — over the limit
+
+        Assert.Equal(2, second.Value!.LeaveCount);
+        Assert.True(second.Value.Flagged);
+        Assert.True(second.Value.ShouldSubmit);
+    }
+
+    [Fact]
+    public async Task RecordLeaveAsync_WithNoProctoring_NeverFlags()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var exam = await PublishedExamWithLeavesAsync(service, maxLeaves: null);
+        var attempt = (await service.StartExamAsync(exam.Code!, "Иван", "5")).Value!;
+
+        var result = await service.RecordLeaveAsync(attempt.Token);
+
+        Assert.Equal(1, result.Value!.LeaveCount);
+        Assert.False(result.Value.Flagged);
+        Assert.False(result.Value.ShouldSubmit);
+    }
+
+    [Fact]
+    public async Task RecordLeaveAsync_AfterSubmitting_DoesNotCount()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var exam = await PublishedExamWithLeavesAsync(service, maxLeaves: 1);
+        var attempt = (await service.StartExamAsync(exam.Code!, "Иван", "5")).Value!;
+        await service.SubmitExamAsync(attempt.Token, new Dictionary<int, int?>());
+
+        var result = await service.RecordLeaveAsync(attempt.Token);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(0, result.Value!.LeaveCount);
+        Assert.False(result.Value.ShouldSubmit);
+    }
+
+    [Fact]
+    public async Task RecordLeaveAsync_UnknownToken_FailsAsNotFound()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+
+        var result = await service.RecordLeaveAsync(Guid.NewGuid());
+
+        Assert.Equal(ServiceError.NotFound, result.Error);
+    }
 }

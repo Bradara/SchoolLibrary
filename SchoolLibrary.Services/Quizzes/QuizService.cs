@@ -18,6 +18,7 @@ public class QuizService : IQuizService
     public const int CodeLength = 6;
     public const int MaxStudentNameLength = 100;
     public const int MaxStudentNumberLength = 20;
+    public const int MaxProctorLeaves = 100;
     public const int MaxPageSize = 100;
 
     private readonly ApplicationDbContext _context;
@@ -100,6 +101,7 @@ public class QuizService : IQuizService
             Description = Clean(input.Description),
             Mode = input.Mode,
             TimeLimitMinutes = input.Mode == QuizMode.Exam ? input.TimeLimitMinutes : null,
+            MaxLeaves = input.Mode == QuizMode.Exam ? input.MaxLeaves : null,
             ResourceId = input.ResourceId,
             OwnerId = ownerId,
             IsPublished = false,
@@ -152,11 +154,13 @@ public class QuizService : IQuizService
         if (input.Mode == QuizMode.Exam)
         {
             quiz.TimeLimitMinutes = input.TimeLimitMinutes;
+            quiz.MaxLeaves = input.MaxLeaves;
             quiz.Code ??= await GenerateUniqueCodeAsync();
         }
         else
         {
             quiz.TimeLimitMinutes = null;
+            quiz.MaxLeaves = null;
             quiz.Code = null;
         }
 
@@ -483,6 +487,36 @@ public class QuizService : IQuizService
         return ServiceResult<QuizResult>.Success(BuildResult(attempt));
     }
 
+    public async Task<ServiceResult<ProctorStatus>> RecordLeaveAsync(Guid token)
+    {
+        var attempt = await _context.QuizAttempts
+            .Include(a => a.Quiz)
+            .FirstOrDefaultAsync(a => a.Token == token);
+        if (attempt == null)
+        {
+            return ServiceResult<ProctorStatus>.Failure(ServiceError.NotFound, "Опитът не е намерен.");
+        }
+
+        // A submitted attempt no longer counts leaves
+        if (attempt.SubmittedOn != null)
+        {
+            return ServiceResult<ProctorStatus>.Success(new ProctorStatus(attempt.LeaveCount, attempt.Flagged, false));
+        }
+
+        attempt.LeaveCount++;
+
+        var shouldSubmit = false;
+        if (attempt.Quiz.MaxLeaves is int max && attempt.LeaveCount > max)
+        {
+            attempt.Flagged = true;
+            shouldSubmit = true;
+        }
+
+        await _context.SaveChangesAsync();
+
+        return ServiceResult<ProctorStatus>.Success(new ProctorStatus(attempt.LeaveCount, attempt.Flagged, shouldSubmit));
+    }
+
     public async Task<ServiceResult<QuizReview>> GetReviewAsync(int quizId, string userId, bool isAdministrator, int page, int pageSize = 20)
     {
         var quiz = await _context.Quizzes.AsNoTracking().FirstOrDefaultAsync(q => q.Id == quizId);
@@ -569,6 +603,12 @@ public class QuizService : IQuizService
             && (minutes < 1 || minutes > MaxTimeLimitMinutes))
         {
             return $"Времето за изпит трябва да е между 1 и {MaxTimeLimitMinutes} минути.";
+        }
+
+        if (input.Mode == QuizMode.Exam && input.MaxLeaves is int leaves
+            && (leaves < 0 || leaves > MaxProctorLeaves))
+        {
+            return $"Допустимите напускания трябва да са между 0 и {MaxProctorLeaves}.";
         }
 
         return null;

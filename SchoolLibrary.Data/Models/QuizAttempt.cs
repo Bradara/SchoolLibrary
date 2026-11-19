@@ -36,6 +36,12 @@ namespace SchoolLibrary.Data.Models
         /// <summary>Number of questions (the maximum score).</summary>
         public int MaxScore { get; set; }
 
+        /// <summary>How many times the student left the exam tab/window (proctoring).</summary>
+        public int LeaveCount { get; set; }
+
+        /// <summary>Set when the student left more times than the exam allows.</summary>
+        public bool Flagged { get; set; }
+
         public ICollection<AttemptAnswer> Answers { get; set; } = new List<AttemptAnswer>();
     }
 }

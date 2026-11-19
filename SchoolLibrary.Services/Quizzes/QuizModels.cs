@@ -5,7 +5,7 @@ using SchoolLibrary.Services.Common;
 namespace SchoolLibrary.Services.Quizzes;
 
 /// <summary>What a teacher types in the quiz form. The exam code is generated, not entered.</summary>
-public record QuizInput(string Title, string? Description, QuizMode Mode, int? TimeLimitMinutes, int? ResourceId);
+public record QuizInput(string Title, string? Description, QuizMode Mode, int? TimeLimitMinutes, int? ResourceId, int? MaxLeaves = null);
 
 /// <summary>
 /// A single-choice question with its options and which one is correct (by index in <paramref name="Options"/>).
@@ -23,3 +23,6 @@ public record QuizResult(Quiz Quiz, int Score, int MaxScore, IReadOnlyList<Quest
 
 /// <summary>A quiz with one page of its submitted attempts, for the teacher's review page.</summary>
 public record QuizReview(Quiz Quiz, PagedResult<QuizAttempt> Attempts);
+
+/// <summary>Proctoring state after a student left the exam: the leave count and whether to submit now.</summary>
+public record ProctorStatus(int LeaveCount, bool Flagged, bool ShouldSubmit);
