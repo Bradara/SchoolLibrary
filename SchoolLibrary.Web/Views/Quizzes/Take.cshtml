@@ -1,0 +1,53 @@
+@model SchoolLibrary.ViewModels.ExamTakeViewModel
+
+@{
+    ViewData["Title"] = Model.Attempt.Quiz.Title;
+    var quiz = Model.Attempt.Quiz;
+}
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h3 mb-0">@quiz.Title</h1>
+    @if (Model.RemainingSeconds.HasValue)
+    {
+        <div class="alert alert-warning d-inline-flex align-items-center gap-2 mb-0 py-2" role="status">
+            <i class="bi bi-stopwatch"></i>
+            <span>Оставащо време: <strong id="sl-exam-timer">--:--</strong></span>
+        </div>
+    }
+</div>
+
+@if (!string.IsNullOrEmpty(quiz.Description))
+{
+    <p class="lead">@quiz.Description</p>
+}
+
+<form method="post" asp-action="Take" asp-route-token="@Model.Attempt.Token"
+      id="sl-exam-form" data-remaining-seconds="@(Model.RemainingSeconds?.ToString() ?? "")">
+    @{ var number = 0; }
+    @foreach (var question in quiz.Questions)
+    {
+        number++;
+        <fieldset class="card mb-3">
+            <div class="card-body">
+                <legend class="h6 card-title">@number. @question.Text</legend>
+                @foreach (var option in question.Options)
+                {
+                    var optionId = $"q{question.Id}o{option.Id}";
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="answers[@question.Id]" value="@option.Id" id="@optionId">
+                        <label class="form-check-label" for="@optionId">@option.Text</label>
+                    </div>
+                }
+            </div>
+        </fieldset>
+    }
+
+    <button type="submit" class="btn btn-primary">Предай изпита</button>
+</form>
+
+@section Scripts {
+    @if (Model.RemainingSeconds.HasValue)
+    {
+        <script src="~/js/sl-exam-timer.js" asp-append-version="true"></script>
+    }
+}

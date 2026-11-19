@@ -47,10 +47,20 @@
                 <i class="bi bi-file-earmark-arrow-up"></i><span class="nav-label"> Качени материали</span>
             </a>
         </li>
+        @{
+            var onPractice = area == null && controller == "Quizzes" && (action == "Index" || action == "Solve" || action == "Result");
+            var onExam = area == null && controller == "Quizzes" && (action == "Exam" || action == "Take" || action == "ExamResult");
+        }
         <li class="nav-item">
-            <a class="nav-link @Active("Quizzes")" asp-area="" asp-controller="Quizzes" asp-action="Index"
+            <a class="nav-link @(onPractice ? "active" : "")" asp-area="" asp-controller="Quizzes" asp-action="Index"
                data-sl-tip="@(compact ? "Упражнения" : null)" aria-label="@(compact ? "Упражнения" : null)">
                 <i class="bi bi-card-checklist"></i><span class="nav-label"> Упражнения</span>
+            </a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link @(onExam ? "active" : "")" asp-area="" asp-controller="Quizzes" asp-action="Exam"
+               data-sl-tip="@(compact ? "Изпит по код" : null)" aria-label="@(compact ? "Изпит по код" : null)">
+                <i class="bi bi-stopwatch"></i><span class="nav-label"> Изпит по код</span>
             </a>
         </li>
         @if (User.Identity?.IsAuthenticated == true)
