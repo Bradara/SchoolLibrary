@@ -39,6 +39,10 @@ else
                     <th>Име</th>
                     <th>Номер</th>
                     <th class="text-center">Резултат</th>
+                    @if (Model.Quiz.MaxLeaves.HasValue)
+                    {
+                        <th class="text-center">Надзор</th>
+                    }
                     <th>Предаден</th>
                 </tr>
             </thead>
@@ -49,6 +53,19 @@ else
                         <td>@attempt.StudentName</td>
                         <td>@(string.IsNullOrEmpty(attempt.StudentNumber) ? "—" : attempt.StudentNumber)</td>
                         <td class="text-center fw-semibold">@attempt.Score / @attempt.MaxScore</td>
+                        @if (Model.Quiz.MaxLeaves.HasValue)
+                        {
+                            <td class="text-center">
+                                @if (attempt.Flagged)
+                                {
+                                    <span class="badge text-bg-danger" title="Напуснал повече от позволеното"><i class="bi bi-exclamation-triangle"></i> @attempt.LeaveCount</span>
+                                }
+                                else
+                                {
+                                    <span class="text-body-secondary">@attempt.LeaveCount</span>
+                                }
+                            </td>
+                        }
                         <td class="text-body-secondary small">@attempt.SubmittedOn?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
                     </tr>
                 }

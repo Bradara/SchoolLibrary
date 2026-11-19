@@ -256,4 +256,30 @@ public class QuizzesControllerTests
 
         Assert.IsType<NotFoundResult>(await Controller().ExamResult(Guid.NewGuid()));
     }
+
+    // ---------- Proctoring ping ----------
+
+    [Fact]
+    public async Task RecordLeave_ReturnsTheStatusAsJson()
+    {
+        var token = Guid.NewGuid();
+        _service.Setup(s => s.RecordLeaveAsync(token))
+            .ReturnsAsync(ServiceResult<ProctorStatus>.Success(new ProctorStatus(2, true, true)));
+
+        var result = await Controller().RecordLeave(token);
+
+        var json = Assert.IsType<JsonResult>(result);
+        var value = json.Value!;
+        Assert.Equal(2, value.GetType().GetProperty("leaveCount")!.GetValue(value));
+        Assert.Equal(true, value.GetType().GetProperty("shouldSubmit")!.GetValue(value));
+    }
+
+    [Fact]
+    public async Task RecordLeave_Unknown_ReturnsNotFound()
+    {
+        _service.Setup(s => s.RecordLeaveAsync(It.IsAny<Guid>()))
+            .ReturnsAsync(ServiceResult<ProctorStatus>.Failure(ServiceError.NotFound, "Опитът не е намерен."));
+
+        Assert.IsType<NotFoundResult>(await Controller().RecordLeave(Guid.NewGuid()));
+    }
 }

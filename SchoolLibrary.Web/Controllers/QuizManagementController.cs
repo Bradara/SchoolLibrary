@@ -109,7 +109,8 @@ namespace SchoolLibrary.Controllers
                 Title = quiz.Title,
                 Description = quiz.Description,
                 Mode = quiz.Mode,
-                TimeLimitMinutes = quiz.TimeLimitMinutes
+                TimeLimitMinutes = quiz.TimeLimitMinutes,
+                MaxLeaves = quiz.MaxLeaves
             });
         }
 
@@ -224,7 +225,7 @@ namespace SchoolLibrary.Controllers
         }
 
         private static QuizInput ToInput(QuizFormViewModel vm) =>
-            new(vm.Title, vm.Description, vm.Mode, vm.TimeLimitMinutes, null);
+            new(vm.Title, vm.Description, vm.Mode, vm.TimeLimitMinutes, null, vm.MaxLeaves);
 
         // Shared handling for adding/deleting a question: map the outcome to a response
         private IActionResult AfterQuestionChange(int quizId, ServiceResult result, string successMessage)

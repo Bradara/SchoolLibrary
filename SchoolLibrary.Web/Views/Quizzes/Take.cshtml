@@ -3,18 +3,32 @@
 @{
     ViewData["Title"] = Model.Attempt.Quiz.Title;
     var quiz = Model.Attempt.Quiz;
+    var proctored = quiz.MaxLeaves.HasValue;
 }
 
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
     <h1 class="h3 mb-0">@quiz.Title</h1>
-    @if (Model.RemainingSeconds.HasValue)
-    {
-        <div class="alert alert-warning d-inline-flex align-items-center gap-2 mb-0 py-2" role="status">
-            <i class="bi bi-stopwatch"></i>
-            <span>Оставащо време: <strong id="sl-exam-timer">--:--</strong></span>
-        </div>
-    }
+    <div class="d-flex align-items-center gap-2">
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-fullscreen-btn">
+            <i class="bi bi-arrows-fullscreen"></i> Цял екран
+        </button>
+        @if (Model.RemainingSeconds.HasValue)
+        {
+            <div class="alert alert-warning d-inline-flex align-items-center gap-2 mb-0 py-2" role="status">
+                <i class="bi bi-stopwatch"></i>
+                <span>Оставащо време: <strong id="sl-exam-timer">--:--</strong></span>
+            </div>
+        }
+    </div>
 </div>
+
+@if (proctored)
+{
+    <div class="alert alert-info py-2">
+        <i class="bi bi-eye"></i> Изпитът следи напускането на страницата. Разрешени напускания: <strong>@quiz.MaxLeaves</strong>. При повече изпитът се предава автоматично.
+    </div>
+    <div class="alert alert-danger py-2 d-none" id="sl-proctor-notice" role="alert"></div>
+}
 
 @if (!string.IsNullOrEmpty(quiz.Description))
 {
@@ -22,7 +36,9 @@
 }
 
 <form method="post" asp-action="Take" asp-route-token="@Model.Attempt.Token"
-      id="sl-exam-form" data-remaining-seconds="@(Model.RemainingSeconds?.ToString() ?? "")">
+      id="sl-exam-form" data-remaining-seconds="@(Model.RemainingSeconds?.ToString() ?? "")"
+      data-proctored="@(proctored ? "true" : "false")"
+      data-leave-url="@Url.Action("RecordLeave", new { token = Model.Attempt.Token })">
     @{ var number = 0; }
     @foreach (var question in quiz.Questions)
     {
@@ -50,4 +66,5 @@
     {
         <script src="~/js/sl-exam-timer.js" asp-append-version="true"></script>
     }
+    <script src="~/js/sl-exam-proctor.js" asp-append-version="true"></script>
 }

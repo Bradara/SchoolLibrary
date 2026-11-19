@@ -23,6 +23,10 @@ public class QuizFormViewModel
     [Range(1, 600, ErrorMessage = "Времето е между 1 и 600 минути")]
     [Display(Name = "Време за изпит (минути)")]
     public int? TimeLimitMinutes { get; set; }
+
+    [Range(0, 100, ErrorMessage = "Напусканията са между 0 и 100")]
+    [Display(Name = "Допустими напускания (изпит)")]
+    public int? MaxLeaves { get; set; }
 }
 
 /// <summary>The add-question form: the text, the answer options and which one is correct.</summary>

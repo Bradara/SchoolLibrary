@@ -110,6 +110,21 @@ namespace SchoolLibrary.Controllers
             return RedirectToAction(nameof(ExamResult), new { token });
         }
 
+        // POST: Quizzes/RecordLeave/{token} — a proctoring ping sent by the exam page (fetch)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RecordLeave(Guid token)
+        {
+            var result = await _quizzes.RecordLeaveAsync(token);
+            if (result.Error == ServiceError.NotFound)
+            {
+                return NotFound();
+            }
+
+            var status = result.Value!;
+            return Json(new { leaveCount = status.LeaveCount, flagged = status.Flagged, shouldSubmit = status.ShouldSubmit });
+        }
+
         // GET: Quizzes/ExamResult/{token}
         public async Task<IActionResult> ExamResult(Guid token)
         {
