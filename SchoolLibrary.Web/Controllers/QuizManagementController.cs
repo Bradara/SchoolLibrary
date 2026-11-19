@@ -150,7 +150,7 @@ namespace SchoolLibrary.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddQuestion(int id, QuestionFormViewModel vm)
         {
-            var result = await _quizzes.AddQuestionAsync(id, ToQuestionInput(vm), CurrentUserId, IsAdministrator);
+            var result = await _quizzes.AddQuestionAsync(id, vm.ToInput(), CurrentUserId, IsAdministrator);
             if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();
@@ -182,7 +182,7 @@ namespace SchoolLibrary.Controllers
         public async Task<IActionResult> EditQuestion(int id, int questionId)
         {
             var question = await _quizzes.GetQuestionAsync(questionId);
-            if (question == null)
+            if (question?.Quiz == null)
             {
                 return NotFound();
             }
@@ -209,7 +209,7 @@ namespace SchoolLibrary.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> EditQuestion(int id, int questionId, QuestionFormViewModel vm)
         {
-            var result = await _quizzes.UpdateQuestionAsync(questionId, ToQuestionInput(vm), CurrentUserId, IsAdministrator);
+            var result = await _quizzes.UpdateQuestionAsync(questionId, vm.ToInput(), CurrentUserId, IsAdministrator);
             if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();
@@ -230,31 +230,6 @@ namespace SchoolLibrary.Controllers
 
             TempData["SuccessMessage"] = "Въпросът е променен.";
             return RedirectToAction(nameof(Details), new { id });
-        }
-
-        // Builds a question input from the form, dropping empty option rows and remapping the correct index
-        private static QuestionInput ToQuestionInput(QuestionFormViewModel vm)
-        {
-            var options = new List<string>();
-            var correctIndex = -1;
-            var raw = vm.Options ?? new List<string>();
-            for (var i = 0; i < raw.Count; i++)
-            {
-                var text = (raw[i] ?? string.Empty).Trim();
-                if (text.Length == 0)
-                {
-                    continue;
-                }
-
-                if (i == vm.CorrectIndex)
-                {
-                    correctIndex = options.Count;
-                }
-
-                options.Add(text);
-            }
-
-            return new QuestionInput(vm.Text ?? string.Empty, options, correctIndex, vm.Points);
         }
 
         // POST: QuizManagement/DeleteQuestion

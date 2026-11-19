@@ -46,12 +46,60 @@ public class QuestionFormViewModel
     [Range(1, 100, ErrorMessage = "Точките са между 1 и 100")]
     [Display(Name = "Точки")]
     public int Points { get; set; } = 1;
+
+    /// <summary>Maps the form to a service input, dropping empty option rows and remapping the correct index.</summary>
+    public QuestionInput ToInput()
+    {
+        var options = new List<string>();
+        var correctIndex = -1;
+        var raw = Options ?? new List<string>();
+        for (var i = 0; i < raw.Count; i++)
+        {
+            var text = (raw[i] ?? string.Empty).Trim();
+            if (text.Length == 0)
+            {
+                continue;
+            }
+
+            if (i == CorrectIndex)
+            {
+                correctIndex = options.Count;
+            }
+
+            options.Add(text);
+        }
+
+        return new QuestionInput(Text ?? string.Empty, options, correctIndex, Points);
+    }
 }
 
 /// <summary>The manage page: a quiz with its questions and an empty add-question form.</summary>
 public class QuizManageViewModel
 {
     public Quiz Quiz { get; set; } = null!;
+
+    public QuestionFormViewModel NewQuestion { get; set; } = new();
+}
+
+/// <summary>The new/edit section form.</summary>
+public class SectionFormViewModel
+{
+    [Required(ErrorMessage = "Въведете име на раздела")]
+    [StringLength(200, ErrorMessage = "Името е най-много 200 символа")]
+    [Display(Name = "Име")]
+    public string Name { get; set; } = string.Empty;
+
+    [StringLength(1000, ErrorMessage = "Описанието е най-много 1000 символа")]
+    [Display(Name = "Описание")]
+    public string? Description { get; set; }
+}
+
+/// <summary>The section page: a section with its bank questions and an empty add-question form.</summary>
+public class SectionManageViewModel
+{
+    public Section Section { get; set; } = null!;
+
+    public IReadOnlyList<Question> Questions { get; set; } = new List<Question>();
 
     public QuestionFormViewModel NewQuestion { get; set; } = new();
 }

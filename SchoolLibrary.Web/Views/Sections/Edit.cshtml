@@ -1,0 +1,22 @@
+@model SchoolLibrary.ViewModels.SectionFormViewModel
+
+@{
+    ViewData["Title"] = "Редакция на раздел";
+    var sectionId = ViewContext.RouteData.Values["id"];
+}
+
+<h1 class="h3 mb-3">Редакция на раздел</h1>
+
+<div class="row">
+    <div class="col-lg-7">
+        <form method="post" asp-action="Edit" asp-route-id="@sectionId">
+            <partial name="_SectionForm" model="Model" />
+            <button type="submit" class="btn btn-primary">Запази</button>
+            <a asp-action="Details" asp-route-id="@sectionId" class="btn btn-link">Отказ</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
