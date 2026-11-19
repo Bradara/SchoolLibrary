@@ -26,7 +26,15 @@
         }
         else
         {
-            <a asp-action="Create" asp-route-kind="@(Model.Kind ?? ResourceKind.Lesson)" class="btn btn-primary">@newLabel</a>
+            <div class="d-flex gap-2">
+                @if (Model.Kind == ResourceKind.External)
+                {
+                    <a asp-controller="Discovery" asp-action="Index" class="btn btn-outline-primary">
+                        <i class="bi bi-search"></i> Намери ресурси в мрежата
+                    </a>
+                }
+                <a asp-action="Create" asp-route-kind="@(Model.Kind ?? ResourceKind.Lesson)" class="btn btn-primary">@newLabel</a>
+            </div>
         }
     }
 </div>
