@@ -81,6 +81,12 @@
         @if (User.CanAddResources())
         {
             <li class="nav-item">
+                <a class="nav-link @Active("QuizManagement")" asp-area="" asp-controller="QuizManagement" asp-action="Index"
+                   data-sl-tip="@(compact ? "Моите тестове" : null)" aria-label="@(compact ? "Моите тестове" : null)">
+                    <i class="bi bi-ui-checks"></i><span class="nav-label"> Моите тестове</span>
+                </a>
+            </li>
+            <li class="nav-item">
                 <a class="nav-link @Active("Discovery")" asp-area="" asp-controller="Discovery" asp-action="Index"
                    data-sl-tip="@(compact ? "Намери ресурси" : null)" aria-label="@(compact ? "Намери ресурси" : null)">
                     <i class="bi bi-search"></i><span class="nav-label"> Намери ресурси</span>

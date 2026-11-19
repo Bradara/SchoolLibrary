@@ -1,0 +1,82 @@
+@using SchoolLibrary.Data.Enums
+@using SchoolLibrary.Services.Quizzes
+@model QuizReview
+
+@{
+    ViewData["Title"] = "Решения — " + Model.Quiz.Title;
+    var attempts = Model.Attempts;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Моите тестове</a></li>
+        <li class="breadcrumb-item active">@Model.Quiz.Title</li>
+    </ol>
+</nav>
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h3 mb-0">@Model.Quiz.Title</h1>
+    @if (Model.Quiz.Mode == QuizMode.Exam && !string.IsNullOrEmpty(Model.Quiz.Code))
+    {
+        <span class="fs-5">Код: <code class="user-select-all">@Model.Quiz.Code</code></span>
+    }
+</div>
+
+<p class="text-body-secondary">Предадени решения: <strong>@attempts.TotalCount</strong></p>
+
+@if (attempts.TotalCount == 0)
+{
+    <div class="alert alert-info text-center py-5">
+        <p class="mb-0">Все още няма предадени решения.</p>
+    </div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Име</th>
+                    <th>Номер</th>
+                    <th class="text-center">Резултат</th>
+                    <th>Предаден</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var attempt in attempts.Items)
+                {
+                    <tr>
+                        <td>@attempt.StudentName</td>
+                        <td>@(string.IsNullOrEmpty(attempt.StudentNumber) ? "—" : attempt.StudentNumber)</td>
+                        <td class="text-center fw-semibold">@attempt.Score / @attempt.MaxScore</td>
+                        <td class="text-body-secondary small">@attempt.SubmittedOn?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (attempts.TotalPages > 1)
+    {
+        <nav aria-label="Страници с решения" class="mt-4">
+            <ul class="pagination justify-content-center flex-wrap">
+                <li class="page-item @(attempts.HasPrevious ? "" : "disabled")">
+                    <a class="page-link" asp-action="Attempts" asp-route-id="@Model.Quiz.Id" asp-route-page="@(attempts.Page - 1)" aria-label="Предишна"><i class="bi bi-chevron-left"></i></a>
+                </li>
+                @for (var p = 1; p <= attempts.TotalPages; p++)
+                {
+                    <li class="page-item @(p == attempts.Page ? "active" : "")" @(p == attempts.Page ? "aria-current=page" : "")>
+                        <a class="page-link" asp-action="Attempts" asp-route-id="@Model.Quiz.Id" asp-route-page="@p">@p</a>
+                    </li>
+                }
+                <li class="page-item @(attempts.HasNext ? "" : "disabled")">
+                    <a class="page-link" asp-action="Attempts" asp-route-id="@Model.Quiz.Id" asp-route-page="@(attempts.Page + 1)" aria-label="Следваща"><i class="bi bi-chevron-right"></i></a>
+                </li>
+            </ul>
+        </nav>
+    }
+}
+
+<div class="mt-3">
+    <a asp-action="Index" class="btn btn-link">← Към тестовете</a>
+</div>

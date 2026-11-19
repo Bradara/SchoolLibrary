@@ -483,6 +483,39 @@ public class QuizService : IQuizService
         return ServiceResult<QuizResult>.Success(BuildResult(attempt));
     }
 
+    public async Task<ServiceResult<QuizReview>> GetReviewAsync(int quizId, string userId, bool isAdministrator, int page, int pageSize = 20)
+    {
+        var quiz = await _context.Quizzes.AsNoTracking().FirstOrDefaultAsync(q => q.Id == quizId);
+        if (quiz == null)
+        {
+            return ServiceResult<QuizReview>.Failure(ServiceError.NotFound, "Тестът не е намерен.");
+        }
+
+        if (!QuizPermissions.CanManage(quiz, userId, isAdministrator))
+        {
+            return ServiceResult<QuizReview>.Failure(ServiceError.Forbidden, "Нямате права за това действие.");
+        }
+
+        var query = _context.QuizAttempts.AsNoTracking()
+            .Where(a => a.QuizId == quizId && a.SubmittedOn != null);
+
+        var totalCount = await query.CountAsync();
+
+        pageSize = Math.Clamp(pageSize, 1, MaxPageSize);
+        var totalPages = (int)Math.Ceiling(totalCount / (double)pageSize);
+        page = Math.Clamp(page, 1, Math.Max(totalPages, 1));
+
+        var items = await query
+            .OrderByDescending(a => a.SubmittedOn)
+            .ThenByDescending(a => a.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToListAsync();
+
+        var attempts = new PagedResult<QuizAttempt>(items, totalCount, page, pageSize);
+        return ServiceResult<QuizReview>.Success(new QuizReview(quiz, attempts));
+    }
+
     // Rebuilds the graded result from the options the student picked (stored on the attempt)
     private static QuizResult BuildResult(QuizAttempt attempt)
     {

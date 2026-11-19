@@ -268,4 +268,97 @@ public class QuizExamTests
 
         Assert.Equal(ServiceError.NotFound, result.Error);
     }
+
+    // ---------- GetReviewAsync (teacher review) ----------
+
+    private static QuizAttempt SubmittedAttempt(int quizId, string name, string? number, DateTime submittedOn, int score = 1, int max = 2)
+        => new()
+        {
+            Token = Guid.NewGuid(),
+            QuizId = quizId,
+            StudentName = name,
+            StudentNumber = number,
+            StartedOn = submittedOn.AddMinutes(-5),
+            SubmittedOn = submittedOn,
+            Score = score,
+            MaxScore = max
+        };
+
+    [Fact]
+    public async Task GetReviewAsync_ReturnsTheQuizAndOnlySubmittedAttempts_NewestFirst()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var exam = await PublishedExamAsync(service);
+
+        var older = new DateTime(2026, 11, 1, 9, 0, 0, DateTimeKind.Utc);
+        context.QuizAttempts.Add(SubmittedAttempt(exam.Id, "Анна", "1", older));
+        context.QuizAttempts.Add(SubmittedAttempt(exam.Id, "Борис", "2", older.AddHours(1)));
+        context.QuizAttempts.Add(new QuizAttempt { Token = Guid.NewGuid(), QuizId = exam.Id, StudentName = "Недовършил", StartedOn = older });
+        await context.SaveChangesAsync();
+
+        var result = await service.GetReviewAsync(exam.Id, Owner, isAdministrator: false, page: 1);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(exam.Id, result.Value!.Quiz.Id);
+        Assert.Equal(2, result.Value.Attempts.TotalCount);
+        Assert.Equal(new[] { "Борис", "Анна" }, result.Value.Attempts.Items.Select(a => a.StudentName));
+    }
+
+    [Fact]
+    public async Task GetReviewAsync_Missing_FailsAsNotFound()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+
+        var result = await service.GetReviewAsync(999, Owner, isAdministrator: false, page: 1);
+
+        Assert.Equal(ServiceError.NotFound, result.Error);
+    }
+
+    [Fact]
+    public async Task GetReviewAsync_ByAnotherTeacher_FailsAsForbidden()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var exam = await PublishedExamAsync(service);
+
+        var result = await service.GetReviewAsync(exam.Id, "teacher-2", isAdministrator: false, page: 1);
+
+        Assert.Equal(ServiceError.Forbidden, result.Error);
+    }
+
+    [Fact]
+    public async Task GetReviewAsync_ByAdministrator_IsAllowedForAnotherTeachersQuiz()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var exam = await PublishedExamAsync(service);
+
+        var result = await service.GetReviewAsync(exam.Id, "teacher-2", isAdministrator: true, page: 1);
+
+        Assert.True(result.Succeeded);
+    }
+
+    [Fact]
+    public async Task GetReviewAsync_PaginatesTheAttempts()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var exam = await PublishedExamAsync(service);
+        var baseTime = new DateTime(2026, 11, 1, 9, 0, 0, DateTimeKind.Utc);
+        for (var i = 0; i < 5; i++)
+        {
+            context.QuizAttempts.Add(SubmittedAttempt(exam.Id, "Ученик " + i, i.ToString(), baseTime.AddMinutes(i)));
+        }
+        await context.SaveChangesAsync();
+
+        var result = await service.GetReviewAsync(exam.Id, Owner, isAdministrator: false, page: 2, pageSize: 2);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(5, result.Value!.Attempts.TotalCount);
+        Assert.Equal(2, result.Value.Attempts.Page);
+        Assert.Equal(3, result.Value.Attempts.TotalPages);
+        Assert.Equal(2, result.Value.Attempts.Items.Count);
+    }
 }

@@ -1,5 +1,6 @@
 using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
+using SchoolLibrary.Services.Common;
 
 namespace SchoolLibrary.Services.Quizzes;
 
@@ -19,3 +20,6 @@ public record QuestionResult(Question Question, int? SelectedOptionId, int? Corr
 
 /// <summary>The graded outcome of a quiz: the score and the per-question breakdown.</summary>
 public record QuizResult(Quiz Quiz, int Score, int MaxScore, IReadOnlyList<QuestionResult> Questions);
+
+/// <summary>A quiz with one page of its submitted attempts, for the teacher's review page.</summary>
+public record QuizReview(Quiz Quiz, PagedResult<QuizAttempt> Attempts);

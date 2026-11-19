@@ -60,4 +60,10 @@ public interface IQuizService
 
     /// <summary>The graded result of a submitted exam attempt. Fails when the token is unknown or not yet submitted.</summary>
     Task<ServiceResult<QuizResult>> GetExamResultAsync(Guid token);
+
+    /// <summary>
+    /// A quiz with one page of its submitted attempts, for the owner (or an administrator) to review.
+    /// Fails when the quiz is missing or the requester may not manage it.
+    /// </summary>
+    Task<ServiceResult<QuizReview>> GetReviewAsync(int quizId, string userId, bool isAdministrator, int page, int pageSize = 20);
 }
