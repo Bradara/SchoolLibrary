@@ -206,6 +206,19 @@ namespace SchoolLibrary.Data
                 .HasForeignKey(a => a.QuizId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // An attempt owns its question snapshot; the referenced question is kept (Restrict)
+            builder.Entity<AttemptQuestion>()
+                .HasOne(aq => aq.Attempt)
+                .WithMany(a => a.Questions)
+                .HasForeignKey(aq => aq.AttemptId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<AttemptQuestion>()
+                .HasOne(aq => aq.Question)
+                .WithMany()
+                .HasForeignKey(aq => aq.QuestionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             builder.Entity<AttemptAnswer>()
                 .HasOne(a => a.Attempt)
                 .WithMany(t => t.Answers)
@@ -251,6 +264,7 @@ namespace SchoolLibrary.Data
         public DbSet<Question> Questions { get; set; }
         public DbSet<AnswerOption> AnswerOptions { get; set; }
         public DbSet<QuizAttempt> QuizAttempts { get; set; }
+        public DbSet<AttemptQuestion> AttemptQuestions { get; set; }
         public DbSet<AttemptAnswer> AttemptAnswers { get; set; }
     }
 }

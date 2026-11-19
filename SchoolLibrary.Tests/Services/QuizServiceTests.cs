@@ -26,7 +26,7 @@ public class QuizServiceTests
     public async Task CreateAsync_Practice_SavesUnpublishedWithNoCodeAndTrimmedTitle()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var result = await service.CreateAsync(new QuizInput("  Дроби  ", "  описание  ", QuizMode.Practice, null, null), Owner);
 
@@ -46,7 +46,7 @@ public class QuizServiceTests
     public async Task CreateAsync_Exam_GeneratesAReadableCodeAndKeepsTheTimeLimit()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var result = await service.CreateAsync(Exam(minutes: 45), Owner);
 
@@ -62,7 +62,7 @@ public class QuizServiceTests
     public async Task CreateAsync_Practice_IgnoresATimeLimit()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var result = await service.CreateAsync(new QuizInput("Тест", null, QuizMode.Practice, 30, null), Owner);
 
@@ -74,7 +74,7 @@ public class QuizServiceTests
     public async Task CreateAsync_GivesEveryExamADifferentCode()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var a = await service.CreateAsync(Exam("A"), Owner);
         var b = await service.CreateAsync(Exam("B"), Owner);
@@ -88,7 +88,7 @@ public class QuizServiceTests
     public async Task CreateAsync_WithoutTitle_FailsAsInvalid(string title)
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var result = await service.CreateAsync(Practice(title), Owner);
 
@@ -99,7 +99,7 @@ public class QuizServiceTests
     public async Task CreateAsync_WithTooLongTitle_FailsAsInvalid()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var result = await service.CreateAsync(Practice(new string('x', QuizService.MaxTitleLength + 1)), Owner);
 
@@ -112,7 +112,7 @@ public class QuizServiceTests
     public async Task CreateAsync_ExamWithTimeOutOfRange_FailsAsInvalid(int minutes)
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var result = await service.CreateAsync(Exam(minutes: minutes), Owner);
 
@@ -123,7 +123,7 @@ public class QuizServiceTests
     public async Task CreateAsync_ExamWithoutTimeLimit_IsAllowed()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var result = await service.CreateAsync(Exam(minutes: null), Owner);
 
@@ -135,7 +135,7 @@ public class QuizServiceTests
     public async Task CreateAsync_WithMissingResource_FailsAsNotFound()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var result = await service.CreateAsync(Practice(resourceId: 999), Owner);
 
@@ -149,7 +149,7 @@ public class QuizServiceTests
         var resource = new Resource { Title = "Урок", Author = "x", Url = "https://e.com/1" };
         context.Resources.Add(resource);
         await context.SaveChangesAsync();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var result = await service.CreateAsync(Practice(resourceId: resource.Id), Owner);
 
@@ -163,7 +163,7 @@ public class QuizServiceTests
     public async Task UpdateAsync_ChangesTheDetails()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice("Старо"), Owner)).Value!;
 
         var result = await service.UpdateAsync(quiz.Id, Practice("Ново"), Owner, isAdministrator: false);
@@ -176,7 +176,7 @@ public class QuizServiceTests
     public async Task UpdateAsync_ExamToPractice_ClearsCodeAndTime()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Exam(minutes: 20), Owner)).Value!;
 
         var result = await service.UpdateAsync(quiz.Id, Practice("Вече упражнение"), Owner, isAdministrator: false);
@@ -190,7 +190,7 @@ public class QuizServiceTests
     public async Task UpdateAsync_PracticeToExam_GeneratesACode()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
 
         var result = await service.UpdateAsync(quiz.Id, Exam(minutes: 15), Owner, isAdministrator: false);
@@ -204,7 +204,7 @@ public class QuizServiceTests
     public async Task UpdateAsync_ByAnotherTeacher_FailsAsForbidden()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
 
         var result = await service.UpdateAsync(quiz.Id, Practice("Опит"), Other, isAdministrator: false);
@@ -216,7 +216,7 @@ public class QuizServiceTests
     public async Task UpdateAsync_Missing_FailsAsNotFound()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var result = await service.UpdateAsync(999, Practice(), Owner, isAdministrator: false);
 
@@ -227,7 +227,7 @@ public class QuizServiceTests
     public async Task UpdateAsync_ChangingModeAfterAnAttempt_FailsAsConflict()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Exam(), Owner)).Value!;
         context.QuizAttempts.Add(new QuizAttempt { QuizId = quiz.Id, StudentName = "Иван", StartedOn = DateTime.UtcNow });
         await context.SaveChangesAsync();
@@ -241,7 +241,7 @@ public class QuizServiceTests
     public async Task UpdateAsync_SameModeAfterAnAttempt_IsAllowed()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Exam(minutes: 30), Owner)).Value!;
         context.QuizAttempts.Add(new QuizAttempt { QuizId = quiz.Id, StudentName = "Иван", StartedOn = DateTime.UtcNow });
         await context.SaveChangesAsync();
@@ -260,7 +260,7 @@ public class QuizServiceTests
         // The database cascades the quiz's questions, options and attempts (see the migration);
         // in-memory does not enforce that, so this only checks the quiz itself is gone.
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
         await service.AddQuestionAsync(quiz.Id, Question(), Owner, isAdministrator: false);
 
@@ -274,7 +274,7 @@ public class QuizServiceTests
     public async Task DeleteAsync_ByAnotherTeacher_FailsAsForbidden()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
 
         var result = await service.DeleteAsync(quiz.Id, Other, isAdministrator: false);
@@ -286,7 +286,7 @@ public class QuizServiceTests
     public async Task DeleteAsync_ByAdministrator_Succeeds()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
 
         var result = await service.DeleteAsync(quiz.Id, Other, isAdministrator: true);
@@ -298,7 +298,7 @@ public class QuizServiceTests
     public async Task DeleteAsync_Missing_FailsAsNotFound()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var result = await service.DeleteAsync(123, Owner, isAdministrator: false);
 
@@ -311,7 +311,7 @@ public class QuizServiceTests
     public async Task SetPublishedAsync_WithoutQuestions_FailsAsInvalid()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
 
         var result = await service.SetPublishedAsync(quiz.Id, true, Owner, isAdministrator: false);
@@ -324,7 +324,7 @@ public class QuizServiceTests
     public async Task SetPublishedAsync_WithAQuestion_PublishesAndUnpublishes()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
         await service.AddQuestionAsync(quiz.Id, Question(), Owner, isAdministrator: false);
 
@@ -339,7 +339,7 @@ public class QuizServiceTests
     public async Task SetPublishedAsync_ByAnotherTeacher_FailsAsForbidden()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
 
         var result = await service.SetPublishedAsync(quiz.Id, true, Other, isAdministrator: false);
@@ -353,7 +353,7 @@ public class QuizServiceTests
     public async Task AddQuestionAsync_StoresOptionsInOrderAndMarksTheCorrectOne()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
 
         var result = await service.AddQuestionAsync(quiz.Id, Question("Столица?", 2, "София", "Пловдив", "Варна"), Owner, false);
@@ -369,7 +369,7 @@ public class QuizServiceTests
     public async Task AddQuestionAsync_NumbersQuestionsInOrder()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
 
         await service.AddQuestionAsync(quiz.Id, Question("Първи"), Owner, false);
@@ -386,7 +386,7 @@ public class QuizServiceTests
     public async Task AddQuestionAsync_WithWrongNumberOfOptions_FailsAsInvalid(int optionCount)
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
         var options = Enumerable.Range(1, optionCount).Select(i => "опция " + i).ToArray();
 
@@ -399,7 +399,7 @@ public class QuizServiceTests
     public async Task AddQuestionAsync_WithAnEmptyOption_FailsAsInvalid()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
 
         var result = await service.AddQuestionAsync(quiz.Id, Question("В?", 0, "ок", "   "), Owner, false);
@@ -413,7 +413,7 @@ public class QuizServiceTests
     public async Task AddQuestionAsync_WithCorrectIndexOutOfRange_FailsAsInvalid(int correct)
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
 
         var result = await service.AddQuestionAsync(quiz.Id, Question("В?", correct, "а", "б"), Owner, false);
@@ -425,7 +425,7 @@ public class QuizServiceTests
     public async Task AddQuestionAsync_ByAnotherTeacher_FailsAsForbidden()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
 
         var result = await service.AddQuestionAsync(quiz.Id, Question(), Other, false);
@@ -437,7 +437,7 @@ public class QuizServiceTests
     public async Task AddQuestionAsync_ToMissingQuiz_FailsAsNotFound()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var result = await service.AddQuestionAsync(999, Question(), Owner, false);
 
@@ -448,7 +448,7 @@ public class QuizServiceTests
     public async Task AddQuestionAsync_WhenTheQuizHasAttempts_FailsAsConflict()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Exam(), Owner)).Value!;
         context.QuizAttempts.Add(new QuizAttempt { QuizId = quiz.Id, StudentName = "Иван", StartedOn = DateTime.UtcNow });
         await context.SaveChangesAsync();
@@ -462,7 +462,7 @@ public class QuizServiceTests
     public async Task AddQuestionAsync_StoresThePoints()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
 
         var result = await service.AddQuestionAsync(quiz.Id,
@@ -475,7 +475,7 @@ public class QuizServiceTests
     public async Task AddQuestionAsync_DefaultsToOnePoint()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
 
         var result = await service.AddQuestionAsync(quiz.Id, Question(), Owner, false);
@@ -489,7 +489,7 @@ public class QuizServiceTests
     public async Task AddQuestionAsync_WithPointsOutOfRange_FailsAsInvalid(int points)
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
 
         var result = await service.AddQuestionAsync(quiz.Id,
@@ -502,7 +502,7 @@ public class QuizServiceTests
     public async Task UpdateQuestionAsync_ChangesThePoints()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
         var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
 
@@ -518,7 +518,7 @@ public class QuizServiceTests
     public async Task DeleteQuestionAsync_RemovesTheQuestion()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
         var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
 
@@ -532,7 +532,7 @@ public class QuizServiceTests
     public async Task DeleteQuestionAsync_Missing_FailsAsNotFound()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var result = await service.DeleteQuestionAsync(999, Owner, false);
 
@@ -543,7 +543,7 @@ public class QuizServiceTests
     public async Task DeleteQuestionAsync_ByAnotherTeacher_FailsAsForbidden()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
         var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
 
@@ -556,7 +556,7 @@ public class QuizServiceTests
     public async Task DeleteQuestionAsync_WhenTheQuizHasAttempts_FailsAsConflict()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
         var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
         context.QuizAttempts.Add(new QuizAttempt { QuizId = quiz.Id, StudentName = "Иван", StartedOn = DateTime.UtcNow });
@@ -573,7 +573,7 @@ public class QuizServiceTests
     public async Task UpdateQuestionAsync_ReplacesTextAndOptions()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
         var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
 
@@ -592,7 +592,7 @@ public class QuizServiceTests
     public async Task UpdateQuestionAsync_Missing_FailsAsNotFound()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var result = await service.UpdateQuestionAsync(999, Question(), Owner, false);
 
@@ -603,7 +603,7 @@ public class QuizServiceTests
     public async Task UpdateQuestionAsync_ByAnotherTeacher_FailsAsForbidden()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
         var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
 
@@ -616,7 +616,7 @@ public class QuizServiceTests
     public async Task UpdateQuestionAsync_WhenTheQuizHasAttempts_FailsAsConflict()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
         var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
         context.QuizAttempts.Add(new QuizAttempt { QuizId = quiz.Id, StudentName = "Иван", StartedOn = DateTime.UtcNow });
@@ -631,7 +631,7 @@ public class QuizServiceTests
     public async Task UpdateQuestionAsync_WithTooFewOptions_FailsAsInvalid()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
         var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
 
@@ -645,7 +645,7 @@ public class QuizServiceTests
     public async Task GetQuestionAsync_ReturnsTheQuestionWithQuizAndOptions()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
         var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
 
@@ -660,7 +660,7 @@ public class QuizServiceTests
     public async Task GetQuestionAsync_Missing_ReturnsNull()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         Assert.Null(await service.GetQuestionAsync(999));
     }
@@ -671,7 +671,7 @@ public class QuizServiceTests
     public async Task GetByIdAsync_ReturnsNull_WhenMissing()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         Assert.Null(await service.GetByIdAsync(1));
     }
@@ -682,7 +682,7 @@ public class QuizServiceTests
     public async Task GetManagedAsync_WithOwner_ReturnsOnlyThatTeachersQuizzesNewestFirst()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         await service.CreateAsync(Practice("Мой 1"), Owner);
         await service.CreateAsync(Practice("Чужд"), Other);
         await service.CreateAsync(Practice("Мой 2"), Owner);
@@ -697,7 +697,7 @@ public class QuizServiceTests
     public async Task GetManagedAsync_WithNullOwner_ReturnsEveryQuiz()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         await service.CreateAsync(Practice("A"), Owner);
         await service.CreateAsync(Practice("B"), Other);
 
@@ -710,7 +710,7 @@ public class QuizServiceTests
     public async Task GetManagedAsync_CountsQuestionsAndSubmittedAttempts()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(Exam(), Owner)).Value!;
         await service.AddQuestionAsync(quiz.Id, Question(), Owner, false);
         await service.AddQuestionAsync(quiz.Id, Question("Втори"), Owner, false);
@@ -728,7 +728,7 @@ public class QuizServiceTests
     public async Task GetManagedAsync_Paginates()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         for (var i = 0; i < 5; i++)
         {
             await service.CreateAsync(Practice("Тест " + i), Owner);
@@ -746,7 +746,7 @@ public class QuizServiceTests
     public async Task GetManagedAsync_ClampsAnOutOfRangePage()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         await service.CreateAsync(Practice(), Owner);
 
         var page = await service.GetManagedAsync(Owner, page: 99, pageSize: 10);

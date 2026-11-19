@@ -328,6 +328,32 @@ namespace SchoolLibrary.Data.Migrations
                     b.ToTable("AttemptAnswers");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.AttemptQuestion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AttemptId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AttemptId");
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("AttemptQuestions");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Category", b =>
                 {
                     b.Property<int>("Id")
@@ -981,6 +1007,25 @@ namespace SchoolLibrary.Data.Migrations
                     b.Navigation("SelectedOption");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.AttemptQuestion", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.QuizAttempt", "Attempt")
+                        .WithMany("Questions")
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SchoolLibrary.Data.Models.Question", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Attempt");
+
+                    b.Navigation("Question");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Comment", b =>
                 {
                     b.HasOne("SchoolLibrary.Data.Models.ApplicationUser", "Author")
@@ -1173,6 +1218,8 @@ namespace SchoolLibrary.Data.Migrations
             modelBuilder.Entity("SchoolLibrary.Data.Models.QuizAttempt", b =>
                 {
                     b.Navigation("Answers");
+
+                    b.Navigation("Questions");
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Resource", b =>

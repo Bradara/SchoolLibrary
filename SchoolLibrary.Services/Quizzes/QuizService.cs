@@ -23,10 +23,12 @@ public class QuizService : IQuizService
     public const int MaxPageSize = 100;
 
     private readonly ApplicationDbContext _context;
+    private readonly IQuizItemService _items;
 
-    public QuizService(ApplicationDbContext context)
+    public QuizService(ApplicationDbContext context, IQuizItemService items)
     {
         _context = context;
+        _items = items;
     }
 
     public async Task<Quiz?> GetByIdAsync(int id)
@@ -203,7 +205,10 @@ public class QuizService : IQuizService
             return ServiceResult<Quiz>.Failure(ServiceError.Forbidden, "Нямате права за това действие.");
         }
 
-        if (published && !await _context.Questions.AnyAsync(q => q.QuizId == id))
+        // Content can be questions attached directly (legacy) or items that pull from the bank
+        if (published
+            && !await _context.Questions.AnyAsync(q => q.QuizId == id)
+            && !await _context.QuizItems.AnyAsync(i => i.QuizId == id))
         {
             return ServiceResult<Quiz>.Failure(ServiceError.Invalid,
                 "Добавете поне един въпрос, преди да публикувате теста.");
@@ -456,7 +461,8 @@ public class QuizService : IQuizService
             return ServiceResult<QuizAttempt>.Success(inProgress);
         }
 
-        var questionCount = await _context.Questions.CountAsync(q => q.QuizId == quiz.Id);
+        // Resolve the quiz's items into this student's own set of questions (random draws fixed now)
+        var served = await _items.ResolveAsync(quiz.Id);
 
         var attempt = new QuizAttempt
         {
@@ -466,8 +472,14 @@ public class QuizService : IQuizService
             StudentNumber = number,
             StartedOn = DateTime.UtcNow,
             Score = 0,
-            MaxScore = questionCount
+            MaxScore = served.Sum(q => q.Points)
         };
+
+        var order = 0;
+        foreach (var question in served)
+        {
+            attempt.Questions.Add(new AttemptQuestion { QuestionId = question.Id, Order = ++order });
+        }
 
         _context.QuizAttempts.Add(attempt);
         await _context.SaveChangesAsync();
@@ -480,7 +492,8 @@ public class QuizService : IQuizService
         return await _context.QuizAttempts
             .AsNoTracking()
             .Include(a => a.Quiz)
-                .ThenInclude(q => q.Questions.OrderBy(x => x.Order))
+            .Include(a => a.Questions.OrderBy(x => x.Order))
+                .ThenInclude(aq => aq.Question)
                     .ThenInclude(q => q.Options.OrderBy(o => o.Order))
             .FirstOrDefaultAsync(a => a.Token == token);
     }
@@ -489,7 +502,8 @@ public class QuizService : IQuizService
     {
         var attempt = await _context.QuizAttempts
             .Include(a => a.Quiz)
-                .ThenInclude(q => q.Questions)
+            .Include(a => a.Questions.OrderBy(x => x.Order))
+                .ThenInclude(aq => aq.Question)
                     .ThenInclude(q => q.Options)
             .Include(a => a.Answers)
             .FirstOrDefaultAsync(a => a.Token == token);
@@ -504,7 +518,7 @@ public class QuizService : IQuizService
             return ServiceResult<QuizResult>.Success(BuildResult(attempt));
         }
 
-        var result = QuizGrading.Grade(attempt.Quiz, answers);
+        var result = QuizGrading.Grade(attempt.Quiz, SnapshotQuestions(attempt), answers);
 
         foreach (var questionResult in result.Questions)
         {
@@ -530,7 +544,8 @@ public class QuizService : IQuizService
         var attempt = await _context.QuizAttempts
             .AsNoTracking()
             .Include(a => a.Quiz)
-                .ThenInclude(q => q.Questions.OrderBy(x => x.Order))
+            .Include(a => a.Questions.OrderBy(x => x.Order))
+                .ThenInclude(aq => aq.Question)
                     .ThenInclude(q => q.Options.OrderBy(o => o.Order))
             .Include(a => a.Answers)
             .FirstOrDefaultAsync(a => a.Token == token);
@@ -614,8 +629,15 @@ public class QuizService : IQuizService
     private static QuizResult BuildResult(QuizAttempt attempt)
     {
         var answers = attempt.Answers.ToDictionary(a => a.QuestionId, a => a.SelectedOptionId);
-        return QuizGrading.Grade(attempt.Quiz, answers);
+        return QuizGrading.Grade(attempt.Quiz, SnapshotQuestions(attempt), answers);
     }
+
+    // The questions served to an attempt, in order. Falls back to the quiz's own questions for any
+    // attempt created before snapshots existed.
+    private static IReadOnlyList<Question> SnapshotQuestions(QuizAttempt attempt)
+        => attempt.Questions.Count > 0
+            ? attempt.Questions.OrderBy(aq => aq.Order).Select(aq => aq.Question).ToList()
+            : attempt.Quiz.Questions.OrderBy(q => q.Order).ToList();
 
     private async Task<bool> HasAttemptsAsync(int? quizId)
         => quizId != null && await _context.QuizAttempts.AnyAsync(a => a.QuizId == quizId.Value);

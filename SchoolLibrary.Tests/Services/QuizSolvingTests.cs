@@ -152,7 +152,7 @@ public class QuizSolvingTests
     public async Task GetPracticeForSolvingAsync_ReturnsPublishedPracticeWithQuestionsAndOptions()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = await PublishedPracticeAsync(service);
 
         var loaded = await service.GetPracticeForSolvingAsync(quiz.Id);
@@ -166,7 +166,7 @@ public class QuizSolvingTests
     public async Task GetPracticeForSolvingAsync_ReturnsNull_ForUnpublishedQuiz()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(new QuizInput("Чернова", null, QuizMode.Practice, null, null), Owner)).Value!;
         await service.AddQuestionAsync(quiz.Id, new QuestionInput("В", new[] { "а", "б" }, 0), Owner, false);
         // not published
@@ -178,7 +178,7 @@ public class QuizSolvingTests
     public async Task GetPracticeForSolvingAsync_ReturnsNull_ForAnExam()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(new QuizInput("Изпит", null, QuizMode.Exam, 30, null), Owner)).Value!;
         await service.AddQuestionAsync(quiz.Id, new QuestionInput("В", new[] { "а", "б" }, 0), Owner, false);
         await service.SetPublishedAsync(quiz.Id, true, Owner, false);
@@ -190,7 +190,7 @@ public class QuizSolvingTests
     public async Task GetPracticeForSolvingAsync_ReturnsNull_WhenMissing()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         Assert.Null(await service.GetPracticeForSolvingAsync(999));
     }
@@ -199,7 +199,7 @@ public class QuizSolvingTests
     public async Task GradePracticeAsync_GradesThePickedAnswers()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = await PublishedPracticeAsync(service);
         var loaded = (await service.GetPracticeForSolvingAsync(quiz.Id))!;
 
@@ -219,7 +219,7 @@ public class QuizSolvingTests
     public async Task GradePracticeAsync_Unpublished_FailsAsNotFound()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(new QuizInput("Чернова", null, QuizMode.Practice, null, null), Owner)).Value!;
 
         var result = await service.GradePracticeAsync(quiz.Id, new Dictionary<int, int?>());
@@ -233,7 +233,7 @@ public class QuizSolvingTests
     public async Task GetPublishedPracticeAsync_ReturnsOnlyPublishedPractice_WithQuestionCounts()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
 
         var published = await PublishedPracticeAsync(service, questions: 3);
 
@@ -254,7 +254,7 @@ public class QuizSolvingTests
     public async Task GetPublishedPracticeAsync_OrdersByTitleAndPaginates()
     {
         using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context);
+        var service = new QuizService(context, new QuizItemService(context));
         foreach (var title in new[] { "Веднъж", "Алфа", "Бета" })
         {
             var quiz = (await service.CreateAsync(new QuizInput(title, null, QuizMode.Practice, null, null), Owner)).Value!;

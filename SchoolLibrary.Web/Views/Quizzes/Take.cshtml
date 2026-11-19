@@ -40,7 +40,7 @@
       data-proctored="@(proctored ? "true" : "false")"
       data-leave-url="@Url.Action("RecordLeave", new { token = Model.Attempt.Token })">
     @{ var number = 0; }
-    @foreach (var question in quiz.Questions)
+    @foreach (var question in Model.Attempt.Questions.OrderBy(aq => aq.Order).Select(aq => aq.Question))
     {
         number++;
         <fieldset class="card mb-3">

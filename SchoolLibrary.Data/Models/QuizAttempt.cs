@@ -30,10 +30,10 @@ namespace SchoolLibrary.Data.Models
         /// <summary>When the attempt was graded; null while it is still in progress.</summary>
         public DateTime? SubmittedOn { get; set; }
 
-        /// <summary>Number of correct answers.</summary>
+        /// <summary>Points scored.</summary>
         public int Score { get; set; }
 
-        /// <summary>Number of questions (the maximum score).</summary>
+        /// <summary>The maximum score (the sum of the served questions' points).</summary>
         public int MaxScore { get; set; }
 
         /// <summary>How many times the student left the exam tab/window (proctoring).</summary>
@@ -41,6 +41,9 @@ namespace SchoolLibrary.Data.Models
 
         /// <summary>Set when the student left more times than the exam allows.</summary>
         public bool Flagged { get; set; }
+
+        /// <summary>The questions served to this attempt (the snapshot taken when it started).</summary>
+        public ICollection<AttemptQuestion> Questions { get; set; } = new List<AttemptQuestion>();
 
         public ICollection<AttemptAnswer> Answers { get; set; } = new List<AttemptAnswer>();
     }

@@ -12,10 +12,17 @@ public static class QuizGrading
     /// and the maximum is the sum of every question's points.
     /// </summary>
     public static QuizResult Grade(Quiz quiz, IReadOnlyDictionary<int, int?> answers)
+        => Grade(quiz, quiz.Questions.OrderBy(q => q.Order), answers);
+
+    /// <summary>
+    /// Grades a specific, ordered set of questions (the attempt's snapshot) rather than the quiz's own
+    /// question collection. Used for item-based quizzes where each attempt is served its own questions.
+    /// </summary>
+    public static QuizResult Grade(Quiz quiz, IEnumerable<Question> questions, IReadOnlyDictionary<int, int?> answers)
     {
         var results = new List<QuestionResult>();
 
-        foreach (var question in quiz.Questions.OrderBy(q => q.Order))
+        foreach (var question in questions)
         {
             var correct = question.Options.FirstOrDefault(o => o.IsCorrect);
             answers.TryGetValue(question.Id, out var selected);
@@ -25,7 +32,7 @@ public static class QuizGrading
         }
 
         var score = results.Where(r => r.IsCorrect).Sum(r => r.Question.Points);
-        var maxScore = quiz.Questions.Sum(q => q.Points);
+        var maxScore = results.Sum(r => r.Question.Points);
         return new QuizResult(quiz, score, maxScore, results);
     }
 }
