@@ -49,5 +49,8 @@ namespace SchoolLibrary.Data.Models
         public ApplicationUser? Owner { get; set; }
 
         public ICollection<Question> Questions { get; set; } = new List<Question>();
+
+        /// <summary>The quiz's composition: pinned questions and random-from-section draws, ordered.</summary>
+        public ICollection<QuizItem> Items { get; set; } = new List<QuizItem>();
     }
 }

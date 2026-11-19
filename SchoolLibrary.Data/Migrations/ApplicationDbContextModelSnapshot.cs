@@ -623,6 +623,43 @@ namespace SchoolLibrary.Data.Migrations
                     b.ToTable("QuizAttempts");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.QuizItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("PickCount")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("QuestionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuizId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SectionId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("QuizId");
+
+                    b.HasIndex("SectionId");
+
+                    b.ToTable("QuizItems");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Report", b =>
                 {
                     b.Property<int>("Id")
@@ -1027,6 +1064,31 @@ namespace SchoolLibrary.Data.Migrations
                     b.Navigation("Quiz");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.QuizItem", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.Question", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SchoolLibrary.Data.Models.Quiz", "Quiz")
+                        .WithMany("Items")
+                        .HasForeignKey("QuizId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SchoolLibrary.Data.Models.Section", "Section")
+                        .WithMany()
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Question");
+
+                    b.Navigation("Quiz");
+
+                    b.Navigation("Section");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Report", b =>
                 {
                     b.HasOne("SchoolLibrary.Data.Models.Comment", "Comment")
@@ -1103,6 +1165,8 @@ namespace SchoolLibrary.Data.Migrations
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Quiz", b =>
                 {
+                    b.Navigation("Items");
+
                     b.Navigation("Questions");
                 });
 

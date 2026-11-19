@@ -180,6 +180,25 @@ namespace SchoolLibrary.Data
                 .HasForeignKey(o => o.QuestionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // A quiz owns its composition items; a referenced bank question or section is kept (Restrict)
+            builder.Entity<QuizItem>()
+                .HasOne(i => i.Quiz)
+                .WithMany(q => q.Items)
+                .HasForeignKey(i => i.QuizId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<QuizItem>()
+                .HasOne(i => i.Question)
+                .WithMany()
+                .HasForeignKey(i => i.QuestionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<QuizItem>()
+                .HasOne(i => i.Section)
+                .WithMany()
+                .HasForeignKey(i => i.SectionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
             // Deleting a quiz removes its attempts; an attempt removes its answers
             builder.Entity<QuizAttempt>()
                 .HasOne(a => a.Quiz)
@@ -228,6 +247,7 @@ namespace SchoolLibrary.Data
         public DbSet<Report> Reports { get; set; }
         public DbSet<Section> Sections { get; set; }
         public DbSet<Quiz> Quizzes { get; set; }
+        public DbSet<QuizItem> QuizItems { get; set; }
         public DbSet<Question> Questions { get; set; }
         public DbSet<AnswerOption> AnswerOptions { get; set; }
         public DbSet<QuizAttempt> QuizAttempts { get; set; }

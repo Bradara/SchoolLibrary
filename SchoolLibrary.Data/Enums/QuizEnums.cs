@@ -16,3 +16,13 @@ public enum QuestionType
     /// <summary>Exactly one correct option. The only type in the first version.</summary>
     SingleChoice = 0
 }
+
+/// <summary>How a quiz item pulls questions from the bank. The numbers are stored in the database.</summary>
+public enum QuizItemKind
+{
+    /// <summary>One specific question chosen from the bank.</summary>
+    FixedQuestion = 0,
+
+    /// <summary>A number of questions drawn at random from a section when the student starts.</summary>
+    RandomFromSection = 1
+}
