@@ -286,6 +286,33 @@ namespace SchoolLibrary.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        // POST: Sections/ImportAiken/5 — bulk-load questions from pasted Aiken text
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ImportAiken(int id, string? aikenText)
+        {
+            var result = await _questions.ImportAikenAsync(id, aikenText ?? string.Empty, CurrentUserId, IsAdministrator);
+            if (result.Error == ServiceError.NotFound)
+            {
+                return NotFound();
+            }
+
+            if (result.Error == ServiceError.Forbidden)
+            {
+                return Forbid();
+            }
+
+            var summary = result.Value!;
+            TempData["SuccessMessage"] = $"Импортирани въпроси: {summary.Added}.";
+            if (summary.Errors.Count > 0)
+            {
+                TempData["ErrorMessage"] = "Пропуснати: " + string.Join(" · ", summary.Errors.Take(10))
+                    + (summary.Errors.Count > 10 ? " …" : string.Empty);
+            }
+
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
         // POST: Sections/DeleteQuestion
         [HttpPost]
         [ValidateAntiForgeryToken]

@@ -135,6 +135,57 @@ public class QuestionBankService : IQuestionBankService
         return ServiceResult<Question>.Success(question);
     }
 
+    public async Task<ServiceResult<ImportSummary>> ImportAikenAsync(int sectionId, string text, string userId, bool isAdministrator)
+    {
+        var section = await _context.Sections.FirstOrDefaultAsync(s => s.Id == sectionId);
+        if (section == null)
+        {
+            return ServiceResult<ImportSummary>.Failure(ServiceError.NotFound, "Разделът не е намерен.");
+        }
+
+        if (!SectionPermissions.CanManage(section, userId, isAdministrator))
+        {
+            return ServiceResult<ImportSummary>.Failure(ServiceError.Forbidden, "Нямате права за това действие.");
+        }
+
+        var parsed = AikenParser.Parse(text);
+        var errors = parsed.Errors.ToList();
+
+        var maxOrder = await _context.Questions
+            .Where(q => q.SectionId == sectionId)
+            .Select(q => (int?)q.Order)
+            .MaxAsync() ?? 0;
+
+        var added = 0;
+        foreach (var input in parsed.Questions)
+        {
+            var validation = QuizService.ValidateQuestion(input);
+            if (validation != null)
+            {
+                errors.Add($"„{Shorten(input.Text)}“: {validation}");
+                continue;
+            }
+
+            var question = new Question
+            {
+                SectionId = sectionId,
+                Text = input.Text.Trim(),
+                Type = QuestionType.SingleChoice,
+                Points = input.Points,
+                Order = ++maxOrder
+            };
+            AddOptions(question, input);
+            _context.Questions.Add(question);
+            added++;
+        }
+
+        await _context.SaveChangesAsync();
+        return ServiceResult<ImportSummary>.Success(new ImportSummary(added, errors));
+    }
+
+    private static string Shorten(string text)
+        => text.Length <= 50 ? text : text[..50] + "…";
+
     private static void AddOptions(Question question, QuestionInput input)
     {
         for (var i = 0; i < input.Options.Count; i++)

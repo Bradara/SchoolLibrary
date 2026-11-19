@@ -393,24 +393,41 @@ public class QuizService : IQuizService
         return new PagedResult<QuizListItem>(items, totalCount, page, pageSize);
     }
 
-    public async Task<Quiz?> GetPracticeForSolvingAsync(int id)
+    public async Task<ServiceResult<PracticeSet>> GetPracticeSetAsync(int id)
     {
-        return await _context.Quizzes
-            .AsNoTracking()
-            .Include(q => q.Questions.OrderBy(x => x.Order))
-                .ThenInclude(q => q.Options.OrderBy(o => o.Order))
+        var quiz = await _context.Quizzes.AsNoTracking()
             .FirstOrDefaultAsync(q => q.Id == id && q.Mode == QuizMode.Practice && q.IsPublished);
+        if (quiz == null)
+        {
+            return ServiceResult<PracticeSet>.Failure(ServiceError.NotFound, "Упражнението не е намерено.");
+        }
+
+        // Resolve the items into this run's questions (random draws vary each time practice is opened)
+        var questions = await _items.ResolveAsync(id);
+        return ServiceResult<PracticeSet>.Success(new PracticeSet(quiz, questions));
     }
 
-    public async Task<ServiceResult<QuizResult>> GradePracticeAsync(int quizId, IReadOnlyDictionary<int, int?> answers)
+    public async Task<ServiceResult<QuizResult>> GradePracticeAsync(int quizId, IReadOnlyCollection<int> questionIds, IReadOnlyDictionary<int, int?> answers)
     {
-        var quiz = await GetPracticeForSolvingAsync(quizId);
+        var quiz = await _context.Quizzes.AsNoTracking()
+            .FirstOrDefaultAsync(q => q.Id == quizId && q.Mode == QuizMode.Practice && q.IsPublished);
         if (quiz == null)
         {
             return ServiceResult<QuizResult>.Failure(ServiceError.NotFound, "Упражнението не е намерено.");
         }
 
-        var result = QuizGrading.Grade(quiz, answers);
+        // Grade exactly the questions the student was shown (carried back from the form), in that order
+        var loaded = await _context.Questions.AsNoTracking()
+            .Where(q => questionIds.Contains(q.Id))
+            .Include(q => q.Options.OrderBy(o => o.Order))
+            .ToListAsync();
+        var ordered = questionIds
+            .Select(qid => loaded.FirstOrDefault(q => q.Id == qid))
+            .Where(q => q != null)
+            .Select(q => q!)
+            .ToList();
+
+        var result = QuizGrading.Grade(quiz, ordered, answers);
         return ServiceResult<QuizResult>.Success(result);
     }
 

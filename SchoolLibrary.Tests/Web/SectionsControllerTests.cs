@@ -291,4 +291,29 @@ public class SectionsControllerTests
         Assert.Equal("Details", redirect.ActionName);
         Assert.Equal(5, redirect.RouteValues!["id"]);
     }
+
+    // ---------- ImportAiken ----------
+
+    [Fact]
+    public async Task ImportAiken_Success_RedirectsToDetailsWithACount()
+    {
+        _questions.Setup(q => q.ImportAikenAsync(5, It.IsAny<string>(), "t1", false))
+            .ReturnsAsync(ServiceResult<ImportSummary>.Success(new ImportSummary(3, new List<string>())));
+
+        var controller = Controller("t1", Roles.Teacher);
+        var result = await controller.ImportAiken(5, "some aiken");
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Details", redirect.ActionName);
+        Assert.Equal("Импортирани въпроси: 3.", controller.TempDataText("SuccessMessage"));
+    }
+
+    [Fact]
+    public async Task ImportAiken_MissingSection_ReturnsNotFound()
+    {
+        _questions.Setup(q => q.ImportAikenAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()))
+            .ReturnsAsync(ServiceResult<ImportSummary>.Failure(ServiceError.NotFound, "Разделът не е намерен."));
+
+        Assert.IsType<NotFoundResult>(await Controller("t1", Roles.Teacher).ImportAiken(5, "x"));
+    }
 }

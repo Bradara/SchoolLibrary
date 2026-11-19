@@ -197,4 +197,59 @@ public class QuestionBankServiceTests
 
         Assert.Null(await service.GetQuestionAsync(1));
     }
+
+    // ---------- ImportAikenAsync ----------
+
+    [Fact]
+    public async Task ImportAikenAsync_AddsTheValidQuestionsToTheSection()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuestionBankService(context);
+        var section = await SectionAsync(context);
+
+        var text = "Въпрос 1\nA. а\nB. б\nANSWER: A\n\nВъпрос 2\nA. в\nB. г\nANSWER: B";
+        var result = await service.ImportAikenAsync(section.Id, text, Owner, false);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, result.Value!.Added);
+        Assert.Empty(result.Value.Errors);
+        Assert.Equal(2, (await service.GetBySectionAsync(section.Id)).Count);
+    }
+
+    [Fact]
+    public async Task ImportAikenAsync_AddsGoodOnesAndReportsTheBad()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuestionBankService(context);
+        var section = await SectionAsync(context);
+
+        var text = "Добър\nA. а\nB. б\nANSWER: A\n\nЛош без отговор\nA. а\nB. б";
+        var result = await service.ImportAikenAsync(section.Id, text, Owner, false);
+
+        Assert.Equal(1, result.Value!.Added);
+        Assert.Single(result.Value.Errors);
+    }
+
+    [Fact]
+    public async Task ImportAikenAsync_MissingSection_FailsAsNotFound()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuestionBankService(context);
+
+        var result = await service.ImportAikenAsync(999, "x", Owner, false);
+
+        Assert.Equal(ServiceError.NotFound, result.Error);
+    }
+
+    [Fact]
+    public async Task ImportAikenAsync_ByAnotherTeacher_FailsAsForbidden()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuestionBankService(context);
+        var section = await SectionAsync(context);
+
+        var result = await service.ImportAikenAsync(section.Id, "В?\nA. а\nB. б\nANSWER: A", Other, false);
+
+        Assert.Equal(ServiceError.Forbidden, result.Error);
+    }
 }

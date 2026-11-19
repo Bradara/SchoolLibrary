@@ -149,21 +149,21 @@ public class QuizSolvingTests
     }
 
     [Fact]
-    public async Task GetPracticeForSolvingAsync_ReturnsPublishedPracticeWithQuestionsAndOptions()
+    public async Task GetPracticeSetAsync_ReturnsPublishedPracticeWithQuestionsAndOptions()
     {
         using var context = TestDbContextFactory.Create();
         var service = new QuizService(context, new QuizItemService(context));
         var quiz = await PublishedPracticeAsync(service);
 
-        var loaded = await service.GetPracticeForSolvingAsync(quiz.Id);
+        var result = await service.GetPracticeSetAsync(quiz.Id);
 
-        Assert.NotNull(loaded);
-        Assert.Equal(2, loaded!.Questions.Count);
-        Assert.All(loaded.Questions, q => Assert.Equal(2, q.Options.Count));
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, result.Value!.Questions.Count);
+        Assert.All(result.Value.Questions, q => Assert.Equal(2, q.Options.Count));
     }
 
     [Fact]
-    public async Task GetPracticeForSolvingAsync_ReturnsNull_ForUnpublishedQuiz()
+    public async Task GetPracticeSetAsync_FailsAsNotFound_ForUnpublishedQuiz()
     {
         using var context = TestDbContextFactory.Create();
         var service = new QuizService(context, new QuizItemService(context));
@@ -171,11 +171,11 @@ public class QuizSolvingTests
         await service.AddQuestionAsync(quiz.Id, new QuestionInput("В", new[] { "а", "б" }, 0), Owner, false);
         // not published
 
-        Assert.Null(await service.GetPracticeForSolvingAsync(quiz.Id));
+        Assert.Equal(ServiceError.NotFound, (await service.GetPracticeSetAsync(quiz.Id)).Error);
     }
 
     [Fact]
-    public async Task GetPracticeForSolvingAsync_ReturnsNull_ForAnExam()
+    public async Task GetPracticeSetAsync_FailsAsNotFound_ForAnExam()
     {
         using var context = TestDbContextFactory.Create();
         var service = new QuizService(context, new QuizItemService(context));
@@ -183,16 +183,16 @@ public class QuizSolvingTests
         await service.AddQuestionAsync(quiz.Id, new QuestionInput("В", new[] { "а", "б" }, 0), Owner, false);
         await service.SetPublishedAsync(quiz.Id, true, Owner, false);
 
-        Assert.Null(await service.GetPracticeForSolvingAsync(quiz.Id));
+        Assert.Equal(ServiceError.NotFound, (await service.GetPracticeSetAsync(quiz.Id)).Error);
     }
 
     [Fact]
-    public async Task GetPracticeForSolvingAsync_ReturnsNull_WhenMissing()
+    public async Task GetPracticeSetAsync_FailsAsNotFound_WhenMissing()
     {
         using var context = TestDbContextFactory.Create();
         var service = new QuizService(context, new QuizItemService(context));
 
-        Assert.Null(await service.GetPracticeForSolvingAsync(999));
+        Assert.Equal(ServiceError.NotFound, (await service.GetPracticeSetAsync(999)).Error);
     }
 
     [Fact]
@@ -201,14 +201,15 @@ public class QuizSolvingTests
         using var context = TestDbContextFactory.Create();
         var service = new QuizService(context, new QuizItemService(context));
         var quiz = await PublishedPracticeAsync(service);
-        var loaded = (await service.GetPracticeForSolvingAsync(quiz.Id))!;
+        var set = (await service.GetPracticeSetAsync(quiz.Id)).Value!;
+        var questionIds = set.Questions.Select(q => q.Id).ToList();
 
         // Answer the first question correctly (the option marked correct), skip the second
-        var first = loaded.Questions.First();
+        var first = set.Questions.First();
         var correctId = first.Options.Single(o => o.IsCorrect).Id;
         var answers = new Dictionary<int, int?> { [first.Id] = correctId };
 
-        var result = await service.GradePracticeAsync(quiz.Id, answers);
+        var result = await service.GradePracticeAsync(quiz.Id, questionIds, answers);
 
         Assert.True(result.Succeeded);
         Assert.Equal(1, result.Value!.Score);
@@ -222,9 +223,42 @@ public class QuizSolvingTests
         var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(new QuizInput("Чернова", null, QuizMode.Practice, null, null), Owner)).Value!;
 
-        var result = await service.GradePracticeAsync(quiz.Id, new Dictionary<int, int?>());
+        var result = await service.GradePracticeAsync(quiz.Id, new List<int>(), new Dictionary<int, int?>());
 
         Assert.Equal(ServiceError.NotFound, result.Error);
+    }
+
+    [Fact]
+    public async Task GetPracticeSetAsync_WithItems_ResolvesTheRandomDraw()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context, new QuizItemService(context));
+        var quiz = (await service.CreateAsync(new QuizInput("Упражнение", null, QuizMode.Practice, null, null), Owner)).Value!;
+
+        var section = new Section { Name = "Раздел", OwnerId = Owner, CreatedOn = DateTime.UtcNow };
+        context.Sections.Add(section);
+        await context.SaveChangesAsync();
+        for (var i = 1; i <= 5; i++)
+        {
+            context.Questions.Add(new Question
+            {
+                SectionId = section.Id,
+                Text = "Банка " + i,
+                Points = 1,
+                Options = new List<AnswerOption>
+                {
+                    new() { Text = "верен", IsCorrect = true, Order = 1 },
+                    new() { Text = "грешен", Order = 2 }
+                }
+            });
+        }
+        await context.SaveChangesAsync();
+        await new QuizItemService(context).AddRandomSectionAsync(quiz.Id, section.Id, 2, Owner, false);
+        await service.SetPublishedAsync(quiz.Id, true, Owner, false);
+
+        var set = (await service.GetPracticeSetAsync(quiz.Id)).Value!;
+
+        Assert.Equal(2, set.Questions.Count);
     }
 
     // ---------- Service: browsing practice quizzes ----------

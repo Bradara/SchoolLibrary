@@ -34,32 +34,33 @@ public class QuizzesControllerTests
     }
 
     [Fact]
-    public async Task Solve_Get_ReturnsTheQuiz()
+    public async Task Solve_Get_ReturnsThePracticeSet()
     {
-        var quiz = new Quiz { Id = 5, Title = "Дроби" };
-        _service.Setup(s => s.GetPracticeForSolvingAsync(5)).ReturnsAsync(quiz);
+        var set = new PracticeSet(new Quiz { Id = 5, Title = "Дроби" }, new List<Question>());
+        _service.Setup(s => s.GetPracticeSetAsync(5)).ReturnsAsync(ServiceResult<PracticeSet>.Success(set));
 
         var result = await Controller().Solve(5);
 
-        Assert.Same(quiz, Assert.IsType<ViewResult>(result).Model);
+        Assert.Same(set, Assert.IsType<ViewResult>(result).Model);
     }
 
     [Fact]
     public async Task Solve_Get_Missing_ReturnsNotFound()
     {
-        _service.Setup(s => s.GetPracticeForSolvingAsync(5)).ReturnsAsync((Quiz?)null);
+        _service.Setup(s => s.GetPracticeSetAsync(5))
+            .ReturnsAsync(ServiceResult<PracticeSet>.Failure(ServiceError.NotFound, "Упражнението не е намерено."));
 
         Assert.IsType<NotFoundResult>(await Controller().Solve(5));
     }
 
     [Fact]
-    public async Task Solve_Post_GradesTheAnswersAndShowsTheResult()
+    public async Task Solve_Post_GradesTheShownQuestionsAndShowsTheResult()
     {
         var graded = new QuizResult(new Quiz { Id = 5, Title = "Дроби" }, 1, 2, new List<QuestionResult>());
-        _service.Setup(s => s.GradePracticeAsync(5, It.IsAny<IReadOnlyDictionary<int, int?>>()))
+        _service.Setup(s => s.GradePracticeAsync(5, It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<IReadOnlyDictionary<int, int?>>()))
             .ReturnsAsync(ServiceResult<QuizResult>.Success(graded));
 
-        var result = await Controller().Solve(5, new Dictionary<int, int?> { [1] = 2 });
+        var result = await Controller().Solve(5, new List<int> { 1 }, new Dictionary<int, int?> { [1] = 2 });
 
         var view = Assert.IsType<ViewResult>(result);
         Assert.Equal("Result", view.ViewName);
@@ -67,25 +68,27 @@ public class QuizzesControllerTests
     }
 
     [Fact]
-    public async Task Solve_Post_WithNoAnswers_GradesWithAnEmptySet()
+    public async Task Solve_Post_WithNoAnswers_GradesWithEmptySets()
     {
         var graded = new QuizResult(new Quiz { Id = 5 }, 0, 2, new List<QuestionResult>());
-        _service.Setup(s => s.GradePracticeAsync(5, It.IsAny<IReadOnlyDictionary<int, int?>>()))
+        _service.Setup(s => s.GradePracticeAsync(5, It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<IReadOnlyDictionary<int, int?>>()))
             .ReturnsAsync(ServiceResult<QuizResult>.Success(graded));
 
-        var result = await Controller().Solve(5, null);
+        var result = await Controller().Solve(5, null, null);
 
         Assert.IsType<ViewResult>(result);
-        _service.Verify(s => s.GradePracticeAsync(5, It.Is<IReadOnlyDictionary<int, int?>>(d => d.Count == 0)), Times.Once);
+        _service.Verify(s => s.GradePracticeAsync(5,
+            It.Is<IReadOnlyCollection<int>>(ids => ids.Count == 0),
+            It.Is<IReadOnlyDictionary<int, int?>>(d => d.Count == 0)), Times.Once);
     }
 
     [Fact]
     public async Task Solve_Post_Missing_ReturnsNotFound()
     {
-        _service.Setup(s => s.GradePracticeAsync(5, It.IsAny<IReadOnlyDictionary<int, int?>>()))
+        _service.Setup(s => s.GradePracticeAsync(5, It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<IReadOnlyDictionary<int, int?>>()))
             .ReturnsAsync(ServiceResult<QuizResult>.Failure(ServiceError.NotFound, "Упражнението не е намерено."));
 
-        Assert.IsType<NotFoundResult>(await Controller().Solve(5, new Dictionary<int, int?>()));
+        Assert.IsType<NotFoundResult>(await Controller().Solve(5, new List<int>(), new Dictionary<int, int?>()));
     }
 
     // ---------- Exam: entry by code ----------

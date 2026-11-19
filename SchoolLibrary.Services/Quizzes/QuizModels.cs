@@ -32,6 +32,9 @@ public record QuizResult(Quiz Quiz, int Score, int MaxScore, IReadOnlyList<Quest
     public string GradeLabel => QuizGradeScale.Label(Grade);
 }
 
+/// <summary>A practice quiz with the concrete questions resolved for this run (random draws fixed).</summary>
+public record PracticeSet(Quiz Quiz, IReadOnlyList<Question> Questions);
+
 /// <summary>A quiz with one page of its submitted attempts, for the teacher's review page.</summary>
 public record QuizReview(Quiz Quiz, PagedResult<QuizAttempt> Attempts);
 

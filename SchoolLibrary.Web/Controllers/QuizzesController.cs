@@ -30,22 +30,23 @@ namespace SchoolLibrary.Controllers
         // GET: Quizzes/Solve/5 — the questions to answer
         public async Task<IActionResult> Solve(int id)
         {
-            var quiz = await _quizzes.GetPracticeForSolvingAsync(id);
-            if (quiz == null)
+            var result = await _quizzes.GetPracticeSetAsync(id);
+            if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();
             }
 
-            return View(quiz);
+            return View(result.Value);
         }
 
         // POST: Quizzes/Solve/5 — grade the answers and show the result
-        // Answers arrive as answers[questionId] = optionId; an unanswered question has no entry.
+        // Answers arrive as answers[questionId] = optionId; questionIds carries the shown set (for random draws).
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Solve(int id, [FromForm] Dictionary<int, int?>? answers)
+        public async Task<IActionResult> Solve(int id, [FromForm] List<int>? questionIds, [FromForm] Dictionary<int, int?>? answers)
         {
-            var result = await _quizzes.GradePracticeAsync(id, answers ?? new Dictionary<int, int?>());
+            var result = await _quizzes.GradePracticeAsync(
+                id, questionIds ?? new List<int>(), answers ?? new Dictionary<int, int?>());
             if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();

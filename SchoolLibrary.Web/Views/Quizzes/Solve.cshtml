@@ -1,43 +1,52 @@
-@using SchoolLibrary.Data.Models
-@model Quiz
+@using SchoolLibrary.Services.Quizzes
+@model PracticeSet
 
 @{
-    ViewData["Title"] = Model.Title;
+    var quiz = Model.Quiz;
+    ViewData["Title"] = quiz.Title;
 }
 
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item"><a asp-action="Index">Упражнения</a></li>
-        <li class="breadcrumb-item active">@Model.Title</li>
+        <li class="breadcrumb-item active">@quiz.Title</li>
     </ol>
 </nav>
 
-<h1>@Model.Title</h1>
-@if (!string.IsNullOrEmpty(Model.Description))
+<h1>@quiz.Title</h1>
+@if (!string.IsNullOrEmpty(quiz.Description))
 {
-    <p class="lead">@Model.Description</p>
+    <p class="lead">@quiz.Description</p>
 }
 
-<form method="post" asp-action="Solve" asp-route-id="@Model.Id">
-    @{ var number = 0; }
-    @foreach (var question in Model.Questions)
-    {
-        number++;
-        <fieldset class="card mb-3">
-            <div class="card-body">
-                <legend class="h6 card-title">@number. @question.Text</legend>
-                @foreach (var option in question.Options)
-                {
-                    var optionId = $"q{question.Id}o{option.Id}";
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="answers[@question.Id]" value="@option.Id" id="@optionId">
-                        <label class="form-check-label" for="@optionId">@option.Text</label>
-                    </div>
-                }
-            </div>
-        </fieldset>
-    }
+@if (Model.Questions.Count == 0)
+{
+    <div class="alert alert-warning">Това упражнение още няма въпроси.</div>
+}
+else
+{
+    <form method="post" asp-action="Solve" asp-route-id="@quiz.Id">
+        @{ var number = 0; }
+        @foreach (var question in Model.Questions)
+        {
+            number++;
+            <input type="hidden" name="questionIds" value="@question.Id" />
+            <fieldset class="card mb-3">
+                <div class="card-body">
+                    <legend class="h6 card-title">@number. @question.Text</legend>
+                    @foreach (var option in question.Options)
+                    {
+                        var optionId = $"q{question.Id}o{option.Id}";
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="answers[@question.Id]" value="@option.Id" id="@optionId">
+                            <label class="form-check-label" for="@optionId">@option.Text</label>
+                        </div>
+                    }
+                </div>
+            </fieldset>
+        }
 
-    <button type="submit" class="btn btn-primary">Провери</button>
-    <a asp-action="Index" class="btn btn-link">← Към упражненията</a>
-</form>
+        <button type="submit" class="btn btn-primary">Провери</button>
+        <a asp-action="Index" class="btn btn-link">← Към упражненията</a>
+    </form>
+}

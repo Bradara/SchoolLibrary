@@ -23,4 +23,10 @@ public interface IQuestionBankService
 
     /// <summary>Removes a bank question. Fails when it is missing or not allowed.</summary>
     Task<ServiceResult<Question>> DeleteAsync(int questionId, string userId, bool isAdministrator);
+
+    /// <summary>
+    /// Imports Aiken-format questions into a section, adding the valid ones and reporting the rest.
+    /// Fails when the section is missing or not allowed.
+    /// </summary>
+    Task<ServiceResult<ImportSummary>> ImportAikenAsync(int sectionId, string text, string userId, bool isAdministrator);
 }

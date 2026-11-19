@@ -42,11 +42,17 @@ public interface IQuizService
     /// <summary>One page of published practice quizzes to browse, each with its question count.</summary>
     Task<PagedResult<QuizListItem>> GetPublishedPracticeAsync(int page, int pageSize = 10);
 
-    /// <summary>A published practice quiz with its questions and options for solving, or null otherwise.</summary>
-    Task<Quiz?> GetPracticeForSolvingAsync(int id);
+    /// <summary>
+    /// A published practice quiz with its questions resolved for this run (random draws fixed). Fails
+    /// when the quiz is missing, an exam, or unpublished.
+    /// </summary>
+    Task<ServiceResult<PracticeSet>> GetPracticeSetAsync(int id);
 
-    /// <summary>Grades answers to a published practice quiz. Fails when the quiz is missing, an exam, or unpublished.</summary>
-    Task<ServiceResult<QuizResult>> GradePracticeAsync(int quizId, IReadOnlyDictionary<int, int?> answers);
+    /// <summary>
+    /// Grades answers to a published practice quiz against the questions the student was shown (carried
+    /// back as <paramref name="questionIds"/>). Fails when the quiz is missing, an exam, or unpublished.
+    /// </summary>
+    Task<ServiceResult<QuizResult>> GradePracticeAsync(int quizId, IReadOnlyCollection<int> questionIds, IReadOnlyDictionary<int, int?> answers);
 
     /// <summary>
     /// Starts (or resumes) an exam entered by its code. A student who already submitted this exam is
