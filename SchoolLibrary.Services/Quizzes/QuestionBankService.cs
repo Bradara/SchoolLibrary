@@ -186,7 +186,7 @@ public class QuestionBankService : IQuestionBankService
         return ServiceResult<int>.Success(moved);
     }
 
-    public async Task<ServiceResult<ImportSummary>> ImportAikenAsync(int sectionId, string text, string userId, bool isAdministrator)
+    public async Task<ServiceResult<ImportSummary>> ImportAsync(int sectionId, string text, string userId, bool isAdministrator)
     {
         var section = await _context.Sections.FirstOrDefaultAsync(s => s.Id == sectionId);
         if (section == null)
@@ -199,7 +199,10 @@ public class QuestionBankService : IQuestionBankService
             return ServiceResult<ImportSummary>.Failure(ServiceError.Forbidden, "Нямате права за това действие.");
         }
 
-        var parsed = AikenParser.Parse(text);
+        // Moodle XML starts with a tag (optionally after a BOM/whitespace); anything else is Aiken text
+        var parsed = text.TrimStart('﻿', ' ', '\t', '\r', '\n').StartsWith('<')
+            ? MoodleXmlParser.Parse(text)
+            : AikenParser.Parse(text);
         var errors = parsed.Errors.ToList();
 
         var maxOrder = await _context.Questions

@@ -346,16 +346,16 @@ public class SectionsControllerTests
         Assert.IsType<ForbidResult>(await Controller("t1", Roles.Teacher).MoveQuestions(5, new[] { 1 }, 8));
     }
 
-    // ---------- ImportAiken ----------
+    // ---------- Import ----------
 
     [Fact]
-    public async Task ImportAiken_Success_RedirectsToDetailsWithACount()
+    public async Task Import_Success_RedirectsToDetailsWithACount()
     {
-        _questions.Setup(q => q.ImportAikenAsync(5, It.IsAny<string>(), "t1", false))
+        _questions.Setup(q => q.ImportAsync(5, It.IsAny<string>(), "t1", false))
             .ReturnsAsync(ServiceResult<ImportSummary>.Success(new ImportSummary(3, new List<string>())));
 
         var controller = Controller("t1", Roles.Teacher);
-        var result = await controller.ImportAiken(5, "some aiken");
+        var result = await controller.Import(5, "some aiken");
 
         var redirect = Assert.IsType<RedirectToActionResult>(result);
         Assert.Equal("Details", redirect.ActionName);
@@ -363,11 +363,11 @@ public class SectionsControllerTests
     }
 
     [Fact]
-    public async Task ImportAiken_MissingSection_ReturnsNotFound()
+    public async Task Import_MissingSection_ReturnsNotFound()
     {
-        _questions.Setup(q => q.ImportAikenAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()))
+        _questions.Setup(q => q.ImportAsync(It.IsAny<int>(), It.IsAny<string>(), It.IsAny<string>(), It.IsAny<bool>()))
             .ReturnsAsync(ServiceResult<ImportSummary>.Failure(ServiceError.NotFound, "Разделът не е намерен."));
 
-        Assert.IsType<NotFoundResult>(await Controller("t1", Roles.Teacher).ImportAiken(5, "x"));
+        Assert.IsType<NotFoundResult>(await Controller("t1", Roles.Teacher).Import(5, "x"));
     }
 }

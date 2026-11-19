@@ -160,17 +160,17 @@ else
 
 <div class="card mt-3">
     <div class="card-body">
-        <h2 class="h6 card-title">Импорт от Aiken</h2>
-        <p class="form-text mt-0">Поставете въпроси във формат Aiken, за да ги налеете наведнъж в раздела.</p>
-        <form method="post" asp-action="ImportAiken" asp-route-id="@topic.Id" enctype="multipart/form-data">
-            <textarea name="aikenText" class="form-control font-monospace" rows="8" spellcheck="false"
+        <h2 class="h6 card-title">Импорт на въпроси</h2>
+        <p class="form-text mt-0">Поставете въпроси във формат Aiken или Moodle XML, за да ги налеете наведнъж в раздела. Форматът се разпознава автоматично.</p>
+        <form method="post" asp-action="Import" asp-route-id="@topic.Id" enctype="multipart/form-data">
+            <textarea name="importText" class="form-control font-monospace" rows="8" spellcheck="false"
                       placeholder="Колко е 2 + 2?&#10;A. 3&#10;B. 4&#10;C. 5&#10;ANSWER: B"></textarea>
             <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
                 <button type="submit" class="btn btn-outline-primary">Импортирай</button>
                 <span class="text-body-secondary small">или качи файл:</span>
-                <input type="file" name="aikenFile" accept=".txt,text/plain" class="form-control form-control-sm" style="max-width: 18rem;" />
+                <input type="file" name="importFile" accept=".txt,.xml,text/plain,text/xml,application/xml" class="form-control form-control-sm" style="max-width: 18rem;" />
             </div>
-            <div class="form-text">Качен файл има предимство пред текста. Поддържа се .txt (Aiken).</div>
+            <div class="form-text">Качен файл има предимство пред текста. Поддържат се .txt (Aiken) и .xml (Moodle).</div>
         </form>
         <details class="mt-2">
             <summary class="small text-body-secondary">Формат Aiken</summary>
@@ -181,6 +181,13 @@ C. трети отговор
 ANSWER: B
 
 (празен ред разделя въпросите)</pre>
+        </details>
+        <details class="mt-2">
+            <summary class="small text-body-secondary">Формат Moodle XML</summary>
+            <p class="small text-body-secondary mt-1 mb-0">
+                Поддържат се въпроси с един верен отговор (<code>multichoice</code> с <code>&lt;single&gt;true&lt;/single&gt;</code> и <code>truefalse</code>).
+                Верен е отговорът с най-висок <code>fraction</code> (100). Останалите типове се пропускат.
+            </p>
         </details>
     </div>
 </div>

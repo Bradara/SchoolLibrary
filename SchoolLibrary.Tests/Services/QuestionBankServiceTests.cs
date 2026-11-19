@@ -285,17 +285,17 @@ public class QuestionBankServiceTests
         Assert.Equal(to.Id, (await service.GetQuestionAsync(question.Id))!.SectionId);
     }
 
-    // ---------- ImportAikenAsync ----------
+    // ---------- ImportAsync (Aiken + Moodle XML) ----------
 
     [Fact]
-    public async Task ImportAikenAsync_AddsTheValidQuestionsToTheSection()
+    public async Task ImportAsync_AddsTheValidQuestionsToTheSection()
     {
         using var context = TestDbContextFactory.Create();
         var service = new QuestionBankService(context);
         var section = await SectionAsync(context);
 
         var text = "Въпрос 1\nA. а\nB. б\nANSWER: A\n\nВъпрос 2\nA. в\nB. г\nANSWER: B";
-        var result = await service.ImportAikenAsync(section.Id, text, Owner, false);
+        var result = await service.ImportAsync(section.Id, text, Owner, false);
 
         Assert.True(result.Succeeded);
         Assert.Equal(2, result.Value!.Added);
@@ -304,39 +304,59 @@ public class QuestionBankServiceTests
     }
 
     [Fact]
-    public async Task ImportAikenAsync_AddsGoodOnesAndReportsTheBad()
+    public async Task ImportAsync_AddsGoodOnesAndReportsTheBad()
     {
         using var context = TestDbContextFactory.Create();
         var service = new QuestionBankService(context);
         var section = await SectionAsync(context);
 
         var text = "Добър\nA. а\nB. б\nANSWER: A\n\nЛош без отговор\nA. а\nB. б";
-        var result = await service.ImportAikenAsync(section.Id, text, Owner, false);
+        var result = await service.ImportAsync(section.Id, text, Owner, false);
 
         Assert.Equal(1, result.Value!.Added);
         Assert.Single(result.Value.Errors);
     }
 
     [Fact]
-    public async Task ImportAikenAsync_MissingSection_FailsAsNotFound()
+    public async Task ImportAsync_MissingSection_FailsAsNotFound()
     {
         using var context = TestDbContextFactory.Create();
         var service = new QuestionBankService(context);
 
-        var result = await service.ImportAikenAsync(999, "x", Owner, false);
+        var result = await service.ImportAsync(999, "x", Owner, false);
 
         Assert.Equal(ServiceError.NotFound, result.Error);
     }
 
     [Fact]
-    public async Task ImportAikenAsync_ByAnotherTeacher_FailsAsForbidden()
+    public async Task ImportAsync_ByAnotherTeacher_FailsAsForbidden()
     {
         using var context = TestDbContextFactory.Create();
         var service = new QuestionBankService(context);
         var section = await SectionAsync(context);
 
-        var result = await service.ImportAikenAsync(section.Id, "В?\nA. а\nB. б\nANSWER: A", Other, false);
+        var result = await service.ImportAsync(section.Id, "В?\nA. а\nB. б\nANSWER: A", Other, false);
 
         Assert.Equal(ServiceError.Forbidden, result.Error);
+    }
+
+    [Fact]
+    public async Task ImportAsync_DetectsMoodleXmlAndAddsTheQuestion()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuestionBankService(context);
+        var section = await SectionAsync(context);
+
+        var xml = "<?xml version=\"1.0\"?><quiz><question type=\"multichoice\"><single>true</single>" +
+                  "<questiontext><text>Колко е 2 + 2?</text></questiontext>" +
+                  "<answer fraction=\"0\"><text>3</text></answer>" +
+                  "<answer fraction=\"100\"><text>4</text></answer></question></quiz>";
+        var result = await service.ImportAsync(section.Id, xml, Owner, false);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, result.Value!.Added);
+        var question = Assert.Single(await service.GetBySectionAsync(section.Id));
+        Assert.Equal("Колко е 2 + 2?", question.Text);
+        Assert.Equal("4", question.Options.Single(o => o.IsCorrect).Text);
     }
 }

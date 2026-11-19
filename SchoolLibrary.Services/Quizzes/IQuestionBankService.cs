@@ -32,8 +32,8 @@ public interface IQuestionBankService
     Task<ServiceResult<int>> MoveQuestionsAsync(IReadOnlyCollection<int> questionIds, int targetSectionId, string userId, bool isAdministrator);
 
     /// <summary>
-    /// Imports Aiken-format questions into a section, adding the valid ones and reporting the rest.
-    /// Fails when the section is missing or not allowed.
+    /// Imports questions into a section from Aiken text or Moodle XML (detected from the content),
+    /// adding the valid ones and reporting the rest. Fails when the section is missing or not allowed.
     /// </summary>
-    Task<ServiceResult<ImportSummary>> ImportAikenAsync(int sectionId, string text, string userId, bool isAdministrator);
+    Task<ServiceResult<ImportSummary>> ImportAsync(int sectionId, string text, string userId, bool isAdministrator);
 }
