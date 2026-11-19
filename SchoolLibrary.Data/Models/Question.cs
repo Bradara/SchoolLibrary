@@ -15,6 +15,9 @@ namespace SchoolLibrary.Data.Models
 
         public QuestionType Type { get; set; }
 
+        /// <summary>How many points the question is worth. Defaults to 1.</summary>
+        public int Points { get; set; } = 1;
+
         /// <summary>Display order within the quiz.</summary>
         public int Order { get; set; }
 

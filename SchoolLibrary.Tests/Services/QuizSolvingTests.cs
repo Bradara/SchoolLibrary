@@ -71,6 +71,69 @@ public class QuizSolvingTests
         Assert.Equal(new[] { 1, 2 }, result.Questions.Select(q => q.Question.Id));
     }
 
+    [Fact]
+    public void Grade_WeighsEachQuestionByItsPoints()
+    {
+        var quiz = new Quiz
+        {
+            Questions = new List<Question>
+            {
+                new()
+                {
+                    Id = 1, Order = 1, Points = 2,
+                    Options = new List<AnswerOption> { new() { Id = 10, IsCorrect = true }, new() { Id = 11 } }
+                },
+                new()
+                {
+                    Id = 2, Order = 2, Points = 3,
+                    Options = new List<AnswerOption> { new() { Id = 20 }, new() { Id = 21, IsCorrect = true } }
+                }
+            }
+        };
+
+        // First question right (2 pts), second wrong (0 of 3)
+        var result = QuizGrading.Grade(quiz, new Dictionary<int, int?> { [1] = 10, [2] = 20 });
+
+        Assert.Equal(2, result.Score);
+        Assert.Equal(5, result.MaxScore);
+        Assert.Equal(40, result.Percent);
+        Assert.Equal(3, result.Grade);
+        Assert.Equal("Среден", result.GradeLabel);
+    }
+
+    // ---------- QuizGradeScale (pure) ----------
+
+    [Theory]
+    [InlineData(0, 10, 2)]    // 0%
+    [InlineData(2, 10, 2)]    // 20% -> below 30
+    [InlineData(3, 10, 3)]    // 30% -> exactly the 3 threshold
+    [InlineData(5, 10, 4)]    // 50% -> the 4 threshold
+    [InlineData(7, 10, 5)]    // 70% -> the 5 threshold
+    [InlineData(85, 100, 6)]  // 85% -> the 6 threshold
+    [InlineData(10, 10, 6)]   // 100%
+    public void GradeScale_MapsPercentageToGrade(int score, int maxScore, int expectedGrade)
+    {
+        Assert.Equal(expectedGrade, QuizGradeScale.Grade(score, maxScore));
+    }
+
+    [Fact]
+    public void GradeScale_WithNothingToGrade_IsTheLowestGrade()
+    {
+        Assert.Equal(2, QuizGradeScale.Grade(0, 0));
+        Assert.Equal(0, QuizGradeScale.Percent(0, 0));
+    }
+
+    [Theory]
+    [InlineData(2, "Слаб")]
+    [InlineData(3, "Среден")]
+    [InlineData(4, "Добър")]
+    [InlineData(5, "Много добър")]
+    [InlineData(6, "Отличен")]
+    public void GradeScale_LabelsEachGrade(int grade, string expected)
+    {
+        Assert.Equal(expected, QuizGradeScale.Label(grade));
+    }
+
     // ---------- Service: solving a practice quiz ----------
 
     private static async Task<Quiz> PublishedPracticeAsync(QuizService service, int questions = 2)

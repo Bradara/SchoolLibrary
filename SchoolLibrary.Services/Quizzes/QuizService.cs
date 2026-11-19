@@ -14,6 +14,7 @@ public class QuizService : IQuizService
     public const int OptionMaxLength = 500;
     public const int MinOptions = 2;
     public const int MaxOptions = 10;
+    public const int MaxQuestionPoints = 100;
     public const int MaxTimeLimitMinutes = 600;
     public const int CodeLength = 6;
     public const int MaxStudentNameLength = 100;
@@ -249,6 +250,7 @@ public class QuizService : IQuizService
             QuizId = quizId,
             Text = input.Text.Trim(),
             Type = QuestionType.SingleChoice,
+            Points = input.Points,
             Order = maxOrder + 1
         };
 
@@ -263,6 +265,64 @@ public class QuizService : IQuizService
         }
 
         _context.Questions.Add(question);
+        await _context.SaveChangesAsync();
+
+        return ServiceResult<Question>.Success(question);
+    }
+
+    public async Task<Question?> GetQuestionAsync(int questionId)
+    {
+        return await _context.Questions
+            .AsNoTracking()
+            .Include(q => q.Quiz)
+            .Include(q => q.Options.OrderBy(o => o.Order))
+            .FirstOrDefaultAsync(q => q.Id == questionId);
+    }
+
+    public async Task<ServiceResult<Question>> UpdateQuestionAsync(int questionId, QuestionInput input, string userId, bool isAdministrator)
+    {
+        var question = await _context.Questions
+            .Include(q => q.Quiz)
+            .Include(q => q.Options)
+            .FirstOrDefaultAsync(q => q.Id == questionId);
+        if (question == null)
+        {
+            return ServiceResult<Question>.Failure(ServiceError.NotFound, "Въпросът не е намерен.");
+        }
+
+        if (!QuizPermissions.CanManage(question.Quiz, userId, isAdministrator))
+        {
+            return ServiceResult<Question>.Failure(ServiceError.Forbidden, "Нямате права за това действие.");
+        }
+
+        if (await HasAttemptsAsync(question.QuizId))
+        {
+            return ServiceResult<Question>.Failure(ServiceError.Conflict,
+                "Тестът вече има решения; въпросите не могат да се променят.");
+        }
+
+        var validation = ValidateQuestion(input);
+        if (validation != null)
+        {
+            return ServiceResult<Question>.Failure(ServiceError.Invalid, validation);
+        }
+
+        question.Text = input.Text.Trim();
+        question.Points = input.Points;
+
+        // Replace the options wholesale; the question keeps its place in the quiz
+        _context.AnswerOptions.RemoveRange(question.Options);
+        question.Options.Clear();
+        for (var i = 0; i < input.Options.Count; i++)
+        {
+            question.Options.Add(new AnswerOption
+            {
+                Text = input.Options[i].Trim(),
+                IsCorrect = i == input.CorrectIndex,
+                Order = i + 1
+            });
+        }
+
         await _context.SaveChangesAsync();
 
         return ServiceResult<Question>.Success(question);
@@ -653,6 +713,11 @@ public class QuizService : IQuizService
         if (input.CorrectIndex < 0 || input.CorrectIndex >= options.Count)
         {
             return "Посочете кой е верният отговор.";
+        }
+
+        if (input.Points < 1 || input.Points > MaxQuestionPoints)
+        {
+            return $"Точките за въпрос трябва да са между 1 и {MaxQuestionPoints}.";
         }
 
         return null;

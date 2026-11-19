@@ -458,6 +458,60 @@ public class QuizServiceTests
         Assert.Equal(ServiceError.Conflict, result.Error);
     }
 
+    [Fact]
+    public async Task AddQuestionAsync_StoresThePoints()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
+
+        var result = await service.AddQuestionAsync(quiz.Id,
+            new QuestionInput("В?", new[] { "а", "б" }, 0, Points: 3), Owner, false);
+
+        Assert.Equal(3, result.Value!.Points);
+    }
+
+    [Fact]
+    public async Task AddQuestionAsync_DefaultsToOnePoint()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
+
+        var result = await service.AddQuestionAsync(quiz.Id, Question(), Owner, false);
+
+        Assert.Equal(1, result.Value!.Points);
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(QuizService.MaxQuestionPoints + 1)]
+    public async Task AddQuestionAsync_WithPointsOutOfRange_FailsAsInvalid(int points)
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
+
+        var result = await service.AddQuestionAsync(quiz.Id,
+            new QuestionInput("В?", new[] { "а", "б" }, 0, points), Owner, false);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+    }
+
+    [Fact]
+    public async Task UpdateQuestionAsync_ChangesThePoints()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
+        var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
+
+        await service.UpdateQuestionAsync(question.Id,
+            new QuestionInput("В?", new[] { "а", "б" }, 0, Points: 5), Owner, false);
+
+        Assert.Equal(5, (await service.GetQuestionAsync(question.Id))!.Points);
+    }
+
     // ---------- DeleteQuestionAsync ----------
 
     [Fact]
@@ -511,6 +565,104 @@ public class QuizServiceTests
         var result = await service.DeleteQuestionAsync(question.Id, Owner, false);
 
         Assert.Equal(ServiceError.Conflict, result.Error);
+    }
+
+    // ---------- UpdateQuestionAsync / GetQuestionAsync ----------
+
+    [Fact]
+    public async Task UpdateQuestionAsync_ReplacesTextAndOptions()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
+        var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
+
+        var result = await service.UpdateQuestionAsync(question.Id,
+            new QuestionInput("3 + 3 = ?", new[] { "5", "6", "7" }, 1), Owner, false);
+
+        Assert.True(result.Succeeded);
+        var reloaded = (await service.GetQuestionAsync(question.Id))!;
+        Assert.Equal("3 + 3 = ?", reloaded.Text);
+        var options = reloaded.Options.OrderBy(o => o.Order).ToList();
+        Assert.Equal(new[] { "5", "6", "7" }, options.Select(o => o.Text));
+        Assert.Equal("6", options.Single(o => o.IsCorrect).Text);
+    }
+
+    [Fact]
+    public async Task UpdateQuestionAsync_Missing_FailsAsNotFound()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+
+        var result = await service.UpdateQuestionAsync(999, Question(), Owner, false);
+
+        Assert.Equal(ServiceError.NotFound, result.Error);
+    }
+
+    [Fact]
+    public async Task UpdateQuestionAsync_ByAnotherTeacher_FailsAsForbidden()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
+        var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
+
+        var result = await service.UpdateQuestionAsync(question.Id, Question(text: "Друг"), Other, false);
+
+        Assert.Equal(ServiceError.Forbidden, result.Error);
+    }
+
+    [Fact]
+    public async Task UpdateQuestionAsync_WhenTheQuizHasAttempts_FailsAsConflict()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
+        var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
+        context.QuizAttempts.Add(new QuizAttempt { QuizId = quiz.Id, StudentName = "Иван", StartedOn = DateTime.UtcNow });
+        await context.SaveChangesAsync();
+
+        var result = await service.UpdateQuestionAsync(question.Id, Question(text: "Променен"), Owner, false);
+
+        Assert.Equal(ServiceError.Conflict, result.Error);
+    }
+
+    [Fact]
+    public async Task UpdateQuestionAsync_WithTooFewOptions_FailsAsInvalid()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
+        var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
+
+        var result = await service.UpdateQuestionAsync(question.Id,
+            new QuestionInput("Само един", new[] { "единствен" }, 0), Owner, false);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+    }
+
+    [Fact]
+    public async Task GetQuestionAsync_ReturnsTheQuestionWithQuizAndOptions()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+        var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
+        var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
+
+        var loaded = await service.GetQuestionAsync(question.Id);
+
+        Assert.NotNull(loaded);
+        Assert.Equal(quiz.Id, loaded!.Quiz.Id);
+        Assert.Equal(2, loaded.Options.Count);
+    }
+
+    [Fact]
+    public async Task GetQuestionAsync_Missing_ReturnsNull()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context);
+
+        Assert.Null(await service.GetQuestionAsync(999));
     }
 
     // ---------- GetByIdAsync ----------

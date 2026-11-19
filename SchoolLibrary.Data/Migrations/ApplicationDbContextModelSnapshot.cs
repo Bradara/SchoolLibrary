@@ -490,6 +490,9 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 
+                    b.Property<int>("Points")
+                        .HasColumnType("integer");
+
                     b.Property<int>("QuizId")
                         .HasColumnType("integer");
 

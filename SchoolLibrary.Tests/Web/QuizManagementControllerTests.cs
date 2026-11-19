@@ -236,6 +236,101 @@ public class QuizManagementControllerTests
         Assert.IsType<NotFoundResult>(result);
     }
 
+    // ---------- EditQuestion ----------
+
+    [Fact]
+    public async Task EditQuestion_Get_MapsTheQuestionIntoTheForm()
+    {
+        _service.Setup(s => s.GetQuestionAsync(9)).ReturnsAsync(new Question
+        {
+            Id = 9,
+            QuizId = 5,
+            Text = "Въпрос?",
+            Quiz = new Quiz { Id = 5, OwnerId = "t1" },
+            Options = new List<AnswerOption>
+            {
+                new() { Text = "A", Order = 1, IsCorrect = false },
+                new() { Text = "B", Order = 2, IsCorrect = true }
+            }
+        });
+
+        var result = await Controller("t1", Roles.Teacher).EditQuestion(5, 9);
+
+        var model = Assert.IsType<QuestionFormViewModel>(Assert.IsType<ViewResult>(result).Model);
+        Assert.Equal("Въпрос?", model.Text);
+        Assert.Equal(new[] { "A", "B" }, model.Options);
+        Assert.Equal(1, model.CorrectIndex);
+    }
+
+    [Fact]
+    public async Task EditQuestion_Get_Missing_ReturnsNotFound()
+    {
+        _service.Setup(s => s.GetQuestionAsync(9)).ReturnsAsync((Question?)null);
+
+        Assert.IsType<NotFoundResult>(await Controller("t1", Roles.Teacher).EditQuestion(5, 9));
+    }
+
+    [Fact]
+    public async Task EditQuestion_Get_ForAnotherTeachersQuiz_ReturnsForbid()
+    {
+        _service.Setup(s => s.GetQuestionAsync(9)).ReturnsAsync(new Question
+        {
+            Id = 9,
+            QuizId = 5,
+            Quiz = new Quiz { Id = 5, OwnerId = "someone-else" }
+        });
+
+        Assert.IsType<ForbidResult>(await Controller("t1", Roles.Teacher).EditQuestion(5, 9));
+    }
+
+    [Fact]
+    public async Task EditQuestion_Post_DropsEmptyOptions_AndRemapsTheCorrectIndex()
+    {
+        QuestionInput? captured = null;
+        _service.Setup(s => s.UpdateQuestionAsync(9, It.IsAny<QuestionInput>(), "t1", false))
+            .Callback<int, QuestionInput, string, bool>((_, input, _, _) => captured = input)
+            .ReturnsAsync(ServiceResult<Question>.Success(new Question()));
+
+        var vm = new QuestionFormViewModel
+        {
+            Text = "Въпрос?",
+            Options = new List<string> { "A", "", "B", "" },
+            CorrectIndex = 2
+        };
+
+        var result = await Controller("t1", Roles.Teacher).EditQuestion(5, 9, vm);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Details", redirect.ActionName);
+        Assert.NotNull(captured);
+        Assert.Equal(new[] { "A", "B" }, captured!.Options);
+        Assert.Equal(1, captured.CorrectIndex);
+    }
+
+    [Fact]
+    public async Task EditQuestion_Post_Conflict_RedisplaysFormWithError()
+    {
+        _service.Setup(s => s.UpdateQuestionAsync(9, It.IsAny<QuestionInput>(), "t1", false))
+            .ReturnsAsync(ServiceResult<Question>.Failure(ServiceError.Conflict, "вече има решения"));
+
+        var controller = Controller("t1", Roles.Teacher);
+        var result = await controller.EditQuestion(5, 9, new QuestionFormViewModel { Text = "В", Options = new List<string> { "а", "б" }, CorrectIndex = 0 });
+
+        Assert.IsType<ViewResult>(result);
+        Assert.False(controller.ModelState.IsValid);
+    }
+
+    [Fact]
+    public async Task EditQuestion_Post_Missing_ReturnsNotFound()
+    {
+        _service.Setup(s => s.UpdateQuestionAsync(It.IsAny<int>(), It.IsAny<QuestionInput>(), It.IsAny<string>(), It.IsAny<bool>()))
+            .ReturnsAsync(ServiceResult<Question>.Failure(ServiceError.NotFound, "Въпросът не е намерен."));
+
+        var result = await Controller("t1", Roles.Teacher).EditQuestion(5, 9, new QuestionFormViewModel { Text = "В", Options = new List<string> { "а", "б" }, CorrectIndex = 0 });
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
     // ---------- DeleteQuestion / SetPublished / Delete ----------
 
     [Fact]

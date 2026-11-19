@@ -30,6 +30,12 @@ public interface IQuizService
     /// <summary>Adds a question with its options. Fails when the quiz is missing, not allowed, already has attempts, or the input is invalid.</summary>
     Task<ServiceResult<Question>> AddQuestionAsync(int quizId, QuestionInput input, string userId, bool isAdministrator);
 
+    /// <summary>A question with its quiz and options (ordered), or null when it does not exist.</summary>
+    Task<Question?> GetQuestionAsync(int questionId);
+
+    /// <summary>Replaces a question's text and options. Fails when it is missing, not allowed, the quiz already has attempts, or the input is invalid.</summary>
+    Task<ServiceResult<Question>> UpdateQuestionAsync(int questionId, QuestionInput input, string userId, bool isAdministrator);
+
     /// <summary>Removes a question. Fails when it is missing, not allowed, or the quiz already has attempts.</summary>
     Task<ServiceResult<Question>> DeleteQuestionAsync(int questionId, string userId, bool isAdministrator);
 

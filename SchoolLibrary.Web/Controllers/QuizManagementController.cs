@@ -150,7 +150,66 @@ namespace SchoolLibrary.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddQuestion(int id, QuestionFormViewModel vm)
         {
-            // Drop empty option rows and keep track of which kept option is the correct one
+            var result = await _quizzes.AddQuestionAsync(id, ToQuestionInput(vm), CurrentUserId, IsAdministrator);
+            return AfterQuestionChange(id, result, "Въпросът е добавен.");
+        }
+
+        // GET: QuizManagement/EditQuestion/5?questionId=9
+        public async Task<IActionResult> EditQuestion(int id, int questionId)
+        {
+            var question = await _quizzes.GetQuestionAsync(questionId);
+            if (question == null)
+            {
+                return NotFound();
+            }
+
+            if (!QuizPermissions.CanManage(question.Quiz, CurrentUserId, IsAdministrator))
+            {
+                return Forbid();
+            }
+
+            var options = question.Options.OrderBy(o => o.Order).ToList();
+            ViewBag.QuizId = question.QuizId;
+            ViewBag.QuestionId = questionId;
+            return View(new QuestionFormViewModel
+            {
+                Text = question.Text,
+                Options = options.Select(o => o.Text).ToList(),
+                CorrectIndex = options.FindIndex(o => o.IsCorrect)
+            });
+        }
+
+        // POST: QuizManagement/EditQuestion/5?questionId=9
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditQuestion(int id, int questionId, QuestionFormViewModel vm)
+        {
+            var result = await _quizzes.UpdateQuestionAsync(questionId, ToQuestionInput(vm), CurrentUserId, IsAdministrator);
+            if (result.Error == ServiceError.NotFound)
+            {
+                return NotFound();
+            }
+
+            if (result.Error == ServiceError.Forbidden)
+            {
+                return Forbid();
+            }
+
+            if (!result.Succeeded)
+            {
+                ModelState.AddModelError(string.Empty, result.Message!);
+                ViewBag.QuizId = id;
+                ViewBag.QuestionId = questionId;
+                return View(vm);
+            }
+
+            TempData["SuccessMessage"] = "Въпросът е променен.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // Builds a question input from the form, dropping empty option rows and remapping the correct index
+        private static QuestionInput ToQuestionInput(QuestionFormViewModel vm)
+        {
             var options = new List<string>();
             var correctIndex = -1;
             var raw = vm.Options ?? new List<string>();
@@ -170,8 +229,7 @@ namespace SchoolLibrary.Controllers
                 options.Add(text);
             }
 
-            var result = await _quizzes.AddQuestionAsync(id, new QuestionInput(vm.Text ?? string.Empty, options, correctIndex), CurrentUserId, IsAdministrator);
-            return AfterQuestionChange(id, result, "Въпросът е добавен.");
+            return new QuestionInput(vm.Text ?? string.Empty, options, correctIndex);
         }
 
         // POST: QuizManagement/DeleteQuestion
