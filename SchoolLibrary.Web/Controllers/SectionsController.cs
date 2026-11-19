@@ -123,7 +123,13 @@ namespace SchoolLibrary.Controllers
                 return Forbid();
             }
 
-            return View(new SectionFormViewModel { Name = section.Name, Description = section.Description });
+            ViewBag.ParentChoices = await _sections.GetParentCandidatesAsync(id, section.OwnerId);
+            return View(new SectionFormViewModel
+            {
+                Name = section.Name,
+                Description = section.Description,
+                ParentId = section.ParentId
+            });
         }
 
         // POST: Sections/Edit/5
@@ -133,10 +139,11 @@ namespace SchoolLibrary.Controllers
         {
             if (!ModelState.IsValid)
             {
+                await PopulateParentChoicesAsync(id);
                 return View(vm);
             }
 
-            var result = await _sections.UpdateAsync(id, new SectionInput(vm.Name, vm.Description), CurrentUserId, IsAdministrator);
+            var result = await _sections.UpdateAsync(id, new SectionInput(vm.Name, vm.Description), CurrentUserId, IsAdministrator, vm.ParentId);
             if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();
@@ -150,11 +157,20 @@ namespace SchoolLibrary.Controllers
             if (!result.Succeeded)
             {
                 ModelState.AddModelError(string.Empty, result.Message!);
+                await PopulateParentChoicesAsync(id);
                 return View(vm);
             }
 
             TempData["SuccessMessage"] = "Промените са записани.";
             return RedirectToAction(nameof(Details), new { id });
+        }
+
+        private async Task PopulateParentChoicesAsync(int sectionId)
+        {
+            var section = await _sections.GetByIdAsync(sectionId);
+            ViewBag.ParentChoices = section == null
+                ? new List<Data.Models.Section>()
+                : await _sections.GetParentCandidatesAsync(sectionId, section.OwnerId);
         }
 
         // POST: Sections/Delete/5

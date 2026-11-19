@@ -22,13 +22,22 @@ public interface ISectionService
     Task<IReadOnlyList<Section>> GetAncestorsAsync(int id);
 
     /// <summary>
+    /// The sections that may become the parent of <paramref name="sectionId"/> — the owner's sections
+    /// except the section itself and its descendants (which would make a cycle), by name.
+    /// </summary>
+    Task<IReadOnlyList<Section>> GetParentCandidatesAsync(int sectionId, string? ownerId);
+
+    /// <summary>
     /// Creates a section owned by the teacher, optionally under a parent section. Fails on invalid
     /// input or when the parent does not exist.
     /// </summary>
     Task<ServiceResult<Section>> CreateAsync(SectionInput input, string ownerId, int? parentId = null);
 
-    /// <summary>Changes a section's name and description. Fails when missing, not allowed, or invalid.</summary>
-    Task<ServiceResult<Section>> UpdateAsync(int id, SectionInput input, string userId, bool isAdministrator);
+    /// <summary>
+    /// Changes a section's name, description and parent (null parent = top level). Fails when missing,
+    /// not allowed, invalid, or the new parent would create a cycle.
+    /// </summary>
+    Task<ServiceResult<Section>> UpdateAsync(int id, SectionInput input, string userId, bool isAdministrator, int? parentId = null);
 
     /// <summary>Deletes an empty section. Fails when missing, not allowed, or it still holds questions.</summary>
     Task<ServiceResult<Section>> DeleteAsync(int id, string userId, bool isAdministrator);

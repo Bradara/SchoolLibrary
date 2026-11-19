@@ -130,7 +130,7 @@ public class SectionService : ISectionService
         return ServiceResult<Section>.Success(section);
     }
 
-    public async Task<ServiceResult<Section>> UpdateAsync(int id, SectionInput input, string userId, bool isAdministrator)
+    public async Task<ServiceResult<Section>> UpdateAsync(int id, SectionInput input, string userId, bool isAdministrator, int? parentId = null)
     {
         var section = await _context.Sections.FirstOrDefaultAsync(s => s.Id == id);
         if (section == null)
@@ -149,11 +149,78 @@ public class SectionService : ISectionService
             return ServiceResult<Section>.Failure(ServiceError.Invalid, validation);
         }
 
+        if (parentId != null)
+        {
+            if (parentId == id)
+            {
+                return ServiceResult<Section>.Failure(ServiceError.Invalid, "Разделът не може да е родител на себе си.");
+            }
+
+            if (!await _context.Sections.AnyAsync(s => s.Id == parentId))
+            {
+                return ServiceResult<Section>.Failure(ServiceError.Invalid, "Родителският раздел не е намерен.");
+            }
+
+            if (await WouldCycleAsync(id, parentId.Value))
+            {
+                return ServiceResult<Section>.Failure(ServiceError.Invalid, "Не може да преместите раздел в негов подраздел.");
+            }
+        }
+
         section.Name = input.Name.Trim();
         section.Description = Clean(input.Description);
+        section.ParentId = parentId;
         await _context.SaveChangesAsync();
 
         return ServiceResult<Section>.Success(section);
+    }
+
+    // True when moving a section under newParentId would make a cycle (the new parent is the section
+    // itself or one of its descendants)
+    private async Task<bool> WouldCycleAsync(int sectionId, int newParentId)
+    {
+        int? currentId = newParentId;
+        for (var guard = 0; currentId != null && guard < 100; guard++)
+        {
+            if (currentId == sectionId)
+            {
+                return true;
+            }
+
+            currentId = await _context.Sections.AsNoTracking()
+                .Where(s => s.Id == currentId)
+                .Select(s => s.ParentId)
+                .FirstOrDefaultAsync();
+        }
+
+        return false;
+    }
+
+    public async Task<IReadOnlyList<Section>> GetParentCandidatesAsync(int sectionId, string? ownerId)
+    {
+        var all = await _context.Sections.AsNoTracking()
+            .Where(s => ownerId == null || s.OwnerId == ownerId)
+            .OrderBy(s => s.Name)
+            .ThenBy(s => s.Id)
+            .ToListAsync();
+
+        // Exclude the section itself and everything beneath it (those would form a cycle)
+        var excluded = new HashSet<int> { sectionId };
+        bool grew;
+        do
+        {
+            grew = false;
+            foreach (var s in all)
+            {
+                if (s.ParentId != null && excluded.Contains(s.ParentId.Value) && excluded.Add(s.Id))
+                {
+                    grew = true;
+                }
+            }
+        }
+        while (grew);
+
+        return all.Where(s => !excluded.Contains(s.Id)).ToList();
     }
 
     public async Task<ServiceResult<Section>> DeleteAsync(int id, string userId, bool isAdministrator)

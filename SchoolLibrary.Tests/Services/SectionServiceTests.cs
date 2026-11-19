@@ -270,6 +270,81 @@ public class SectionServiceTests
         Assert.Equal(ServiceError.Conflict, result.Error);
     }
 
+    // ---------- Tree: moving (UpdateAsync parent) ----------
+
+    [Fact]
+    public async Task UpdateAsync_MovesTheSectionUnderANewParent()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new SectionService(context);
+        var a = (await service.CreateAsync(new SectionInput("A", null), Owner)).Value!;
+        var b = (await service.CreateAsync(new SectionInput("B", null), Owner)).Value!;
+
+        var result = await service.UpdateAsync(b.Id, new SectionInput("B", null), Owner, false, parentId: a.Id);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(a.Id, (await service.GetByIdAsync(b.Id))!.ParentId);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_MoveToRoot_ClearsTheParent()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new SectionService(context);
+        var root = (await service.CreateAsync(new SectionInput("Корен", null), Owner)).Value!;
+        var child = (await service.CreateAsync(new SectionInput("Дете", null), Owner, parentId: root.Id)).Value!;
+
+        var result = await service.UpdateAsync(child.Id, new SectionInput("Дете", null), Owner, false, parentId: null);
+
+        Assert.True(result.Succeeded);
+        Assert.Null((await service.GetByIdAsync(child.Id))!.ParentId);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_IntoItself_FailsAsInvalid()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new SectionService(context);
+        var a = (await service.CreateAsync(new SectionInput("A", null), Owner)).Value!;
+
+        var result = await service.UpdateAsync(a.Id, new SectionInput("A", null), Owner, false, parentId: a.Id);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_IntoItsOwnDescendant_FailsAsInvalid()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new SectionService(context);
+        var root = (await service.CreateAsync(new SectionInput("Корен", null), Owner)).Value!;
+        var child = (await service.CreateAsync(new SectionInput("Дете", null), Owner, parentId: root.Id)).Value!;
+        var grandchild = (await service.CreateAsync(new SectionInput("Внуче", null), Owner, parentId: child.Id)).Value!;
+
+        var result = await service.UpdateAsync(root.Id, new SectionInput("Корен", null), Owner, false, parentId: grandchild.Id);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+    }
+
+    [Fact]
+    public async Task GetParentCandidatesAsync_ExcludesTheSectionAndItsDescendants()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new SectionService(context);
+        var root = (await service.CreateAsync(new SectionInput("Корен", null), Owner)).Value!;
+        var child = (await service.CreateAsync(new SectionInput("Дете", null), Owner, parentId: root.Id)).Value!;
+        var grandchild = (await service.CreateAsync(new SectionInput("Внуче", null), Owner, parentId: child.Id)).Value!;
+        var sibling = (await service.CreateAsync(new SectionInput("Брат", null), Owner)).Value!;
+
+        var candidates = await service.GetParentCandidatesAsync(child.Id, Owner);
+        var ids = candidates.Select(c => c.Id).ToList();
+
+        Assert.Contains(root.Id, ids);
+        Assert.Contains(sibling.Id, ids);
+        Assert.DoesNotContain(child.Id, ids);
+        Assert.DoesNotContain(grandchild.Id, ids);
+    }
+
     // ---------- SectionPermissions ----------
 
     [Fact]
