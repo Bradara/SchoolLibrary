@@ -65,8 +65,8 @@ public class QuizService : IQuizService
         var ids = quizzes.Select(q => q.Id).ToList();
 
         var questionCounts = await _context.Questions
-            .Where(x => ids.Contains(x.QuizId))
-            .GroupBy(x => x.QuizId)
+            .Where(x => x.QuizId != null && ids.Contains(x.QuizId.Value))
+            .GroupBy(x => x.QuizId!.Value)
             .Select(g => new { QuizId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(g => g.QuizId, g => g.Count);
 
@@ -376,8 +376,8 @@ public class QuizService : IQuizService
 
         var ids = quizzes.Select(q => q.Id).ToList();
         var questionCounts = await _context.Questions
-            .Where(x => ids.Contains(x.QuizId))
-            .GroupBy(x => x.QuizId)
+            .Where(x => x.QuizId != null && ids.Contains(x.QuizId.Value))
+            .GroupBy(x => x.QuizId!.Value)
             .Select(g => new { QuizId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(g => g.QuizId, g => g.Count);
 
@@ -617,8 +617,8 @@ public class QuizService : IQuizService
         return QuizGrading.Grade(attempt.Quiz, answers);
     }
 
-    private Task<bool> HasAttemptsAsync(int quizId)
-        => _context.QuizAttempts.AnyAsync(a => a.QuizId == quizId);
+    private async Task<bool> HasAttemptsAsync(int? quizId)
+        => quizId != null && await _context.QuizAttempts.AnyAsync(a => a.QuizId == quizId.Value);
 
     private async Task<string> GenerateUniqueCodeAsync()
     {
@@ -674,7 +674,8 @@ public class QuizService : IQuizService
         return null;
     }
 
-    private static string? ValidateQuestion(QuestionInput input)
+    /// <summary>Validates a single-choice question's text, options, correct index and points.</summary>
+    public static string? ValidateQuestion(QuestionInput input)
     {
         if (string.IsNullOrWhiteSpace(input.Text))
         {

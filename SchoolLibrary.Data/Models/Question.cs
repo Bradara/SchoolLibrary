@@ -21,8 +21,9 @@ namespace SchoolLibrary.Data.Models
         /// <summary>Display order within the quiz.</summary>
         public int Order { get; set; }
 
-        public int QuizId { get; set; }
-        public Quiz Quiz { get; set; } = null!;
+        /// <summary>The quiz this question is attached to directly; null for a bank question in a section.</summary>
+        public int? QuizId { get; set; }
+        public Quiz? Quiz { get; set; }
 
         /// <summary>The section (bank topic) this question belongs to; null until it is filed in one.</summary>
         public int? SectionId { get; set; }

@@ -493,7 +493,7 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<int>("Points")
                         .HasColumnType("integer");
 
-                    b.Property<int>("QuizId")
+                    b.Property<int?>("QuizId")
                         .HasColumnType("integer");
 
                     b.Property<int?>("SectionId")
@@ -982,8 +982,7 @@ namespace SchoolLibrary.Data.Migrations
                     b.HasOne("SchoolLibrary.Data.Models.Quiz", "Quiz")
                         .WithMany("Questions")
                         .HasForeignKey("QuizId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .OnDelete(DeleteBehavior.Cascade);
 
                     b.HasOne("SchoolLibrary.Data.Models.Section", "Section")
                         .WithMany("Questions")
