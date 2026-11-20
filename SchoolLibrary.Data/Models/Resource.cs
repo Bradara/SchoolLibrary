@@ -127,6 +127,14 @@ namespace SchoolLibrary.Data.Models
                     return match.Success ? $"https://archive.org/embed/{match.Groups[1].Value}" : null;
                 }
 
+                // Scratch: the project page refuses frames (X-Frame-Options: SAMEORIGIN), but the player at
+                // /projects/{id}/embed allows them (checked on 20.11.2026). Only for a numeric project id.
+                if (host == "scratch.mit.edu")
+                {
+                    var match = System.Text.RegularExpressions.Regex.Match(uri.AbsolutePath, @"^/projects/([0-9]{1,12})(/|/embed/?)?$");
+                    return match.Success ? $"https://scratch.mit.edu/projects/{match.Groups[1].Value}/embed" : null;
+                }
+
                 // Доверени сайтове със свободно съдържание, които позволяват вграждане.
                 // Страниците им не завършват на .html, затова се разпознават по домейна.
                 if (IsTrustedEmbedHost(host))
@@ -154,7 +162,9 @@ namespace SchoolLibrary.Data.Models
             "gutenberg.org",
             "blockly.games",
             "jspaint.app",
-            "wikipedia.org"
+            "wikipedia.org",
+            // Checked on 20.11.2026: the /m/{id} pages send frame-ancestors *
+            "geogebra.org"
         };
 
         // Самият домейн или негов поддомейн (bg.wikisource.org), но не evilwikisource.org

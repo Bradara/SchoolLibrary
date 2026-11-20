@@ -17,6 +17,7 @@ public class ResourceEmbedTests
     [InlineData("https://jspaint.app/")]
     [InlineData("https://simple.wikipedia.org/wiki/Family")]
     [InlineData("https://bg.wikipedia.org/wiki/България")]
+    [InlineData("https://www.geogebra.org/m/BYGyGD6E")]
     public void TrustedDomains_AreEmbedded(string url)
     {
         var resource = WithUrl(url);
@@ -65,6 +66,28 @@ public class ResourceEmbedTests
     [InlineData("")]
     [InlineData("not a url")]
     public void InvalidLink_IsNotEmbedded(string url)
+    {
+        Assert.False(WithUrl(url).IsEmbeddable);
+    }
+
+    [Theory]
+    [InlineData("https://scratch.mit.edu/projects/187111058")]
+    [InlineData("https://scratch.mit.edu/projects/187111058/")]
+    [InlineData("https://scratch.mit.edu/projects/187111058/embed")]
+    [InlineData("http://scratch.mit.edu/projects/187111058/")]
+    public void ScratchProject_IsEmbeddedThroughItsPlayer(string url)
+    {
+        Assert.Equal("https://scratch.mit.edu/projects/187111058/embed", WithUrl(url).EmbedUrl);
+    }
+
+    [Theory]
+    [InlineData("https://scratch.mit.edu/projects/editor/")]
+    [InlineData("https://scratch.mit.edu/users/someone/")]
+    [InlineData("https://scratch.mit.edu/projects/abc/")]
+    [InlineData("https://scratch.mit.edu/projects/187111058/remixes")]
+    [InlineData("https://scratch.mit.edu/studios/123/")]
+    [InlineData("https://scratch.mit.edu.evil.com/projects/1/")]
+    public void OtherScratchPages_AreNotEmbedded(string url)
     {
         Assert.False(WithUrl(url).IsEmbeddable);
     }

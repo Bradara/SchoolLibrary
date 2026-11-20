@@ -66,7 +66,9 @@ public static class ApplicationDbSeeder
         ("MIT", "Свободен софтуерен лиценз: ползване и промяна със запазване на бележката за авторските права.", "https://opensource.org/license/mit"),
         ("Apache 2.0", "Свободен софтуерен лиценз: ползване и промяна със запазване на бележките за авторските права.", "https://www.apache.org/licenses/LICENSE-2.0"),
         ("Стандартен лиценз на YouTube", "Видеото се показва чрез плейъра на YouTube и остава собственост на автора; платформата не го копира.", "https://www.youtube.com/t/terms"),
-        ("GPL 2.0", "Свободен софтуерен лиценз: програмата може да се ползва, променя и разпространява при същите условия.", "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html")
+        ("GPL 2.0", "Свободен софтуерен лиценз: програмата може да се ползва, променя и разпространява при същите условия.", "https://www.gnu.org/licenses/old-licenses/gpl-2.0.html"),
+        ("CC BY-SA 2.0", "С посочване на автора и споделяне на производните работи при същите условия (по-стара версия на лиценза).", "https://creativecommons.org/licenses/by-sa/2.0/deed.bg"),
+        ("Лиценз на GeoGebra", "Свободно ползване в училище и за обучение без търговска цел, според условията на GeoGebra.", "https://www.geogebra.org/license")
     };
 
     private static readonly (string Name, string Description, string Url, string Icon)[] OnlineLibrarySeed =
