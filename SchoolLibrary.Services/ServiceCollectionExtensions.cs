@@ -21,7 +21,8 @@ namespace SchoolLibrary.Services;
 public static class ServiceCollectionExtensions
 {
     /// <summary>Registers the application services in the dependency injection container.</summary>
-    public static IServiceCollection AddApplicationServices(this IServiceCollection services)
+    /// <param name="youTubeApiKey">YouTube Data API key; without one YouTube is not offered in "Find resources".</param>
+    public static IServiceCollection AddApplicationServices(this IServiceCollection services, string? youTubeApiKey = null)
     {
         services.AddScoped<ICategoryService, CategoryService>();
         services.AddScoped<ICommentService, CommentService>();
@@ -51,7 +52,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMarkdownRenderer, MarkdigMarkdownRenderer>();
 
         // Sources for "Find resources". The hosts are fixed in code: the search never fetches an address a user typed
-        foreach (var clientName in new[] { WikimediaSourceProvider.HttpClientName, PhetSourceProvider.HttpClientName, GutenbergSourceProvider.HttpClientName, InternetArchiveSourceProvider.HttpClientName, GeoGebraSourceProvider.HttpClientName, ScratchSourceProvider.HttpClientName })
+        foreach (var clientName in new[] { WikimediaSourceProvider.HttpClientName, PhetSourceProvider.HttpClientName, GutenbergSourceProvider.HttpClientName, InternetArchiveSourceProvider.HttpClientName, GeoGebraSourceProvider.HttpClientName, ScratchSourceProvider.HttpClientName, YouTubeSourceProvider.HttpClientName })
         {
             services.AddHttpClient(clientName, client =>
             {
@@ -72,6 +73,13 @@ public static class ServiceCollectionExtensions
         services.AddTransient<IResourceSourceProvider, InternetArchiveSourceProvider>();
         services.AddTransient<IResourceSourceProvider, GeoGebraSourceProvider>();
         services.AddTransient<IResourceSourceProvider, ScratchSourceProvider>();
+
+        // YouTube needs an API key (user secrets or an environment variable, never the repository)
+        if (!string.IsNullOrWhiteSpace(youTubeApiKey))
+        {
+            services.AddTransient<IResourceSourceProvider>(sp => new YouTubeSourceProvider(
+                sp.GetRequiredService<IHttpClientFactory>(), youTubeApiKey));
+        }
 
         // Site icons of the online libraries. The address is typed by an administrator, so every
         // connection goes through the guard that allows only public addresses and web ports.

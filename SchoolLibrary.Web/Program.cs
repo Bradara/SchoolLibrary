@@ -71,7 +71,7 @@ namespace SchoolLibrary
                 .AddEntityFrameworkStores<ApplicationDbContext>();
             builder.Services.AddControllersWithViews(options =>
                 options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
-            builder.Services.AddApplicationServices();
+            builder.Services.AddApplicationServices(builder.Configuration["YouTube:ApiKey"]);
 
             // Where uploaded files are kept, chosen by FileStorage:Provider:
             //   "Oci"  -> an S3-compatible bucket (OCI Object Storage), so the files live off the server's disk;

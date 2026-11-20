@@ -38,6 +38,7 @@ Teachers also build **quizzes**: open practice tests students can take any time,
 - **Resource catalog** with search by title, filters (kind, subject, grade, owner, date), sorting and pagination.
 - **Embedding**: YouTube (privacy-enhanced domain), Google Drive/Docs/Slides/Sheets, `.pdf`, `.html`, GitHub Pages and a short list of trusted domains (Wikisource, Wikibooks, Wikipedia, Gutenberg, Blockly Games, JSPaint). Everything else is shown as a link. Only `http` and `https` addresses are ever linked or embedded.
 - **Uploaded files** (PDF, EPUB, Markdown, up to 25 MB) with an in-browser preview: PDF in a frame, Markdown rendered to sanitized HTML (Markdig + HtmlSanitizer), EPUB read with epub.js. The file type is verified from the content, not from the name. Files are stored outside the database behind a storage abstraction; the same file cannot be uploaded twice (checked by hash).
+- **Find resources** (teachers): a topic is searched in a fixed list of sources (Wikipedia, Wikisource, Wikibooks, PhET, Project Gutenberg, Internet Archive, GeoGebra, Scratch and, when an API key is set, YouTube). Each suggestion shows its source, license, whether it can be embedded and whether the catalog already has it; nothing is saved until the teacher ticks it. Users never give an address to fetch, so the server cannot be made to call arbitrary hosts. YouTube results are embeddable videos only, with strict safe search; Creative Commons videos get CC BY 3.0, the rest the standard YouTube license.
 - **Licenses**: required for every resource, managed by administrators, shown in the list and the details.
 - **Duplicate protection**: links are normalized and must be unique across the platform.
 - **Favorites** with a personal paged list.
@@ -213,6 +214,7 @@ dotnet ef database update --project SchoolLibrary.Data --startup-project SchoolL
 | `FileStorage__LocalPath` | Folder for uploaded files (a volume in Docker). Defaults to `App_Data/uploads` under the content root. Used when the provider is local |
 | `FileStorage__Provider` | `Oci` keeps uploaded files in an S3-compatible bucket (OCI Object Storage), off the server's disk; any other value uses the local folder above |
 | `FileStorage__Oci__Endpoint`, `__Region`, `__Bucket`, `__AccessKey`, `__SecretKey` | S3-compatible endpoint, region, bucket and Customer Secret Key, used only when the provider is `Oci` (secrets come from the environment and are never committed) |
+| `YouTube__ApiKey` | YouTube Data API v3 key for "Find resources" (user secrets or environment, never committed). Without it YouTube is not offered |
 | `AllowedHosts` | Host names the app answers to, separated by `;` (default `*`) |
 | `Security__AllowInsecureCookies` | `true` only for a local stack opened over plain HTTP |
 | `Seed__DemoData`, `Seed__DemoPassword` | Demo data, Development only |
