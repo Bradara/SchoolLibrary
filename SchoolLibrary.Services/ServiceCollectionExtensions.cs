@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SchoolLibrary.Services.Categories;
 using SchoolLibrary.Services.Comments;
 using SchoolLibrary.Services.Discovery;
+using SchoolLibrary.Services.Exams;
 using SchoolLibrary.Services.Favorites;
 using SchoolLibrary.Services.GradeLevels;
 using SchoolLibrary.Services.Licenses;
@@ -39,6 +40,8 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISectionService, SectionService>();
         services.AddScoped<IQuestionBankService, QuestionBankService>();
         services.AddScoped<IQuizItemService, QuizItemService>();
+        services.AddScoped<ISchoolClassService, SchoolClassService>();
+        services.AddScoped<IExamAssignmentService, ExamAssignmentService>();
 
         // Default file storage; Program.cs replaces it with the configured path (a mounted volume on the
         // server). The folder is created lazily on the first upload, so this default touches no disk.

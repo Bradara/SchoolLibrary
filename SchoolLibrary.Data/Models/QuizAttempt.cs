@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SchoolLibrary.Data.Models
 {
@@ -15,6 +16,10 @@ namespace SchoolLibrary.Data.Models
 
         public int QuizId { get; set; }
         public Quiz Quiz { get; set; } = null!;
+
+        /// <summary>The class exam this attempt belongs to; null for an exam-mode quiz entered by its own code.</summary>
+        public int? ExamAssignmentId { get; set; }
+        public ExamAssignment? ExamAssignment { get; set; }
 
         [Required(ErrorMessage = "Въведете име")]
         [MaxLength(100, ErrorMessage = "Името не може да бъде по-дълго от 100 символа")]
@@ -46,5 +51,17 @@ namespace SchoolLibrary.Data.Models
         public ICollection<AttemptQuestion> Questions { get; set; } = new List<AttemptQuestion>();
 
         public ICollection<AttemptAnswer> Answers { get; set; } = new List<AttemptAnswer>();
+
+        /// <summary>The time limit in force: the class exam's when there is one, otherwise the quiz's.</summary>
+        [NotMapped]
+        public int? TimeLimitMinutes => ExamAssignment != null ? ExamAssignment.TimeLimitMinutes : Quiz?.TimeLimitMinutes;
+
+        /// <summary>The proctoring allowance in force: the class exam's when there is one, otherwise the quiz's.</summary>
+        [NotMapped]
+        public int? MaxLeaves => ExamAssignment != null ? ExamAssignment.MaxLeaves : Quiz?.MaxLeaves;
+
+        /// <summary>Whether the student may see the result: always for a quiz exam, once released for a class exam.</summary>
+        [NotMapped]
+        public bool ResultVisible => ExamAssignment == null || ExamAssignment.ResultsReleased;
     }
 }

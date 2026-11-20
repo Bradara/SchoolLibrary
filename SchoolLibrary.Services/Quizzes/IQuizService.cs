@@ -55,9 +55,18 @@ public interface IQuizService
     Task<ServiceResult<QuizResult>> GradePracticeAsync(int quizId, IReadOnlyCollection<int> questionIds, IReadOnlyDictionary<int, int?> answers);
 
     /// <summary>
-    /// Starts (or resumes) an exam entered by its code. A student who already submitted this exam is
-    /// blocked; an unfinished attempt for the same name and number is resumed. Fails when the code is
-    /// unknown or the name is missing.
+    /// The exam behind a code (a class exam, open or closed, or a published exam-mode quiz), for the
+    /// first entry step. Fails when no exam has the code.
+    /// </summary>
+    Task<ServiceResult<ExamEntry>> FindExamAsync(string code);
+
+    /// <summary>
+    /// Starts (or resumes) an exam entered by its code.
+    /// For a class exam the number in the class (1–99) is required and identifies the student: the same
+    /// number and name resume the attempt or return the submitted one (to see the result); the same
+    /// number with another name is refused; a closed exam accepts no new attempts.
+    /// For an exam-mode quiz, a student who already submitted is blocked and an unfinished attempt for
+    /// the same name and number is resumed. Fails when the code is unknown or the name is missing.
     /// </summary>
     Task<ServiceResult<QuizAttempt>> StartExamAsync(string code, string studentName, string? studentNumber);
 

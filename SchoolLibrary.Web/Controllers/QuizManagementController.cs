@@ -2,6 +2,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SchoolLibrary.Data.Constants;
+using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
 using SchoolLibrary.Services.Quizzes;
@@ -158,6 +159,8 @@ namespace SchoolLibrary.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(QuizFormViewModel vm)
         {
+            // New quizzes are practice quizzes; exams are class assignments (ExamsController)
+            vm.Mode = QuizMode.Practice;
             if (!ModelState.IsValid)
             {
                 return View(vm);
@@ -205,6 +208,13 @@ namespace SchoolLibrary.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, QuizFormViewModel vm)
         {
+            // A practice quiz cannot be turned into an exam-mode quiz (only older exams keep that mode)
+            var existing = await _quizzes.GetByIdAsync(id);
+            if (existing?.Mode == QuizMode.Practice)
+            {
+                vm.Mode = QuizMode.Practice;
+            }
+
             if (!ModelState.IsValid)
             {
                 return View(vm);

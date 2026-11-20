@@ -302,3 +302,31 @@ body.sl-maximized-open {
   object-fit: contain;
   vertical-align: middle;
 }
+
+/* Exam: full-page start screen, leave warning and forced-submission notice */
+.sl-exam-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  overflow-y: auto;
+  background-color: var(--bs-body-bg);
+  text-align: center;
+}
+
+.sl-exam-overlay.d-none {
+  display: none !important;
+}
+
+.sl-exam-overlay-box {
+  max-width: 40rem;
+  width: 100%;
+}
+
+.sl-exam-overlay-danger {
+  background-color: #b02a37;
+  color: #fff;
+}

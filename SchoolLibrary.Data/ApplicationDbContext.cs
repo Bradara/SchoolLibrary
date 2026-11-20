@@ -247,6 +247,49 @@ namespace SchoolLibrary.Data
             builder.Entity<QuizAttempt>()
                 .HasIndex(a => a.Token)
                 .IsUnique();
+
+            // ---------- Classes and class exams ----------
+
+            // Deleting a teacher keeps their classes (OwnerId becomes NULL, like quizzes)
+            builder.Entity<SchoolClass>()
+                .HasOne(c => c.Owner)
+                .WithMany()
+                .HasForeignKey(c => c.OwnerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            // A teacher cannot have two classes with the same name
+            builder.Entity<SchoolClass>()
+                .HasIndex(c => new { c.OwnerId, c.Name })
+                .IsUnique();
+
+            // Deleting a class or the quiz removes its exams; an exam removes its attempts
+            builder.Entity<ExamAssignment>()
+                .HasOne(e => e.SchoolClass)
+                .WithMany(c => c.Exams)
+                .HasForeignKey(e => e.SchoolClassId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<ExamAssignment>()
+                .HasOne(e => e.Quiz)
+                .WithMany()
+                .HasForeignKey(e => e.QuizId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<ExamAssignment>()
+                .HasIndex(e => e.Code)
+                .IsUnique();
+
+            builder.Entity<QuizAttempt>()
+                .HasOne(a => a.ExamAssignment)
+                .WithMany(e => e.Attempts)
+                .HasForeignKey(a => a.ExamAssignmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // One attempt per number in a class exam. Quiz-mode attempts have ExamAssignmentId = NULL,
+            // and PostgreSQL lets NULLs repeat in a unique index, so they do not clash
+            builder.Entity<QuizAttempt>()
+                .HasIndex(a => new { a.ExamAssignmentId, a.StudentNumber })
+                .IsUnique();
         }
 
         public DbSet<Resource> Resources { get; set; }
@@ -260,6 +303,8 @@ namespace SchoolLibrary.Data
         public DbSet<Report> Reports { get; set; }
         public DbSet<Section> Sections { get; set; }
         public DbSet<Quiz> Quizzes { get; set; }
+        public DbSet<SchoolClass> SchoolClasses { get; set; }
+        public DbSet<ExamAssignment> ExamAssignments { get; set; }
         public DbSet<QuizItem> QuizItems { get; set; }
         public DbSet<Question> Questions { get; set; }
         public DbSet<AnswerOption> AnswerOptions { get; set; }

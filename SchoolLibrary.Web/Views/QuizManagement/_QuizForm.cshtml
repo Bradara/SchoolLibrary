@@ -14,27 +14,29 @@
     <span asp-validation-for="Description" class="text-danger small"></span>
 </div>
 
-<div class="mb-3">
-    <label asp-for="Mode" class="form-label"></label>
-    <select asp-for="Mode" class="form-select">
-        <option value="Practice">Упражнение (отворено, моментална обратна връзка)</option>
-        <option value="Exam">Изпит (по код, с таймер, един опит)</option>
-    </select>
-</div>
+@* New quizzes are practice quizzes; an exam is made by assigning one to a class (Exams panel).
+   The mode, time limit and proctoring are kept only for older exam-mode quizzes. *@
+@if (Model.Mode == SchoolLibrary.Data.Enums.QuizMode.Exam)
+{
+    <input type="hidden" asp-for="Mode" />
+    <div class="mb-3">
+        <label asp-for="TimeLimitMinutes" class="form-label"></label>
+        <input asp-for="TimeLimitMinutes" class="form-control" type="number" min="1" max="600" />
+        <span asp-validation-for="TimeLimitMinutes" class="text-danger small"></span>
+        <div class="form-text">Само за изпит. Празно = без ограничение във времето.</div>
+    </div>
 
-<div class="mb-3">
-    <label asp-for="TimeLimitMinutes" class="form-label"></label>
-    <input asp-for="TimeLimitMinutes" class="form-control" type="number" min="1" max="600" />
-    <span asp-validation-for="TimeLimitMinutes" class="text-danger small"></span>
-    <div class="form-text">Само за изпит. Празно = без ограничение във времето.</div>
-</div>
-
-<div class="mb-3">
-    <label asp-for="MaxLeaves" class="form-label"></label>
-    <input asp-for="MaxLeaves" class="form-control" type="number" min="0" max="100" />
-    <span asp-validation-for="MaxLeaves" class="text-danger small"></span>
-    <div class="form-text">Само за изпит. Колко пъти ученикът може да напусне страницата, преди изпитът да се предаде автоматично. Празно = без надзор.</div>
-</div>
+    <div class="mb-3">
+        <label asp-for="MaxLeaves" class="form-label"></label>
+        <input asp-for="MaxLeaves" class="form-control" type="number" min="0" max="100" />
+        <span asp-validation-for="MaxLeaves" class="text-danger small"></span>
+        <div class="form-text">Само за изпит. Колко пъти ученикът може да напусне страницата, преди изпитът да се предаде автоматично. Празно = без надзор.</div>
+    </div>
+}
+else
+{
+    <div class="form-text mb-3"><i class="bi bi-info-circle"></i> За изпит назначи теста на клас от „Тестове → Изпити“.</div>
+}
 
 <fieldset class="mb-3">
     <legend class="form-label fs-6 mb-1">Разбъркване</legend>

@@ -1,0 +1,112 @@
+@model SchoolLibrary.ViewModels.ExamsIndexViewModel
+
+@{
+    ViewData["Title"] = "Изпити";
+    var selected = Model.Classes.FirstOrDefault(c => c.SchoolClass.Id == Model.SelectedClassId);
+}
+
+<partial name="_MessagePartial" />
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-clipboard-check"></i> Изпити</h1>
+    <div class="d-flex flex-wrap gap-1">
+        <a asp-action="CreateClass" class="btn btn-outline-primary"><i class="bi bi-people"></i> Нов клас</a>
+        @if (Model.Classes.Count > 0)
+        {
+            <a asp-action="Create" asp-route-classId="@Model.SelectedClassId" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Назначи изпит</a>
+        }
+    </div>
+</div>
+
+<p class="text-body-secondary">
+    Създай класовете си и им назначи тест за упражнение като изпит. Всеки изпит получава свой код;
+    учениците влизат с него, без регистрация, и въвеждат име и номер в класа. Резултатите се виждат от учениците,
+    едва когато ги активираш.
+</p>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <h2 class="h5">Класове</h2>
+        @if (Model.Classes.Count == 0)
+        {
+            <div class="alert alert-info">Още нямаш класове. Започни с „Нов клас“.</div>
+        }
+        else
+        {
+            <div class="list-group">
+                <a asp-action="Index" class="list-group-item list-group-item-action @(Model.SelectedClassId == null ? "active" : "")">Всички класове</a>
+                @foreach (var item in Model.Classes)
+                {
+                    var c = item.SchoolClass;
+                    <div class="list-group-item d-flex justify-content-between align-items-center gap-2 @(c.Id == Model.SelectedClassId ? "active" : "")">
+                        <a asp-action="Index" asp-route-classId="@c.Id" class="flex-grow-1 text-reset text-decoration-none">
+                            <strong>@c.Name</strong>
+                            <span class="badge text-bg-secondary ms-1" title="Изпити">@item.ExamCount</span>
+                        </a>
+                        <a asp-action="EditClass" asp-route-id="@c.Id" class="btn btn-sm btn-link text-reset p-0" title="Преименувай" aria-label="Преименувай @c.Name"><i class="bi bi-pencil"></i></a>
+                        <form method="post" asp-action="DeleteClass" asp-route-id="@c.Id" class="d-inline"
+                              onsubmit="return confirm('Да изтрия ли класа с всичките му изпити и резултати? Действието е необратимо.');">
+                            <button type="submit" class="btn btn-sm btn-link text-reset p-0" title="Изтрий" aria-label="Изтрий @c.Name"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="col-lg-8">
+        <h2 class="h5">@(selected == null ? "Изпити" : "Изпити на " + selected.SchoolClass.Name)</h2>
+        @if (Model.Exams.Count == 0)
+        {
+            <div class="alert alert-info">Няма назначени изпити.</div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Тест</th>
+                            <th>Клас</th>
+                            <th>Код</th>
+                            <th>Състояние</th>
+                            <th class="text-center" title="Предадени / в процес">Решения</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.Exams)
+                        {
+                            var exam = item.Exam;
+                            <tr>
+                                <td><a asp-action="Details" asp-route-id="@exam.Id">@exam.Quiz.Title</a></td>
+                                <td>@exam.SchoolClass.Name</td>
+                                <td><code class="user-select-all">@exam.Code</code></td>
+                                <td>
+                                    @if (exam.IsOpen)
+                                    {
+                                        <span class="badge text-bg-success">Отворен</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge text-bg-secondary">Затворен</span>
+                                    }
+                                    @if (exam.ResultsReleased)
+                                    {
+                                        <span class="badge text-bg-info" title="Учениците виждат резултатите си">Резултати: видими</span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <strong>@item.SubmittedCount</strong>
+                                    @if (item.InProgressCount > 0)
+                                    {
+                                        <span class="text-body-secondary small">/ @item.InProgressCount в процес</span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

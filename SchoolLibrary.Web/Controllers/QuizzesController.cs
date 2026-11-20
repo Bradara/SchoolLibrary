@@ -55,15 +55,44 @@ namespace SchoolLibrary.Controllers
             return View("Result", result.Value);
         }
 
-        // GET: Quizzes/Exam — enter an exam by its code
+        // GET: Quizzes/Exam — step 1: enter the exam code
         [HttpGet]
-        public IActionResult Exam() => View(new ExamEntryViewModel());
+        public IActionResult Exam() => View(new ExamCodeViewModel());
 
-        // POST: Quizzes/Exam
+        // POST: Quizzes/Exam — check the code, then ask for the name and number (step 2)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Exam(ExamEntryViewModel vm)
+        public async Task<IActionResult> Exam(ExamCodeViewModel vm)
         {
+            if (!ModelState.IsValid)
+            {
+                return View(vm);
+            }
+
+            var found = await _quizzes.FindExamAsync(vm.Code);
+            if (!found.Succeeded)
+            {
+                ModelState.AddModelError(string.Empty, found.Message!);
+                return View(vm);
+            }
+
+            return View(nameof(ExamStudent), new ExamEntryViewModel { Code = found.Value!.Code, Exam = found.Value });
+        }
+
+        // POST: Quizzes/ExamStudent — step 2: start (or resume) the exam, or open a submitted one's result
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ExamStudent(ExamEntryViewModel vm)
+        {
+            var found = await _quizzes.FindExamAsync(vm.Code);
+            if (!found.Succeeded)
+            {
+                // The code was changed in the hidden field, or the exam was deleted meanwhile
+                ModelState.AddModelError(string.Empty, found.Message!);
+                return View(nameof(Exam), new ExamCodeViewModel { Code = vm.Code });
+            }
+
+            vm.Exam = found.Value;
             if (!ModelState.IsValid)
             {
                 return View(vm);
@@ -91,6 +120,14 @@ namespace SchoolLibrary.Controllers
 
             if (attempt.SubmittedOn != null)
             {
+                return RedirectToAction(nameof(ExamResult), new { token });
+            }
+
+            // Flagged by proctoring but never handed in (e.g. the page was reloaded or closed instead of
+            // being submitted): it is submitted now with no answers, so leaving cannot buy more time
+            if (attempt.Flagged)
+            {
+                await _quizzes.SubmitExamAsync(token, new Dictionary<int, int?>());
                 return RedirectToAction(nameof(ExamResult), new { token });
             }
 
@@ -135,13 +172,40 @@ namespace SchoolLibrary.Controllers
                 return NotFound();
             }
 
+            var attempt = await _quizzes.GetExamAttemptAsync(token);
+
+            // Submitted by force after too many leaves: a notice instead of the answers (the score and
+            // grade only once the result is visible)
+            if (attempt is { Flagged: true, SubmittedOn: not null })
+            {
+                return View("ExamForced", new ExamForcedViewModel
+                {
+                    Title = attempt.Quiz.Title,
+                    ClassName = attempt.ExamAssignment?.SchoolClass?.Name,
+                    StudentName = attempt.StudentName,
+                    SubmittedOn = attempt.SubmittedOn,
+                    Result = result.Succeeded ? result.Value : null
+                });
+            }
+
+            if (result.Error == ServiceError.Forbidden)
+            {
+                // A class exam whose result the teacher has not released yet
+                return View("ExamPending", new ExamPendingViewModel
+                {
+                    Title = attempt?.Quiz.Title ?? string.Empty,
+                    ClassName = attempt?.ExamAssignment?.SchoolClass?.Name,
+                    StudentName = attempt?.StudentName ?? string.Empty,
+                    SubmittedOn = attempt?.SubmittedOn
+                });
+            }
+
             if (!result.Succeeded)
             {
                 // Not submitted yet — send the student back to finish answering
                 return RedirectToAction(nameof(Take), new { token });
             }
 
-            var attempt = await _quizzes.GetExamAttemptAsync(token);
             return View(new ExamResultViewModel
             {
                 Result = result.Value!,
@@ -153,7 +217,7 @@ namespace SchoolLibrary.Controllers
         // Seconds left for a timed exam; null when the exam has no time limit
         private static int? RemainingSeconds(QuizAttempt attempt)
         {
-            if (attempt.Quiz.TimeLimitMinutes is not int minutes)
+            if (attempt.TimeLimitMinutes is not int minutes)
             {
                 return null;
             }

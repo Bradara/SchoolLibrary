@@ -3,15 +3,69 @@
 @{
     ViewData["Title"] = Model.Attempt.Quiz.Title;
     var quiz = Model.Attempt.Quiz;
-    var proctored = quiz.MaxLeaves.HasValue;
+    var maxLeaves = Model.Attempt.MaxLeaves;
+    var proctored = maxLeaves.HasValue;
 }
 
-<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-    <h1 class="h3 mb-0">@quiz.Title</h1>
-    <div class="d-flex align-items-center gap-2">
-        <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-fullscreen-btn">
-            <i class="bi bi-arrows-fullscreen"></i> Цял екран
-        </button>
+@* The exam runs in fullscreen. The start screen asks for a click, since a browser only enters
+   fullscreen from a user action; the questions stay hidden until then. Without JavaScript the
+   questions are shown directly (no fullscreen and no proctoring is possible then). *@
+<noscript>
+    <style>
+        #sl-exam-start { display: none !important; }
+        #sl-exam-content { display: block !important; }
+    </style>
+</noscript>
+<div class="sl-exam-overlay" id="sl-exam-start" role="dialog" aria-modal="true" aria-labelledby="sl-exam-start-title">
+    <div class="sl-exam-overlay-box">
+        <i class="bi bi-arrows-fullscreen display-4"></i>
+        <h1 class="h3 mt-2" id="sl-exam-start-title">@quiz.Title</h1>
+        <p class="lead">Изпитът се решава на цял екран.</p>
+        <ul class="text-start small mb-3">
+            <li>Не излизай от цял екран и не превключвай към друг прозорец, раздел или приложение.</li>
+            @if (proctored)
+            {
+                <li>Всяко напускане се записва. Разрешени напускания: <strong>@maxLeaves</strong>. При повече изпитът се предава принудително.</li>
+            }
+            else
+            {
+                <li>Всяко напускане се показва като предупреждение.</li>
+            }
+            @if (Model.RemainingSeconds.HasValue)
+            {
+                <li>Времето тече от началото на опита, също и докато този екран е отворен.</li>
+            }
+        </ul>
+        <p class="small d-none" id="sl-exam-no-fullscreen">
+            <i class="bi bi-info-circle"></i> Това устройство не поддържа цял екран. Изпитът продължава, но напускането на страницата се следи.
+        </p>
+        <button type="button" class="btn btn-primary btn-lg" id="sl-exam-start-btn">Започни изпита</button>
+    </div>
+</div>
+
+@* Shown when the student leaves fullscreen, the tab or the window *@
+<div class="sl-exam-overlay sl-exam-overlay-danger d-none" id="sl-exam-warning" role="alertdialog" aria-modal="true"
+     aria-labelledby="sl-exam-warning-title" aria-describedby="sl-exam-warning-text">
+    <div class="sl-exam-overlay-box">
+        <i class="bi bi-exclamation-octagon-fill display-3"></i>
+        <h2 class="display-6 fw-bold mt-2" id="sl-exam-warning-title">Внимание! Напусна изпита.</h2>
+        <p class="fs-5" id="sl-exam-warning-text">Опитът за напускане се записва.</p>
+        <button type="button" class="btn btn-light btn-lg" id="sl-exam-return-btn">Върни се към изпита</button>
+    </div>
+</div>
+
+@* Shown just before the attempt is submitted because the leave limit was passed *@
+<div class="sl-exam-overlay sl-exam-overlay-danger d-none" id="sl-exam-forced" role="alertdialog" aria-modal="true" aria-labelledby="sl-exam-forced-title">
+    <div class="sl-exam-overlay-box">
+        <i class="bi bi-x-octagon-fill display-3"></i>
+        <h2 class="display-6 fw-bold mt-2" id="sl-exam-forced-title">Изпитът се предава принудително</h2>
+        <p class="fs-5 mb-0">Причина: опит за преписване (напускане на изпита повече от позволеното).</p>
+    </div>
+</div>
+
+<div id="sl-exam-content" class="d-none">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+        <h1 class="h3 mb-0">@quiz.Title</h1>
         @if (Model.RemainingSeconds.HasValue)
         {
             <div class="alert alert-warning d-inline-flex align-items-center gap-2 mb-0 py-2" role="status">
@@ -20,46 +74,48 @@
             </div>
         }
     </div>
-</div>
 
-@if (proctored)
-{
-    <div class="alert alert-info py-2">
-        <i class="bi bi-eye"></i> Изпитът следи напускането на страницата. Разрешени напускания: <strong>@quiz.MaxLeaves</strong>. При повече изпитът се предава автоматично.
-    </div>
-    <div class="alert alert-danger py-2 d-none" id="sl-proctor-notice" role="alert"></div>
-}
-
-@if (!string.IsNullOrEmpty(quiz.Description))
-{
-    <p class="lead">@quiz.Description</p>
-}
-
-<form method="post" asp-action="Take" asp-route-token="@Model.Attempt.Token"
-      id="sl-exam-form" data-remaining-seconds="@(Model.RemainingSeconds?.ToString() ?? "")"
-      data-proctored="@(proctored ? "true" : "false")"
-      data-leave-url="@Url.Action("RecordLeave", new { token = Model.Attempt.Token })">
-    @{ var number = 0; }
-    @foreach (var question in Model.Attempt.Questions.OrderBy(aq => aq.Order).Select(aq => aq.Question))
+    @if (proctored)
     {
-        number++;
-        <fieldset class="card mb-3">
-            <div class="card-body">
-                <legend class="h6 card-title">@number. @question.Text</legend>
-                @foreach (var option in question.Options)
-                {
-                    var optionId = $"q{question.Id}o{option.Id}";
-                    <div class="form-check">
-                        <input class="form-check-input" type="radio" name="answers[@question.Id]" value="@option.Id" id="@optionId">
-                        <label class="form-check-label" for="@optionId">@option.Text</label>
-                    </div>
-                }
-            </div>
-        </fieldset>
+        <div class="alert alert-info py-2">
+            <i class="bi bi-eye"></i> Изпитът следи напускането на страницата. Разрешени напускания: <strong>@maxLeaves</strong>. При повече изпитът се предава принудително.
+        </div>
+    }
+    <div class="alert alert-danger py-2 d-none" id="sl-proctor-notice" role="status"></div>
+
+    @if (!string.IsNullOrEmpty(quiz.Description))
+    {
+        <p class="lead">@quiz.Description</p>
     }
 
-    <button type="submit" class="btn btn-primary">Предай изпита</button>
-</form>
+    <form method="post" asp-action="Take" asp-route-token="@Model.Attempt.Token"
+          id="sl-exam-form" data-remaining-seconds="@(Model.RemainingSeconds?.ToString() ?? "")"
+          data-proctored="@(proctored ? "true" : "false")"
+          data-max-leaves="@(maxLeaves?.ToString() ?? "")"
+          data-leave-count="@Model.Attempt.LeaveCount"
+          data-leave-url="@Url.Action("RecordLeave", new { token = Model.Attempt.Token })">
+        @{ var number = 0; }
+        @foreach (var question in Model.Attempt.Questions.OrderBy(aq => aq.Order).Select(aq => aq.Question))
+        {
+            number++;
+            <fieldset class="card mb-3">
+                <div class="card-body">
+                    <legend class="h6 card-title">@number. @question.Text</legend>
+                    @foreach (var option in question.Options)
+                    {
+                        var optionId = $"q{question.Id}o{option.Id}";
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="answers[@question.Id]" value="@option.Id" id="@optionId">
+                            <label class="form-check-label" for="@optionId">@option.Text</label>
+                        </div>
+                    }
+                </div>
+            </fieldset>
+        }
+
+        <button type="submit" class="btn btn-primary">Предай изпита</button>
+    </form>
+</div>
 
 @section Scripts {
     @if (Model.RemainingSeconds.HasValue)

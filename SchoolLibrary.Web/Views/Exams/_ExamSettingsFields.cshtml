@@ -1,0 +1,15 @@
+@model SchoolLibrary.ViewModels.ExamSettingsViewModel
+
+<div class="mb-3">
+    <label asp-for="TimeLimitMinutes" class="form-label"></label>
+    <input asp-for="TimeLimitMinutes" class="form-control" type="number" min="1" max="600" />
+    <span asp-validation-for="TimeLimitMinutes" class="text-danger small"></span>
+    <div class="form-text">Празно = без ограничение във времето.</div>
+</div>
+
+<div class="mb-3">
+    <label asp-for="MaxLeaves" class="form-label"></label>
+    <input asp-for="MaxLeaves" class="form-control" type="number" min="0" max="100" />
+    <span asp-validation-for="MaxLeaves" class="text-danger small"></span>
+    <div class="form-text">Колко пъти ученикът може да напусне страницата, преди изпитът да се предаде автоматично. Празно = без надзор.</div>
+</div>

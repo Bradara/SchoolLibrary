@@ -132,6 +132,29 @@ public class QuizManagementControllerTests
     }
 
     [Fact]
+    public async Task Create_Post_AlwaysCreatesAPracticeQuiz()
+    {
+        _service.Setup(s => s.CreateAsync(It.IsAny<QuizInput>(), "t1"))
+            .ReturnsAsync(ServiceResult<Quiz>.Success(new Quiz { Id = 7, Title = "Тест" }));
+
+        await Controller("t1", Roles.Teacher).Create(new QuizFormViewModel { Title = "Тест", Mode = QuizMode.Exam });
+
+        _service.Verify(s => s.CreateAsync(It.Is<QuizInput>(i => i.Mode == QuizMode.Practice), "t1"), Times.Once);
+    }
+
+    [Fact]
+    public async Task Edit_Post_APracticeQuiz_CannotBecomeAnExamModeQuiz()
+    {
+        _service.Setup(s => s.GetByIdAsync(7)).ReturnsAsync(new Quiz { Id = 7, Mode = QuizMode.Practice, OwnerId = "t1" });
+        _service.Setup(s => s.UpdateAsync(7, It.IsAny<QuizInput>(), "t1", false))
+            .ReturnsAsync(ServiceResult<Quiz>.Success(new Quiz { Id = 7, Title = "Тест" }));
+
+        await Controller("t1", Roles.Teacher).Edit(7, new QuizFormViewModel { Title = "Тест", Mode = QuizMode.Exam, TimeLimitMinutes = 10 });
+
+        _service.Verify(s => s.UpdateAsync(7, It.Is<QuizInput>(i => i.Mode == QuizMode.Practice), "t1", false), Times.Once);
+    }
+
+    [Fact]
     public async Task Create_Post_Success_RedirectsToTheOwnersNewQuiz()
     {
         _service.Setup(s => s.CreateAsync(It.Is<QuizInput>(i => i.Title == "Тест" && i.Mode == QuizMode.Practice), "t1"))

@@ -1,0 +1,34 @@
+@model SchoolLibrary.Services.Exams.ExamAttemptReview
+
+@{
+    var attempt = Model.Attempt;
+    var exam = attempt.ExamAssignment!;
+    ViewData["Title"] = attempt.StudentName + " — " + attempt.Quiz.Title;
+    ViewData["ChosenLabel"] = "отговор на ученика";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Изпити</a></li>
+        <li class="breadcrumb-item"><a asp-action="Details" asp-route-id="@exam.Id">@attempt.Quiz.Title — @exam.SchoolClass.Name</a></li>
+        <li class="breadcrumb-item active">@attempt.StudentName</li>
+    </ol>
+</nav>
+
+<h1 class="h3 mb-1">@attempt.StudentName <small class="text-body-secondary">№ @attempt.StudentNumber, @exam.SchoolClass.Name</small></h1>
+<div class="text-body-secondary small mb-3">
+    Предаден: @attempt.SubmittedOn?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+    @if (attempt.MaxLeaves.HasValue)
+    {
+        <span>· напускания: @attempt.LeaveCount</span>
+        @if (attempt.Flagged)
+        {
+            <span class="badge text-bg-danger"><i class="bi bi-exclamation-triangle"></i> над позволеното</span>
+        }
+    }
+</div>
+
+<partial name="~/Views/Quizzes/_GradeSummary.cshtml" model="Model.Result" />
+<partial name="_ExamAnswers" model="Model.Result" />
+
+<a asp-action="Details" asp-route-id="@exam.Id" class="btn btn-link">← Към резултатите</a>

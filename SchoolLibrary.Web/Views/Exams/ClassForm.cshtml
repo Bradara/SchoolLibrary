@@ -1,0 +1,37 @@
+@model SchoolLibrary.ViewModels.SchoolClassFormViewModel
+
+@{
+    var classId = ViewData["ClassId"] as int?;
+    var editing = classId.HasValue;
+    ViewData["Title"] = editing ? "Преименуване на клас" : "Нов клас";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Изпити</a></li>
+        <li class="breadcrumb-item active">@ViewData["Title"]</li>
+    </ol>
+</nav>
+
+<h1 class="h3 mb-3">@ViewData["Title"]</h1>
+
+<div class="row">
+    <div class="col-md-6 col-lg-4">
+        <form method="post" asp-action="@(editing ? "EditClass" : "CreateClass")" asp-route-id="@classId">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" placeholder="напр. 5А" autofocus />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+
+            <button type="submit" class="btn btn-primary">@(editing ? "Запази" : "Създай")</button>
+            <a asp-action="Index" class="btn btn-link">Отказ</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

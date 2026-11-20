@@ -21,6 +21,7 @@ public class QuizService : IQuizService
     public const int MaxStudentNumberLength = 20;
     public const int MaxProctorLeaves = 100;
     public const int MaxPageSize = 100;
+    public const int MaxClassNumber = 99;
 
     private readonly ApplicationDbContext _context;
     private readonly IQuizItemService _items;
@@ -73,7 +74,7 @@ public class QuizService : IQuizService
             .ToDictionaryAsync(g => g.QuizId, g => g.Count);
 
         var attemptCounts = await _context.QuizAttempts
-            .Where(x => ids.Contains(x.QuizId) && x.SubmittedOn != null)
+            .Where(x => ids.Contains(x.QuizId) && x.SubmittedOn != null && x.ExamAssignmentId == null)
             .GroupBy(x => x.QuizId)
             .Select(g => new { QuizId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(g => g.QuizId, g => g.Count);
@@ -435,9 +436,33 @@ public class QuizService : IQuizService
         return ServiceResult<QuizResult>.Success(result);
     }
 
+    public async Task<ServiceResult<ExamEntry>> FindExamAsync(string code)
+    {
+        var normalizedCode = NormalizeCode(code);
+
+        var assignment = await _context.ExamAssignments.AsNoTracking()
+            .Include(e => e.Quiz)
+            .Include(e => e.SchoolClass)
+            .FirstOrDefaultAsync(e => e.Code == normalizedCode);
+        if (assignment != null)
+        {
+            return ServiceResult<ExamEntry>.Success(new ExamEntry(
+                normalizedCode, assignment.Quiz.Title, assignment.SchoolClass.Name, assignment.TimeLimitMinutes, assignment.IsOpen));
+        }
+
+        var quiz = await _context.Quizzes.AsNoTracking()
+            .FirstOrDefaultAsync(q => q.Code == normalizedCode && q.Mode == QuizMode.Exam && q.IsPublished);
+        if (quiz != null)
+        {
+            return ServiceResult<ExamEntry>.Success(new ExamEntry(normalizedCode, quiz.Title, null, quiz.TimeLimitMinutes, true));
+        }
+
+        return ServiceResult<ExamEntry>.Failure(ServiceError.NotFound, "Няма активен изпит с този код.");
+    }
+
     public async Task<ServiceResult<QuizAttempt>> StartExamAsync(string code, string studentName, string? studentNumber)
     {
-        var normalizedCode = (code ?? string.Empty).Trim().ToUpperInvariant();
+        var normalizedCode = NormalizeCode(code);
         var name = (studentName ?? string.Empty).Trim();
         var number = string.IsNullOrWhiteSpace(studentNumber) ? null : studentNumber.Trim();
 
@@ -456,6 +481,14 @@ public class QuizService : IQuizService
         {
             return ServiceResult<QuizAttempt>.Failure(ServiceError.Invalid,
                 $"Номерът не може да бъде по-дълъг от {MaxStudentNumberLength} символа.");
+        }
+
+        var assignment = await _context.ExamAssignments
+            .Include(e => e.Quiz)
+            .FirstOrDefaultAsync(e => e.Code == normalizedCode);
+        if (assignment != null)
+        {
+            return await StartClassExamAsync(assignment, name, number);
         }
 
         var quiz = await _context.Quizzes
@@ -513,12 +546,14 @@ public class QuizService : IQuizService
         var attempt = await _context.QuizAttempts
             .AsNoTracking()
             .Include(a => a.Quiz)
+            .Include(a => a.ExamAssignment!)
+                .ThenInclude(e => e.SchoolClass)
             .Include(a => a.Questions.OrderBy(x => x.Order))
                 .ThenInclude(aq => aq.Question)
                     .ThenInclude(q => q.Options.OrderBy(o => o.Order))
             .FirstOrDefaultAsync(a => a.Token == token);
 
-        ApplyOptionOrder(attempt);
+        QuizAttemptResults.ApplyOptionOrder(attempt);
         return attempt;
     }
 
@@ -526,6 +561,8 @@ public class QuizService : IQuizService
     {
         var attempt = await _context.QuizAttempts
             .Include(a => a.Quiz)
+            .Include(a => a.ExamAssignment!)
+                .ThenInclude(e => e.SchoolClass)
             .Include(a => a.Questions.OrderBy(x => x.Order))
                 .ThenInclude(aq => aq.Question)
                     .ThenInclude(q => q.Options)
@@ -539,10 +576,10 @@ public class QuizService : IQuizService
         // Resubmitting (e.g. a double click or the timer firing after a manual submit) must not regrade
         if (attempt.SubmittedOn != null)
         {
-            return ServiceResult<QuizResult>.Success(BuildResult(attempt));
+            return ServiceResult<QuizResult>.Success(QuizAttemptResults.Build(attempt));
         }
 
-        var result = QuizGrading.Grade(attempt.Quiz, SnapshotQuestions(attempt), answers);
+        var result = QuizGrading.Grade(attempt.Quiz, QuizAttemptResults.SnapshotQuestions(attempt), answers);
 
         foreach (var questionResult in result.Questions)
         {
@@ -568,6 +605,8 @@ public class QuizService : IQuizService
         var attempt = await _context.QuizAttempts
             .AsNoTracking()
             .Include(a => a.Quiz)
+            .Include(a => a.ExamAssignment!)
+                .ThenInclude(e => e.SchoolClass)
             .Include(a => a.Questions.OrderBy(x => x.Order))
                 .ThenInclude(aq => aq.Question)
                     .ThenInclude(q => q.Options.OrderBy(o => o.Order))
@@ -583,14 +622,20 @@ public class QuizService : IQuizService
             return ServiceResult<QuizResult>.Failure(ServiceError.Invalid, "Изпитът още не е предаден.");
         }
 
-        ApplyOptionOrder(attempt);
-        return ServiceResult<QuizResult>.Success(BuildResult(attempt));
+        if (!attempt.ResultVisible)
+        {
+            return ServiceResult<QuizResult>.Failure(ServiceError.Forbidden, "Резултатът още не е активиран от учителя.");
+        }
+
+        QuizAttemptResults.ApplyOptionOrder(attempt);
+        return ServiceResult<QuizResult>.Success(QuizAttemptResults.Build(attempt));
     }
 
     public async Task<ServiceResult<ProctorStatus>> RecordLeaveAsync(Guid token)
     {
         var attempt = await _context.QuizAttempts
             .Include(a => a.Quiz)
+            .Include(a => a.ExamAssignment)
             .FirstOrDefaultAsync(a => a.Token == token);
         if (attempt == null)
         {
@@ -606,7 +651,7 @@ public class QuizService : IQuizService
         attempt.LeaveCount++;
 
         var shouldSubmit = false;
-        if (attempt.Quiz.MaxLeaves is int max && attempt.LeaveCount > max)
+        if (attempt.MaxLeaves is int max && attempt.LeaveCount > max)
         {
             attempt.Flagged = true;
             shouldSubmit = true;
@@ -631,7 +676,7 @@ public class QuizService : IQuizService
         }
 
         var query = _context.QuizAttempts.AsNoTracking()
-            .Where(a => a.QuizId == quizId && a.SubmittedOn != null);
+            .Where(a => a.QuizId == quizId && a.SubmittedOn != null && a.ExamAssignmentId == null);
 
         var totalCount = await query.CountAsync();
 
@@ -650,50 +695,87 @@ public class QuizService : IQuizService
         return ServiceResult<QuizReview>.Success(new QuizReview(quiz, attempts));
     }
 
-    // Rebuilds the graded result from the options the student picked (stored on the attempt)
-    private static QuizResult BuildResult(QuizAttempt attempt)
+    // A class exam: the number in the class identifies the student (one attempt per number). The same
+    // number with the same name resumes the attempt or opens its result; with another name it is refused.
+    private async Task<ServiceResult<QuizAttempt>> StartClassExamAsync(ExamAssignment assignment, string name, string? rawNumber)
     {
-        var answers = attempt.Answers.ToDictionary(a => a.QuestionId, a => a.SelectedOptionId);
-        return QuizGrading.Grade(attempt.Quiz, SnapshotQuestions(attempt), answers);
-    }
-
-    // The questions served to an attempt, in order. Falls back to the quiz's own questions for any
-    // attempt created before snapshots existed.
-    private static IReadOnlyList<Question> SnapshotQuestions(QuizAttempt attempt)
-        => attempt.Questions.Count > 0
-            ? attempt.Questions.OrderBy(aq => aq.Order).Select(aq => aq.Question).ToList()
-            : attempt.Quiz.Questions.OrderBy(q => q.Order).ToList();
-
-    // Shows a (non-tracked) attempt's options in the order the student got, stable across reloads
-    private static void ApplyOptionOrder(QuizAttempt? attempt)
-    {
-        if (attempt == null || !attempt.Quiz.ShuffleOptions)
+        if (!int.TryParse(rawNumber, out var parsed) || parsed < 1 || parsed > MaxClassNumber)
         {
-            return;
+            return ServiceResult<QuizAttempt>.Failure(ServiceError.Invalid,
+                $"Въведете номер в класа (цяло число от 1 до {MaxClassNumber}).");
         }
 
-        foreach (var attemptQuestion in attempt.Questions)
+        var number = parsed.ToString();
+        var existing = await _context.QuizAttempts
+            .FirstOrDefaultAsync(a => a.ExamAssignmentId == assignment.Id && a.StudentNumber == number);
+        if (existing != null)
         {
-            QuizShuffle.ShuffleOptionsForAttempt(attemptQuestion.Question, attempt.Token);
+            if (!SameName(existing.StudentName, name))
+            {
+                return ServiceResult<QuizAttempt>.Failure(ServiceError.Conflict,
+                    $"Номер {number} вече е използван с друго име. Провери номера или се обърни към учителя.");
+            }
+
+            return ServiceResult<QuizAttempt>.Success(existing);
         }
+
+        if (!assignment.IsOpen)
+        {
+            return ServiceResult<QuizAttempt>.Failure(ServiceError.Conflict, "Изпитът е затворен.");
+        }
+
+        var served = await _items.ResolveAsync(assignment.QuizId);
+        if (served.Count == 0)
+        {
+            return ServiceResult<QuizAttempt>.Failure(ServiceError.Invalid, "Изпитът още няма въпроси.");
+        }
+
+        var attempt = new QuizAttempt
+        {
+            Token = Guid.NewGuid(),
+            QuizId = assignment.QuizId,
+            ExamAssignmentId = assignment.Id,
+            StudentName = name,
+            StudentNumber = number,
+            StartedOn = DateTime.UtcNow,
+            Score = 0,
+            MaxScore = served.Sum(q => q.Points)
+        };
+
+        var order = 0;
+        foreach (var question in served)
+        {
+            attempt.Questions.Add(new AttemptQuestion { QuestionId = question.Id, Order = ++order });
+        }
+
+        _context.QuizAttempts.Add(attempt);
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // Two starts with the same number at once: the unique index lets only one through
+            return ServiceResult<QuizAttempt>.Failure(ServiceError.Conflict, "Опитай отново.");
+        }
+
+        return ServiceResult<QuizAttempt>.Success(attempt);
     }
+
+    // Names typed by hand: ignore case and repeated spaces
+    private static bool SameName(string a, string b)
+        => string.Equals(CollapseSpaces(a), CollapseSpaces(b), StringComparison.OrdinalIgnoreCase);
+
+    private static string CollapseSpaces(string value)
+        => string.Join(' ', value.Split(' ', StringSplitOptions.RemoveEmptyEntries));
+
+    private static string NormalizeCode(string? code)
+        => (code ?? string.Empty).Trim().ToUpperInvariant();
 
     private async Task<bool> HasAttemptsAsync(int? quizId)
         => quizId != null && await _context.QuizAttempts.AnyAsync(a => a.QuizId == quizId.Value);
 
-    private async Task<string> GenerateUniqueCodeAsync()
-    {
-        for (var attempt = 0; attempt < 50; attempt++)
-        {
-            var code = QuizCode.Generate(CodeLength);
-            if (!await _context.Quizzes.AnyAsync(q => q.Code == code))
-            {
-                return code;
-            }
-        }
-
-        throw new InvalidOperationException("Could not generate a unique quiz code.");
-    }
+    private Task<string> GenerateUniqueCodeAsync() => QuizCode.GenerateUniqueAsync(_context, CodeLength);
 
     private static string? Clean(string? value)
         => string.IsNullOrWhiteSpace(value) ? null : value.Trim();

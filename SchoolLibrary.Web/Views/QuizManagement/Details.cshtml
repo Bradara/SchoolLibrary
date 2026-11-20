@@ -19,7 +19,14 @@
     <h1 class="h3 mb-0">@quiz.Title</h1>
     <div class="d-flex flex-wrap gap-1">
         <a asp-action="Edit" asp-route-id="@quiz.Id" class="btn btn-sm btn-outline-primary">Редактирай</a>
-        <a asp-action="Attempts" asp-route-id="@quiz.Id" class="btn btn-sm btn-outline-secondary">Решения</a>
+        @if (quiz.Mode == QuizMode.Practice)
+        {
+            <a asp-controller="Exams" asp-action="Create" asp-route-quizId="@quiz.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-clipboard-check"></i> Назначи като изпит</a>
+        }
+        else
+        {
+            <a asp-action="Attempts" asp-route-id="@quiz.Id" class="btn btn-sm btn-outline-secondary">Решения</a>
+        }
         <form method="post" asp-action="SetPublished" asp-route-id="@quiz.Id" class="d-inline">
             <input type="hidden" name="publish" value="@((!quiz.IsPublished).ToString().ToLowerInvariant())" />
             <button type="submit" class="btn btn-sm @(quiz.IsPublished ? "btn-outline-secondary" : "btn-success")">

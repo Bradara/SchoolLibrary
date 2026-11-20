@@ -18,52 +18,6 @@
 
 <partial name="_GradeSummary" model="result" />
 
-@{ var number = 0; }
-@foreach (var questionResult in result.Questions)
-{
-    number++;
-    <div class="card mb-3 border-@(questionResult.IsCorrect ? "success" : "danger")">
-        <div class="card-body">
-            <h2 class="h6 card-title">
-                @number. @questionResult.Question.Text
-                @if (questionResult.IsCorrect)
-                {
-                    <span class="badge text-bg-success">Вярно</span>
-                }
-                else
-                {
-                    <span class="badge text-bg-danger">Грешно</span>
-                }
-                <span class="badge text-bg-light">@questionResult.Question.Points т.</span>
-            </h2>
-            <ul class="list-unstyled mb-0">
-                @foreach (var option in questionResult.Question.Options)
-                {
-                    var isCorrect = option.Id == questionResult.CorrectOptionId;
-                    var isChosen = option.Id == questionResult.SelectedOptionId;
-                    <li class="@(isCorrect ? "text-success fw-semibold" : isChosen ? "text-danger" : "")">
-                        @if (isCorrect)
-                        {
-                            <i class="bi bi-check-circle-fill"></i>
-                        }
-                        else if (isChosen)
-                        {
-                            <i class="bi bi-x-circle-fill"></i>
-                        }
-                        else
-                        {
-                            <i class="bi bi-circle"></i>
-                        }
-                        @option.Text
-                        @if (isChosen && !isCorrect)
-                        {
-                            <span class="small text-body-secondary">(твоят отговор)</span>
-                        }
-                    </li>
-                }
-            </ul>
-        </div>
-    </div>
-}
+<partial name="_ExamAnswers" model="result" />
 
 <a asp-controller="Home" asp-action="Index" class="btn btn-link">← Към началото</a>

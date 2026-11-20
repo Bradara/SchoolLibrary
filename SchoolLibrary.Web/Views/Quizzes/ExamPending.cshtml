@@ -1,0 +1,25 @@
+@model SchoolLibrary.ViewModels.ExamPendingViewModel
+
+@{
+    ViewData["Title"] = "Изпитът е предаден";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-8 col-lg-6 text-center">
+        <i class="bi bi-check2-circle display-4 text-success"></i>
+        <h1 class="h3 mt-2">Изпитът е предаден</h1>
+        <p class="lead mb-1">@Model.Title</p>
+        <div class="text-body-secondary small mb-3">
+            <div>Ученик: <strong>@Model.StudentName</strong>@(string.IsNullOrEmpty(Model.ClassName) ? "" : ", " + Model.ClassName)</div>
+            @if (Model.SubmittedOn.HasValue)
+            {
+                <div>Предаден: @Model.SubmittedOn.Value.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</div>
+            }
+        </div>
+        <div class="alert alert-info">
+            Резултатът ще се вижда, когато учителят го активира. Тогава обнови тази страница
+            или въведи отново кода, името и номера си на страницата „Изпит по код“.
+        </div>
+        <a asp-controller="Home" asp-action="Index" class="btn btn-link">← Към началото</a>
+    </div>
+</div>

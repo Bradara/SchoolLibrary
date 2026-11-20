@@ -404,6 +404,52 @@ namespace SchoolLibrary.Data.Migrations
                     b.ToTable("Comments");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.ExamAssignment", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)");
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsOpen")
+                        .HasColumnType("boolean");
+
+                    b.Property<int?>("MaxLeaves")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuizId")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("ResultsReleased")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SchoolClassId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("TimeLimitMinutes")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Code")
+                        .IsUnique();
+
+                    b.HasIndex("QuizId");
+
+                    b.HasIndex("SchoolClassId");
+
+                    b.ToTable("ExamAssignments");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Favorite", b =>
                 {
                     b.Property<string>("UserId")
@@ -624,6 +670,9 @@ namespace SchoolLibrary.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int?>("ExamAssignmentId")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("Flagged")
                         .HasColumnType("boolean");
 
@@ -660,6 +709,9 @@ namespace SchoolLibrary.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("ExamAssignmentId", "StudentNumber")
                         .IsUnique();
 
                     b.HasIndex("QuizId", "SubmittedOn");
@@ -872,6 +924,33 @@ namespace SchoolLibrary.Data.Migrations
                     b.ToTable("ResourceFiles");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.SchoolClass", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("OwnerId")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("SchoolClasses");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Section", b =>
                 {
                     b.Property<int>("Id")
@@ -1063,6 +1142,25 @@ namespace SchoolLibrary.Data.Migrations
                     b.Navigation("Resource");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.ExamAssignment", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.Quiz", "Quiz")
+                        .WithMany()
+                        .HasForeignKey("QuizId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SchoolLibrary.Data.Models.SchoolClass", "SchoolClass")
+                        .WithMany("Exams")
+                        .HasForeignKey("SchoolClassId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Quiz");
+
+                    b.Navigation("SchoolClass");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Favorite", b =>
                 {
                     b.HasOne("SchoolLibrary.Data.Models.Resource", "Resource")
@@ -1118,11 +1216,18 @@ namespace SchoolLibrary.Data.Migrations
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.QuizAttempt", b =>
                 {
+                    b.HasOne("SchoolLibrary.Data.Models.ExamAssignment", "ExamAssignment")
+                        .WithMany("Attempts")
+                        .HasForeignKey("ExamAssignmentId")
+                        .OnDelete(DeleteBehavior.Cascade);
+
                     b.HasOne("SchoolLibrary.Data.Models.Quiz", "Quiz")
                         .WithMany()
                         .HasForeignKey("QuizId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("ExamAssignment");
 
                     b.Navigation("Quiz");
                 });
@@ -1204,6 +1309,16 @@ namespace SchoolLibrary.Data.Migrations
                     b.Navigation("Resource");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.SchoolClass", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Owner");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Section", b =>
                 {
                     b.HasOne("SchoolLibrary.Data.Models.ApplicationUser", "Owner")
@@ -1219,6 +1334,11 @@ namespace SchoolLibrary.Data.Migrations
                     b.Navigation("Owner");
 
                     b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("SchoolLibrary.Data.Models.ExamAssignment", b =>
+                {
+                    b.Navigation("Attempts");
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Question", b =>
@@ -1243,6 +1363,11 @@ namespace SchoolLibrary.Data.Migrations
             modelBuilder.Entity("SchoolLibrary.Data.Models.Resource", b =>
                 {
                     b.Navigation("File");
+                });
+
+            modelBuilder.Entity("SchoolLibrary.Data.Models.SchoolClass", b =>
+                {
+                    b.Navigation("Exams");
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Section", b =>

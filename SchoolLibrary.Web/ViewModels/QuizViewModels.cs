@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Quizzes;
@@ -132,12 +133,23 @@ public class SectionManageViewModel
     public QuestionFormViewModel NewQuestion { get; set; } = new();
 }
 
-/// <summary>The code-entry form: a student types the exam code, their name and class number.</summary>
-public class ExamEntryViewModel
+/// <summary>The first exam entry step: the student types the code the teacher gave.</summary>
+public class ExamCodeViewModel
 {
     [Required(ErrorMessage = "Въведете код на изпита")]
     [StringLength(12, ErrorMessage = "Кодът е най-много 12 символа")]
     [Display(Name = "Код на изпита")]
+    public string Code { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// The second exam entry step: the code (carried in a hidden field) plus the student's name and class
+/// number. The exam's title, class and state are shown above the form and are not posted back.
+/// </summary>
+public class ExamEntryViewModel
+{
+    [Required(ErrorMessage = "Въведете код на изпита")]
+    [StringLength(12, ErrorMessage = "Кодът е най-много 12 символа")]
     public string Code { get; set; } = string.Empty;
 
     [Required(ErrorMessage = "Въведете име")]
@@ -145,9 +157,35 @@ public class ExamEntryViewModel
     [Display(Name = "Име и фамилия")]
     public string StudentName { get; set; } = string.Empty;
 
+    [Required(ErrorMessage = "Въведете номер в класа")]
     [StringLength(20, ErrorMessage = "Номерът е най-много 20 символа")]
     [Display(Name = "Номер в класа")]
     public string? StudentNumber { get; set; }
+
+    /// <summary>The exam behind the code (for display); null until it is looked up.</summary>
+    [BindNever]
+    public ExamEntry? Exam { get; set; }
+}
+
+/// <summary>
+/// An exam handed in by force because the student left it more often than allowed. Carries the graded
+/// result only when the student may see it; the answers are never shown.
+/// </summary>
+public class ExamForcedViewModel : ExamPendingViewModel
+{
+    public QuizResult? Result { get; set; }
+}
+
+/// <summary>A submitted class exam whose result the teacher has not released yet.</summary>
+public class ExamPendingViewModel
+{
+    public string Title { get; set; } = string.Empty;
+
+    public string? ClassName { get; set; }
+
+    public string StudentName { get; set; } = string.Empty;
+
+    public DateTime? SubmittedOn { get; set; }
 }
 
 /// <summary>An exam attempt in progress, with the seconds left (null when the exam has no time limit).</summary>

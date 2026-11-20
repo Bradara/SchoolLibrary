@@ -1,0 +1,74 @@
+@model SchoolLibrary.ViewModels.ExamAssignFormViewModel
+
+@{
+    ViewData["Title"] = "Назначи изпит";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Изпити</a></li>
+        <li class="breadcrumb-item active">Назначи изпит</li>
+    </ol>
+</nav>
+
+<h1 class="h3 mb-3">Назначи изпит</h1>
+
+@if (Model.Classes.Count == 0)
+{
+    <div class="alert alert-info">
+        Първо създай клас. <a asp-action="CreateClass">Нов клас</a>
+    </div>
+}
+else if (Model.Quizzes.Count == 0)
+{
+    <div class="alert alert-info">
+        Нямаш тест за упражнение с въпроси. <a asp-controller="QuizManagement" asp-action="Create">Създай тест</a>
+    </div>
+}
+else
+{
+    <div class="row">
+        <div class="col-lg-7">
+            <form method="post" asp-action="Create">
+                <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+                <div class="mb-3">
+                    <label asp-for="SchoolClassId" class="form-label"></label>
+                    <select asp-for="SchoolClassId" class="form-select">
+                        <option value="0">— избери клас —</option>
+                        @foreach (var item in Model.Classes)
+                        {
+                            <option value="@item.SchoolClass.Id" selected="@(item.SchoolClass.Id == Model.SchoolClassId)">@item.SchoolClass.Name</option>
+                        }
+                    </select>
+                    <span asp-validation-for="SchoolClassId" class="text-danger small"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="QuizId" class="form-label"></label>
+                    <select asp-for="QuizId" class="form-select">
+                        <option value="0">— избери тест —</option>
+                        @foreach (var quiz in Model.Quizzes)
+                        {
+                            <option value="@quiz.Id" selected="@(quiz.Id == Model.QuizId)">@quiz.Title@(quiz.IsPublished ? " (публикуван)" : "")</option>
+                        }
+                    </select>
+                    <span asp-validation-for="QuizId" class="text-danger small"></span>
+                    <div class="form-text">
+                        Ако тестът е публикуван като упражнение, учениците могат да видят въпросите предварително — за изпит е по-добре да е скрит.
+                        Разбъркването на въпросите и отговорите идва от настройките на теста.
+                    </div>
+                </div>
+
+                <partial name="_ExamSettingsFields" model="Model" />
+
+                <button type="submit" class="btn btn-primary">Назначи</button>
+                <a asp-action="Index" class="btn btn-link">Отказ</a>
+            </form>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

@@ -1,4 +1,6 @@
 using System.Security.Cryptography;
+using Microsoft.EntityFrameworkCore;
+using SchoolLibrary.Data;
 
 namespace SchoolLibrary.Services.Quizzes;
 
@@ -17,5 +19,24 @@ public static class QuizCode
         }
 
         return new string(chars);
+    }
+
+    /// <summary>
+    /// A code no exam uses yet, neither an exam-mode quiz nor a class exam, since students enter both
+    /// on the same page.
+    /// </summary>
+    public static async Task<string> GenerateUniqueAsync(ApplicationDbContext context, int length)
+    {
+        for (var attempt = 0; attempt < 50; attempt++)
+        {
+            var code = Generate(length);
+            if (!await context.Quizzes.AnyAsync(q => q.Code == code)
+                && !await context.ExamAssignments.AnyAsync(e => e.Code == code))
+            {
+                return code;
+            }
+        }
+
+        throw new InvalidOperationException("Could not generate a unique exam code.");
     }
 }

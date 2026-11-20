@@ -39,5 +39,11 @@ public record PracticeSet(Quiz Quiz, IReadOnlyList<Question> Questions);
 /// <summary>A quiz with one page of its submitted attempts, for the teacher's review page.</summary>
 public record QuizReview(Quiz Quiz, PagedResult<QuizAttempt> Attempts);
 
+/// <summary>
+/// The exam behind a code, for the second entry step (name and number). <paramref name="ClassName"/> is
+/// null for an exam-mode quiz; <paramref name="IsOpen"/> is false when a class exam accepts no new attempts.
+/// </summary>
+public record ExamEntry(string Code, string Title, string? ClassName, int? TimeLimitMinutes, bool IsOpen);
+
 /// <summary>Proctoring state after a student left the exam: the leave count and whether to submit now.</summary>
 public record ProctorStatus(int LeaveCount, bool Flagged, bool ShouldSubmit);

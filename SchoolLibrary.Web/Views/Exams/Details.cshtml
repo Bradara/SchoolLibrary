@@ -1,0 +1,186 @@
+@using SchoolLibrary.Services.Quizzes
+@model SchoolLibrary.ViewModels.ExamDetailsViewModel
+
+@{
+    var exam = Model.Results.Exam;
+    var attempts = Model.Results.Attempts;
+    var proctored = exam.MaxLeaves.HasValue;
+    ViewData["Title"] = exam.Quiz.Title + " — " + exam.SchoolClass.Name;
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Изпити</a></li>
+        <li class="breadcrumb-item"><a asp-action="Index" asp-route-classId="@exam.SchoolClassId">@exam.SchoolClass.Name</a></li>
+        <li class="breadcrumb-item active">@exam.Quiz.Title</li>
+    </ol>
+</nav>
+
+<partial name="_MessagePartial" />
+
+<div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
+    <div>
+        <h1 class="h3 mb-1">@exam.Quiz.Title</h1>
+        <div class="text-body-secondary">
+            Клас <strong>@exam.SchoolClass.Name</strong>
+            · @(exam.TimeLimitMinutes.HasValue ? exam.TimeLimitMinutes + " мин." : "без ограничение във времето")
+            · @(proctored ? "надзор: до " + exam.MaxLeaves + " напускания" : "без надзор")
+        </div>
+    </div>
+    <div class="text-lg-end">
+        <div class="small text-body-secondary">Код за учениците</div>
+        <div class="display-6"><code class="user-select-all">@exam.Code</code></div>
+    </div>
+</div>
+
+<div class="card mb-4">
+    <div class="card-body d-flex flex-wrap gap-3 align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            @if (exam.IsOpen)
+            {
+                <span class="badge text-bg-success">Отворен</span>
+            }
+            else
+            {
+                <span class="badge text-bg-secondary">Затворен</span>
+            }
+            <form method="post" asp-action="SetOpen" asp-route-id="@exam.Id" class="d-inline">
+                <input type="hidden" name="open" value="@((!exam.IsOpen).ToString().ToLowerInvariant())" />
+                <button type="submit" class="btn btn-sm btn-outline-secondary">
+                    @(exam.IsOpen ? "Затвори за нови опити" : "Отвори")
+                </button>
+            </form>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+            @if (exam.ResultsReleased)
+            {
+                <span class="badge text-bg-info">Резултатите са видими за учениците</span>
+            }
+            else
+            {
+                <span class="badge text-bg-light">Резултатите са скрити от учениците</span>
+            }
+            <form method="post" asp-action="SetResults" asp-route-id="@exam.Id" class="d-inline">
+                <input type="hidden" name="release" value="@((!exam.ResultsReleased).ToString().ToLowerInvariant())" />
+                <button type="submit" class="btn btn-sm @(exam.ResultsReleased ? "btn-outline-secondary" : "btn-success")">
+                    @(exam.ResultsReleased ? "Скрий резултатите" : "Активирай резултатите")
+                </button>
+            </form>
+        </div>
+
+        <div class="ms-auto d-flex gap-1">
+            <a asp-controller="QuizManagement" asp-action="Details" asp-route-id="@exam.QuizId" class="btn btn-sm btn-outline-primary">Тестът</a>
+            <form method="post" asp-action="Delete" asp-route-id="@exam.Id" class="d-inline"
+                  onsubmit="return confirm('Да изтрия ли изпита и всички решения на учениците? Действието е необратимо.');">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Изтрий</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<h2 class="h5">Резултати <small class="text-body-secondary">(@attempts.TotalCount)</small></h2>
+
+@if (attempts.TotalCount == 0)
+{
+    <div class="alert alert-info">Все още никой не е започнал изпита.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th class="text-center">№</th>
+                    <th>Име</th>
+                    <th class="text-center">Точки</th>
+                    <th class="text-center">Оценка</th>
+                    @if (proctored)
+                    {
+                        <th class="text-center">Надзор</th>
+                    }
+                    <th>Предаден</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var attempt in attempts.Items)
+                {
+                    var submitted = attempt.SubmittedOn.HasValue;
+                    <tr>
+                        <td class="text-center">@attempt.StudentNumber</td>
+                        <td>@attempt.StudentName</td>
+                        @if (submitted)
+                        {
+                            var grade = QuizGradeScale.Grade(attempt.Score, attempt.MaxScore);
+                            <td class="text-center fw-semibold">@attempt.Score / @attempt.MaxScore</td>
+                            <td class="text-center">
+                                <span class="badge @(grade >= 3 ? "text-bg-success" : "text-bg-danger")"
+                                      title="@QuizGradeScale.Label(grade) · @QuizGradeScale.Percent(attempt.Score, attempt.MaxScore)%">@grade</span>
+                            </td>
+                        }
+                        else
+                        {
+                            <td class="text-center text-body-secondary" colspan="2">в процес</td>
+                        }
+                        @if (proctored)
+                        {
+                            <td class="text-center">
+                                @if (attempt.Flagged)
+                                {
+                                    <span class="badge text-bg-danger" title="Напуснал повече от позволеното"><i class="bi bi-exclamation-triangle"></i> @attempt.LeaveCount</span>
+                                }
+                                else
+                                {
+                                    <span class="text-body-secondary">@attempt.LeaveCount</span>
+                                }
+                            </td>
+                        }
+                        <td class="text-body-secondary small">@attempt.SubmittedOn?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                        <td class="text-end">
+                            @if (submitted)
+                            {
+                                <a asp-action="Attempt" asp-route-id="@attempt.Id" class="btn btn-sm btn-outline-secondary">Отговори</a>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (attempts.TotalPages > 1)
+    {
+        <nav aria-label="Страници с резултати" class="mt-3">
+            <ul class="pagination justify-content-center flex-wrap">
+                <li class="page-item @(attempts.HasPrevious ? "" : "disabled")">
+                    <a class="page-link" asp-action="Details" asp-route-id="@exam.Id" asp-route-page="@(attempts.Page - 1)" aria-label="Предишна"><i class="bi bi-chevron-left"></i></a>
+                </li>
+                @for (var p = 1; p <= attempts.TotalPages; p++)
+                {
+                    <li class="page-item @(p == attempts.Page ? "active" : "")" @(p == attempts.Page ? "aria-current=page" : "")>
+                        <a class="page-link" asp-action="Details" asp-route-id="@exam.Id" asp-route-page="@p">@p</a>
+                    </li>
+                }
+                <li class="page-item @(attempts.HasNext ? "" : "disabled")">
+                    <a class="page-link" asp-action="Details" asp-route-id="@exam.Id" asp-route-page="@(attempts.Page + 1)" aria-label="Следваща"><i class="bi bi-chevron-right"></i></a>
+                </li>
+            </ul>
+        </nav>
+    }
+}
+
+<h2 class="h5 mt-4">Настройки</h2>
+<div class="row">
+    <div class="col-lg-6">
+        <form method="post" asp-action="UpdateSettings" asp-route-id="@exam.Id">
+            <partial name="_ExamSettingsFields" model="Model.Settings" />
+            <button type="submit" class="btn btn-outline-primary">Запази настройките</button>
+            <div class="form-text">Промените важат за опитите, които още не са предадени.</div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
