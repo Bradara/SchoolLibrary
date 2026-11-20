@@ -51,4 +51,11 @@ public interface IExamAssignmentService
     /// Fails when missing, not a class exam attempt, not submitted yet, or not allowed.
     /// </summary>
     Task<ServiceResult<ExamAttemptReview>> GetAttemptReviewAsync(int attemptId, string userId, bool isAdministrator);
+
+    /// <summary>
+    /// Deletes one student's attempt at a class exam (submitted or in progress) with its answers, so the
+    /// student can take the exam again with the same number. Fails when missing, not a class exam
+    /// attempt, or not allowed. The returned attempt carries its exam id.
+    /// </summary>
+    Task<ServiceResult<QuizAttempt>> DeleteAttemptAsync(int attemptId, string userId, bool isAdministrator);
 }

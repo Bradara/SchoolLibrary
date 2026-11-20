@@ -245,6 +245,31 @@ public class ExamAssignmentService : IExamAssignmentService
         return ServiceResult<ExamAttemptReview>.Success(new ExamAttemptReview(attempt, QuizAttemptResults.Build(attempt)));
     }
 
+    public async Task<ServiceResult<QuizAttempt>> DeleteAttemptAsync(int attemptId, string userId, bool isAdministrator)
+    {
+        var attempt = await _context.QuizAttempts
+            .Include(a => a.ExamAssignment!)
+                .ThenInclude(e => e.SchoolClass)
+            .Include(a => a.Questions)
+            .Include(a => a.Answers)
+            .FirstOrDefaultAsync(a => a.Id == attemptId);
+        if (attempt?.ExamAssignment == null)
+        {
+            return ServiceResult<QuizAttempt>.Failure(ServiceError.NotFound, "Опитът не е намерен.");
+        }
+
+        if (!ExamPermissions.CanManage(attempt.ExamAssignment.SchoolClass, userId, isAdministrator))
+        {
+            return ServiceResult<QuizAttempt>.Failure(ServiceError.Forbidden, "Нямате права за това действие.");
+        }
+
+        // Cascade removes the attempt's question snapshot and answers; the number is free again
+        _context.QuizAttempts.Remove(attempt);
+        await _context.SaveChangesAsync();
+
+        return ServiceResult<QuizAttempt>.Success(attempt);
+    }
+
     private async Task<(ExamAssignment? Exam, ServiceResult<ExamAssignment>? Failure)> FindManageableAsync(int id, string userId, bool isAdministrator)
     {
         var exam = await _context.ExamAssignments

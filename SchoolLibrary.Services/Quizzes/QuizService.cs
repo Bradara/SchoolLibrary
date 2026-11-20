@@ -67,11 +67,7 @@ public class QuizService : IQuizService
         // provider used by the tests can run it
         var ids = quizzes.Select(q => q.Id).ToList();
 
-        var questionCounts = await _context.Questions
-            .Where(x => x.QuizId != null && ids.Contains(x.QuizId.Value))
-            .GroupBy(x => x.QuizId!.Value)
-            .Select(g => new { QuizId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(g => g.QuizId, g => g.Count);
+        var questionCounts = await CountQuestionsAsync(ids);
 
         var attemptCounts = await _context.QuizAttempts
             .Where(x => ids.Contains(x.QuizId) && x.SubmittedOn != null && x.ExamAssignmentId == null)
@@ -385,11 +381,7 @@ public class QuizService : IQuizService
             .ToListAsync();
 
         var ids = quizzes.Select(q => q.Id).ToList();
-        var questionCounts = await _context.Questions
-            .Where(x => x.QuizId != null && ids.Contains(x.QuizId.Value))
-            .GroupBy(x => x.QuizId!.Value)
-            .Select(g => new { QuizId = g.Key, Count = g.Count() })
-            .ToDictionaryAsync(g => g.QuizId, g => g.Count);
+        var questionCounts = await CountQuestionsAsync(ids);
 
         var items = quizzes
             .Select(q => new QuizListItem(q, questionCounts.GetValueOrDefault(q.Id), 0))
@@ -771,6 +763,47 @@ public class QuizService : IQuizService
 
     private static string NormalizeCode(string? code)
         => (code ?? string.Empty).Trim().ToUpperInvariant();
+
+    // How many questions each quiz serves: its own questions, the pinned bank questions, and each random
+    // draw (the count asked for, or the whole section when it holds fewer — as ResolveAsync draws)
+    private async Task<Dictionary<int, int>> CountQuestionsAsync(IReadOnlyCollection<int> quizIds)
+    {
+        var counts = await _context.Questions
+            .Where(x => x.QuizId != null && quizIds.Contains(x.QuizId.Value))
+            .GroupBy(x => x.QuizId!.Value)
+            .Select(g => new { QuizId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.QuizId, g => g.Count);
+
+        var items = await _context.QuizItems.AsNoTracking()
+            .Where(i => quizIds.Contains(i.QuizId))
+            .Select(i => new { i.QuizId, i.Kind, i.QuestionId, i.SectionId, i.PickCount })
+            .ToListAsync();
+        if (items.Count == 0)
+        {
+            return counts;
+        }
+
+        var sectionIds = items.Where(i => i.SectionId != null).Select(i => i.SectionId!.Value).Distinct().ToList();
+        var poolSizes = await _context.Questions
+            .Where(q => q.SectionId != null && sectionIds.Contains(q.SectionId.Value))
+            .GroupBy(q => q.SectionId!.Value)
+            .Select(g => new { SectionId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(g => g.SectionId, g => g.Count);
+
+        foreach (var item in items)
+        {
+            var served = item.Kind switch
+            {
+                QuizItemKind.FixedQuestion when item.QuestionId != null => 1,
+                QuizItemKind.RandomFromSection when item.SectionId != null =>
+                    Math.Min(item.PickCount ?? int.MaxValue, poolSizes.GetValueOrDefault(item.SectionId.Value)),
+                _ => 0
+            };
+            counts[item.QuizId] = counts.GetValueOrDefault(item.QuizId) + served;
+        }
+
+        return counts;
+    }
 
     private async Task<bool> HasAttemptsAsync(int? quizId)
         => quizId != null && await _context.QuizAttempts.AnyAsync(a => a.QuizId == quizId.Value);

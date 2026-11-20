@@ -137,11 +137,17 @@ else
                             </td>
                         }
                         <td class="text-body-secondary small">@attempt.SubmittedOn?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
-                        <td class="text-end">
+                        <td class="text-end text-nowrap">
                             @if (submitted)
                             {
                                 <a asp-action="Attempt" asp-route-id="@attempt.Id" class="btn btn-sm btn-outline-secondary">Отговори</a>
                             }
+                            @* The student's name is typed freely, so it is kept out of the inline script *@
+                            <form method="post" asp-action="DeleteAttempt" asp-route-id="@attempt.Id" class="d-inline"
+                                  onsubmit="return confirm('Да изтрия ли този опит? Отговорите и резултатът се губят, а ученикът може да реши изпита отново със същия номер.');">
+                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Изтрий опита — ученикът може да реши отново"
+                                        aria-label="Изтрий опита на @attempt.StudentName"><i class="bi bi-arrow-counterclockwise"></i> Нов опит</button>
+                            </form>
                         </td>
                     </tr>
                 }

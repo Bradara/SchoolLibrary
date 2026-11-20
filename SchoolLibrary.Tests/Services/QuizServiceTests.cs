@@ -786,4 +786,71 @@ public class QuizServiceTests
         Assert.Equal(8, code.Length);
         Assert.All(code, c => Assert.Contains(c, Alphabet));
     }
+
+    // ---------- Question counts (own questions + bank items) ----------
+
+    // A quiz with 1 own question, 1 pinned bank question, a draw of 2 from a section of 5 and a draw of
+    // 10 from a section of 3 (capped at the 3 it holds): 1 + 1 + 2 + 3 = 7
+    private static async Task<Quiz> QuizFromTheBankAsync(Data.ApplicationDbContext context, QuizService service, bool publish)
+    {
+        var quiz = (await service.CreateAsync(Practice("От банката"), Owner)).Value!;
+        await service.AddQuestionAsync(quiz.Id, Question(), Owner, false);
+
+        var items = new QuizItemService(context);
+        var big = await SectionWithQuestionsAsync(context, "Голям", 5);
+        var small = await SectionWithQuestionsAsync(context, "Малък", 3);
+        await items.AddFixedQuestionAsync(quiz.Id, context.Questions.First(q => q.SectionId == big.Id).Id, Owner, false);
+        await items.AddRandomSectionAsync(quiz.Id, big.Id, 2, Owner, false);
+        await items.AddRandomSectionAsync(quiz.Id, small.Id, 10, Owner, false);
+
+        if (publish)
+        {
+            await service.SetPublishedAsync(quiz.Id, true, Owner, false);
+        }
+
+        return quiz;
+    }
+
+    private static async Task<Section> SectionWithQuestionsAsync(Data.ApplicationDbContext context, string name, int count)
+    {
+        var section = new Section { Name = name, OwnerId = Owner, CreatedOn = DateTime.UtcNow };
+        context.Sections.Add(section);
+        await context.SaveChangesAsync();
+        for (var i = 0; i < count; i++)
+        {
+            context.Questions.Add(new Question
+            {
+                SectionId = section.Id,
+                Text = name + " " + i,
+                Points = 1,
+                Options = new List<AnswerOption> { new() { Text = "а", IsCorrect = true, Order = 1 }, new() { Text = "б", Order = 2 } }
+            });
+        }
+        await context.SaveChangesAsync();
+        return section;
+    }
+
+    [Fact]
+    public async Task GetManagedAsync_CountsOwnQuestionsPinnedQuestionsAndRandomDraws()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context, new QuizItemService(context));
+        await QuizFromTheBankAsync(context, service, publish: false);
+
+        var item = Assert.Single((await service.GetManagedAsync(Owner, 1)).Items);
+
+        Assert.Equal(7, item.QuestionCount);
+    }
+
+    [Fact]
+    public async Task GetPublishedPracticeAsync_CountsTheBankItemsToo()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context, new QuizItemService(context));
+        await QuizFromTheBankAsync(context, service, publish: true);
+
+        var item = Assert.Single((await service.GetPublishedPracticeAsync(1)).Items);
+
+        Assert.Equal(7, item.QuestionCount);
+    }
 }

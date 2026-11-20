@@ -277,6 +277,28 @@ namespace SchoolLibrary.Controllers
             return View(result.Value);
         }
 
+        // POST: Exams/DeleteAttempt/5 — remove one student's attempt so they can take the exam again
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteAttempt(int id)
+        {
+            var result = await _exams.DeleteAttemptAsync(id, CurrentUserId, IsAdministrator);
+            if (result.Error == ServiceError.NotFound)
+            {
+                return NotFound();
+            }
+
+            if (result.Error == ServiceError.Forbidden)
+            {
+                return Forbid();
+            }
+
+            var attempt = result.Value!;
+            TempData["SuccessMessage"] =
+                $"Опитът на {attempt.StudentName} (№ {attempt.StudentNumber}) е изтрит. Ученикът може да реши изпита отново със същия номер.";
+            return RedirectToAction(nameof(Details), new { id = attempt.ExamAssignmentId });
+        }
+
         private async Task<ExamAssignFormViewModel> FillChoicesAsync(ExamAssignFormViewModel vm)
         {
             vm.Classes = await _classes.GetForOwnerAsync(OwnerScope);

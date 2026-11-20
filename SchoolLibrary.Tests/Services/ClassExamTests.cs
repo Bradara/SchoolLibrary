@@ -226,6 +226,75 @@ public class ClassExamTests
         Assert.Equal(2, shown.Value!.Questions.Count);
     }
 
+    // ---------- Deleting an attempt (a retake) ----------
+
+    [Fact]
+    public async Task DeleteAttemptAsync_LetsTheStudentTakeTheExamAgainWithTheSameNumber()
+    {
+        var s = await ArrangeAsync();
+        using var _ = s.Context;
+        var first = (await s.Quizzes.StartExamAsync(s.Exam.Code, "Иван", "5")).Value!;
+        await SubmitAsync(s, first.Token);
+
+        var deleted = await s.Exams.DeleteAttemptAsync(first.Id, Owner, false);
+        var again = await s.Quizzes.StartExamAsync(s.Exam.Code, "Иван", "5");
+
+        Assert.True(deleted.Succeeded);
+        Assert.Equal(s.Exam.Id, deleted.Value!.ExamAssignmentId);
+        Assert.True(again.Succeeded);
+        Assert.NotEqual(first.Token, again.Value!.Token);
+        Assert.Null(again.Value.SubmittedOn);
+        Assert.Null(await s.Quizzes.GetExamAttemptAsync(first.Token)); // the old link no longer opens
+    }
+
+    [Fact]
+    public async Task DeleteAttemptAsync_AlsoFreesTheNumberForAnotherName()
+    {
+        var s = await ArrangeAsync();
+        using var _ = s.Context;
+        var wrong = (await s.Quizzes.StartExamAsync(s.Exam.Code, "Грешно име", "5")).Value!;
+
+        await s.Exams.DeleteAttemptAsync(wrong.Id, Owner, false);
+
+        Assert.True((await s.Quizzes.StartExamAsync(s.Exam.Code, "Иван", "5")).Succeeded);
+    }
+
+    [Fact]
+    public async Task DeleteAttemptAsync_AnotherTeacher_IsForbidden_AndTheAttemptStays()
+    {
+        var s = await ArrangeAsync();
+        using var _ = s.Context;
+        var attempt = (await s.Quizzes.StartExamAsync(s.Exam.Code, "Иван", "5")).Value!;
+
+        var result = await s.Exams.DeleteAttemptAsync(attempt.Id, "teacher-2", false);
+
+        Assert.Equal(ServiceError.Forbidden, result.Error);
+        Assert.NotNull(await s.Quizzes.GetExamAttemptAsync(attempt.Token));
+    }
+
+    [Fact]
+    public async Task DeleteAttemptAsync_ByAnAdministrator_IsAllowed()
+    {
+        var s = await ArrangeAsync();
+        using var _ = s.Context;
+        var attempt = (await s.Quizzes.StartExamAsync(s.Exam.Code, "Иван", "5")).Value!;
+
+        Assert.True((await s.Exams.DeleteAttemptAsync(attempt.Id, "admin", true)).Succeeded);
+    }
+
+    [Fact]
+    public async Task DeleteAttemptAsync_MissingOrAQuizModeAttempt_IsNotFound()
+    {
+        var s = await ArrangeAsync();
+        using var _ = s.Context;
+        var legacy = new QuizAttempt { Token = Guid.NewGuid(), QuizId = s.Exam.QuizId, StudentName = "Иван", StartedOn = DateTime.UtcNow };
+        s.Context.QuizAttempts.Add(legacy);
+        await s.Context.SaveChangesAsync();
+
+        Assert.Equal(ServiceError.NotFound, (await s.Exams.DeleteAttemptAsync(legacy.Id, Owner, false)).Error);
+        Assert.Equal(ServiceError.NotFound, (await s.Exams.DeleteAttemptAsync(999, Owner, false)).Error);
+    }
+
     [Fact]
     public async Task GetReviewAsync_OfTheQuiz_LeavesOutClassExamAttempts()
     {

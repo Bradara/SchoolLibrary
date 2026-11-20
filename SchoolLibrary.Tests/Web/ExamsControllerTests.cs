@@ -314,6 +314,33 @@ public class ExamsControllerTests
         Assert.IsType(expected, await Controller().Delete(3));
     }
 
+    // ---------- Deleting an attempt ----------
+
+    [Fact]
+    public async Task DeleteAttempt_Success_RedirectsBackToTheExamWithAMessage()
+    {
+        _exams.Setup(s => s.DeleteAttemptAsync(5, "t1", false)).ReturnsAsync(ServiceResult<QuizAttempt>.Success(
+            new QuizAttempt { Id = 5, ExamAssignmentId = 3, StudentName = "Иван", StudentNumber = "7" }));
+
+        var controller = Controller();
+        var result = await controller.DeleteAttempt(5);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Details", redirect.ActionName);
+        Assert.Equal(3, redirect.RouteValues!["id"]);
+        Assert.Contains("№ 7", controller.TempDataText("SuccessMessage"));
+    }
+
+    [Theory]
+    [InlineData(ServiceError.NotFound, typeof(NotFoundResult))]
+    [InlineData(ServiceError.Forbidden, typeof(ForbidResult))]
+    public async Task DeleteAttempt_Failures(ServiceError error, Type expected)
+    {
+        _exams.Setup(s => s.DeleteAttemptAsync(5, "t1", false)).ReturnsAsync(Fail<QuizAttempt>(error));
+
+        Assert.IsType(expected, await Controller().DeleteAttempt(5));
+    }
+
     // ---------- One attempt ----------
 
     [Fact]
