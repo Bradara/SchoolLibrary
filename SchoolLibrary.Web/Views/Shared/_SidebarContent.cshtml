@@ -31,7 +31,7 @@
         </li>
         @{
             var onPractice = area == null && controller == "Quizzes" && (action == "Index" || action == "Solve" || action == "Result");
-            var resourcesActive = onResources || Active("Favorites") != "";
+            var resourcesActive = onResources || Active("Favorites") != "" || Active("Discovery") != "";
             var quizzesActive = onPractice || Active("QuizManagement") != "" || Active("Sections") != "";
             var authenticated = User.Identity?.IsAuthenticated == true;
             var menuDirection = compact ? "dropend" : "dropdown";
@@ -46,6 +46,11 @@
             </button>
             <ul class="dropdown-menu">
                 <li><a class="@Item(ActiveKind("External") != "")" asp-area="" asp-controller="Resources" asp-action="Index" asp-route-kind="External"><i class="bi bi-globe2"></i> Свободни ресурси</a></li>
+                @* The search for new resources is open to the same roles as DiscoveryController *@
+                @if (User.CanAddResources())
+                {
+                    <li><a class="@Item(Active("Discovery") != "")" asp-area="" asp-controller="Discovery" asp-action="Index"><i class="bi bi-search"></i> Намери ресурси</a></li>
+                }
                 <li><a class="@Item(ActiveKind("Lesson") != "")" asp-area="" asp-controller="Resources" asp-action="Index" asp-route-kind="Lesson"><i class="bi bi-mortarboard"></i> Уроци</a></li>
                 <li><a class="@Item(ActiveKind("Upload") != "")" asp-area="" asp-controller="Resources" asp-action="Index" asp-route-kind="Upload"><i class="bi bi-file-earmark-arrow-up"></i> Качени материали</a></li>
                 @if (authenticated)
