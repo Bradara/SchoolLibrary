@@ -48,7 +48,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IMarkdownRenderer, MarkdigMarkdownRenderer>();
 
         // Sources for "Find resources". The hosts are fixed in code: the search never fetches an address a user typed
-        foreach (var clientName in new[] { WikimediaSourceProvider.HttpClientName, PhetSourceProvider.HttpClientName, GutenbergSourceProvider.HttpClientName, InternetArchiveSourceProvider.HttpClientName })
+        foreach (var clientName in new[] { WikimediaSourceProvider.HttpClientName, PhetSourceProvider.HttpClientName, GutenbergSourceProvider.HttpClientName, InternetArchiveSourceProvider.HttpClientName, GeoGebraSourceProvider.HttpClientName, ScratchSourceProvider.HttpClientName })
         {
             services.AddHttpClient(clientName, client =>
             {
@@ -67,6 +67,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IResourceSourceProvider, PhetSourceProvider>();
         services.AddTransient<IResourceSourceProvider, GutenbergSourceProvider>();
         services.AddTransient<IResourceSourceProvider, InternetArchiveSourceProvider>();
+        services.AddTransient<IResourceSourceProvider, GeoGebraSourceProvider>();
+        services.AddTransient<IResourceSourceProvider, ScratchSourceProvider>();
 
         // Site icons of the online libraries. The address is typed by an administrator, so every
         // connection goes through the guard that allows only public addresses and web ports.
