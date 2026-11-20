@@ -13,13 +13,15 @@ namespace SchoolLibrary.Tests.Web;
 public class AdminLibrariesControllerTests
 {
     private readonly Mock<IOnlineLibraryService> _service = new();
+    private readonly Mock<ILibraryIconService> _icons = new();
 
     public AdminLibrariesControllerTests()
     {
         _service.Setup(s => s.GetIcons()).Returns(new[] { new LibraryIconOption("bi-book", "Книга"), new LibraryIconOption("bi-feather", "Перо") });
+        _icons.Setup(i => i.RefreshAsync(It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<CancellationToken>())).ReturnsAsync(Ok());
     }
 
-    private LibrariesController Controller() => new LibrariesController(_service.Object).WithUser("admin", Roles.Administrator);
+    private LibrariesController Controller() => new LibrariesController(_service.Object, _icons.Object).WithUser("admin", Roles.Administrator);
 
     private static OnlineLibraryFormViewModel Form(int id = 3) =>
         new() { Id = id, Name = "Читанка", Description = "d", Url = "https://chitanka.info", Icon = "bi-feather", SortOrder = 10 };
@@ -193,5 +195,115 @@ public class AdminLibrariesControllerTests
         _service.Setup(s => s.DeleteAsync(3)).ReturnsAsync(Fail(ServiceError.NotFound));
 
         Assert.IsType<NotFoundResult>(await Controller().DeleteConfirmed(3));
+    }
+
+    private const string IconNote = "Иконата на сайта не можа да бъде изтеглена. Показва се избраната иконка.";
+
+    [Fact]
+    public async Task Create_Post_Success_DownloadsTheSiteIconOfTheNewLibrary()
+    {
+        _service.Setup(s => s.CreateAsync(It.IsAny<OnlineLibraryInput>())).ReturnsAsync(Ok());
+        var controller = Controller();
+
+        await controller.Create(Form());
+
+        _icons.Verify(i => i.RefreshAsync(3, false, It.IsAny<CancellationToken>()), Times.Once);
+        Assert.DoesNotContain("икона", controller.TempDataText("SuccessMessage"));
+    }
+
+    [Fact]
+    public async Task Create_Post_NoSiteIcon_StillSaves_AndAddsANote()
+    {
+        _service.Setup(s => s.CreateAsync(It.IsAny<OnlineLibraryInput>())).ReturnsAsync(Ok());
+        _icons.Setup(i => i.RefreshAsync(3, false, It.IsAny<CancellationToken>())).ReturnsAsync(Fail(ServiceError.Invalid, IconNote));
+        var controller = Controller();
+
+        var result = await controller.Create(Form());
+
+        Assert.Equal("Index", Assert.IsType<RedirectToActionResult>(result).ActionName);
+        Assert.Equal("Добавена е библиотека Читанка. " + IconNote, controller.TempDataText("SuccessMessage"));
+    }
+
+    [Fact]
+    public async Task Create_Post_AServiceError_DownloadsNoIcon()
+    {
+        _service.Setup(s => s.CreateAsync(It.IsAny<OnlineLibraryInput>())).ReturnsAsync(Fail(ServiceError.Conflict));
+
+        await Controller().Create(Form());
+
+        _icons.Verify(i => i.RefreshAsync(It.IsAny<int>(), It.IsAny<bool>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Edit_Post_Success_RefreshesTheIconOnlyWhenNeeded()
+    {
+        _service.Setup(s => s.UpdateAsync(3, It.IsAny<OnlineLibraryInput>())).ReturnsAsync(Ok());
+
+        await Controller().Edit(3, Form());
+
+        // Not forced: the service downloads again only when the address changed or there is no icon
+        _icons.Verify(i => i.RefreshAsync(3, false, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteConfirmed_Success_RemovesTheStoredIcon()
+    {
+        var deleted = new OnlineLibrary { Id = 3, Name = "Читанка", SiteIconKey = "libraries/a.png" };
+        _service.Setup(s => s.DeleteAsync(3)).ReturnsAsync(ServiceResult<OnlineLibrary>.Success(deleted));
+
+        await Controller().DeleteConfirmed(3);
+
+        _icons.Verify(i => i.DeleteStoredAsync(deleted, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteConfirmed_UnknownLibrary_RemovesNoIcon()
+    {
+        _service.Setup(s => s.DeleteAsync(3)).ReturnsAsync(Fail(ServiceError.NotFound));
+
+        await Controller().DeleteConfirmed(3);
+
+        _icons.Verify(i => i.DeleteStoredAsync(It.IsAny<OnlineLibrary>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task RefreshIcon_Success_ForcesTheDownload_AndSaysSo()
+    {
+        var controller = Controller();
+
+        var result = await controller.RefreshIcon(3);
+
+        Assert.Equal("Index", Assert.IsType<RedirectToActionResult>(result).ActionName);
+        Assert.Equal("Иконата на Читанка е обновена.", controller.TempDataText("SuccessMessage"));
+        _icons.Verify(i => i.RefreshAsync(3, true, It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task RefreshIcon_NoIcon_ShowsTheError()
+    {
+        _icons.Setup(i => i.RefreshAsync(3, true, It.IsAny<CancellationToken>())).ReturnsAsync(Fail(ServiceError.Invalid, IconNote));
+        var controller = Controller();
+
+        var result = await controller.RefreshIcon(3);
+
+        Assert.Equal("Index", Assert.IsType<RedirectToActionResult>(result).ActionName);
+        Assert.Equal(IconNote, controller.TempDataText("ErrorMessage"));
+    }
+
+    [Fact]
+    public async Task RefreshIcon_UnknownLibrary_ReturnsNotFound()
+    {
+        _icons.Setup(i => i.RefreshAsync(99, true, It.IsAny<CancellationToken>())).ReturnsAsync(Fail(ServiceError.NotFound));
+
+        Assert.IsType<NotFoundResult>(await Controller().RefreshIcon(99));
+    }
+
+    [Fact]
+    public void RefreshIcon_IsAPostWithAntiforgery()
+    {
+        var method = typeof(LibrariesController).GetMethod(nameof(LibrariesController.RefreshIcon))!;
+
+        Assert.NotEmpty(method.GetCustomAttributes(typeof(HttpPostAttribute), false));
+        Assert.NotEmpty(method.GetCustomAttributes(typeof(ValidateAntiForgeryTokenAttribute), false));
     }
 }

@@ -10,6 +10,7 @@ using SchoolLibrary.Services.OnlineLibraries;
 using SchoolLibrary.Services.Quizzes;
 using SchoolLibrary.Services.Reports;
 using SchoolLibrary.Services.Resources;
+using SchoolLibrary.Services.SiteIcons;
 using SchoolLibrary.Services.Statistics;
 using SchoolLibrary.Services.Storage;
 using SchoolLibrary.Services.Users;
@@ -66,6 +67,17 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IResourceSourceProvider, PhetSourceProvider>();
         services.AddTransient<IResourceSourceProvider, GutenbergSourceProvider>();
         services.AddTransient<IResourceSourceProvider, InternetArchiveSourceProvider>();
+
+        // Site icons of the online libraries. The address is typed by an administrator, so every
+        // connection goes through the guard that allows only public addresses and web ports.
+        services.AddHttpClient(SiteIconFetcher.HttpClientName, client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(10);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (compatible; SchoolLibraryBot/1.0)");
+            })
+            .ConfigurePrimaryHttpMessageHandler(PublicNetworkGuard.CreateHandler);
+        services.AddTransient<ISiteIconFetcher, SiteIconFetcher>();
+        services.AddScoped<ILibraryIconService, LibraryIconService>();
 
         return services;
     }

@@ -128,7 +128,7 @@ public class ApplicationDbSeederTests : IDisposable
         await SeedAsync();
 
         var libraries = _db.OnlineLibraries.OrderBy(l => l.SortOrder).ToList();
-        Assert.Equal(new[] { "https://chitanka.info", "https://4eti.me", "https://litenet.bg", "https://slovo.bg" }, libraries.Select(l => l.Url));
+        Assert.Equal(new[] { "https://chitanka.info", "https://4eti.me", "https://liternet.bg", "https://slovo.bg" }, libraries.Select(l => l.Url));
         Assert.All(libraries, l => Assert.False(string.IsNullOrWhiteSpace(l.Description)));
         Assert.All(libraries, l => Assert.StartsWith("bi-", l.Icon));
     }

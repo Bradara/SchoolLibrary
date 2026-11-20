@@ -11,10 +11,12 @@ namespace SchoolLibrary.Areas.Admin.Controllers
     public class LibrariesController : AdminController
     {
         private readonly IOnlineLibraryService _libraries;
+        private readonly ILibraryIconService _icons;
 
-        public LibrariesController(IOnlineLibraryService libraries)
+        public LibrariesController(IOnlineLibraryService libraries, ILibraryIconService icons)
         {
             _libraries = libraries;
+            _icons = icons;
         }
 
         // GET: Admin/Libraries
@@ -43,7 +45,7 @@ namespace SchoolLibrary.Areas.Admin.Controllers
                 return View(WithIcons(model));
             }
 
-            TempData["SuccessMessage"] = $"Добавена е библиотека {result.Value!.Name}.";
+            TempData["SuccessMessage"] = $"Добавена е библиотека {result.Value!.Name}." + await DownloadIconAsync(result.Value.Id);
             return RedirectToAction(nameof(Index));
         }
 
@@ -74,7 +76,7 @@ namespace SchoolLibrary.Areas.Admin.Controllers
                 return View(WithIcons(model));
             }
 
-            TempData["SuccessMessage"] = $"Библиотека {result.Value!.Name} е променена.";
+            TempData["SuccessMessage"] = $"Библиотека {result.Value!.Name} е променена." + await DownloadIconAsync(result.Value.Id);
             return RedirectToAction(nameof(Index));
         }
 
@@ -98,8 +100,38 @@ namespace SchoolLibrary.Areas.Admin.Controllers
 
             if (result.Error == ServiceError.NotFound) return NotFound();
 
+            await _icons.DeleteStoredAsync(result.Value!);
+
             TempData["SuccessMessage"] = $"Библиотека {result.Value!.Name} е премахната от каталога.";
             return RedirectToAction(nameof(Index));
+        }
+
+        // POST: Admin/Libraries/RefreshIcon/5
+        // Downloads the site icon again, for example after the site changed its logo
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RefreshIcon(int id)
+        {
+            var result = await _icons.RefreshAsync(id, force: true);
+            if (result.Error == ServiceError.NotFound) return NotFound();
+
+            if (result.Succeeded)
+            {
+                TempData["SuccessMessage"] = $"Иконата на {result.Value!.Name} е обновена.";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.Message;
+            }
+
+            return RedirectToAction(nameof(Index));
+        }
+
+        // The library is already saved: a site without a usable icon only adds a note to the message
+        private async Task<string> DownloadIconAsync(int id)
+        {
+            var icon = await _icons.RefreshAsync(id, cancellationToken: HttpContext?.RequestAborted ?? default);
+            return icon.Succeeded ? string.Empty : " " + icon.Message;
         }
 
         private static OnlineLibraryFormViewModel ToForm(OnlineLibrary library) => new()

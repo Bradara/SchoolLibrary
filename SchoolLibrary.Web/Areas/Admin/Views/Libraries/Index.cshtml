@@ -32,7 +32,7 @@ else
                 @foreach (var library in Model)
                 {
                     <tr>
-                        <td class="fs-4"><i class="bi @library.Icon"></i></td>
+                        <td class="fs-4"><partial name="_LibraryIcon" model="library" /></td>
                         <td class="fw-bold">
                             @library.Name
                             @if (library.SafeUrl != null)
@@ -47,6 +47,10 @@ else
                             <div class="d-inline-flex gap-1">
                                 <a asp-action="Edit" asp-route-id="@library.Id" class="btn btn-sm btn-outline-primary"
                                    data-sl-tip="Редактирай" data-sl-placement="top" aria-label="Редактирай"><i class="bi bi-pencil"></i></a>
+                                <form asp-action="RefreshIcon" asp-route-id="@library.Id" method="post" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-secondary"
+                                            data-sl-tip="Изтегли иконата от сайта" data-sl-placement="top" aria-label="Изтегли иконата от сайта"><i class="bi bi-arrow-repeat"></i></button>
+                                </form>
                                 <a asp-action="Delete" asp-route-id="@library.Id" class="btn btn-sm btn-outline-danger"
                                    data-sl-tip="Изтрий" data-sl-placement="top" aria-label="Изтрий"><i class="bi bi-trash"></i></a>
                             </div>

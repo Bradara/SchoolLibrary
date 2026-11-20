@@ -31,6 +31,22 @@ namespace SchoolLibrary.Data.Models
         /// <summary>Cards are shown by this number first, then by name.</summary>
         public int SortOrder { get; set; }
 
+        /// <summary>Storage key of the site icon downloaded from the library's site, or null when there is none.</summary>
+        [MaxLength(200)]
+        public string? SiteIconKey { get; set; }
+
+        /// <summary>The image type of the stored site icon (image/png, image/x-icon, ...).</summary>
+        [MaxLength(50)]
+        public string? SiteIconContentType { get; set; }
+
+        /// <summary>The address the stored icon was downloaded for: when the address changes, the icon is downloaded again.</summary>
+        [MaxLength(500)]
+        public string? SiteIconSourceUrl { get; set; }
+
+        /// <summary>True when a site icon is stored and is shown instead of <see cref="Icon"/>.</summary>
+        [NotMapped]
+        public bool HasSiteIcon => SiteIconKey != null && SiteIconContentType != null;
+
         /// <summary>The address for a link (href), or null when it is not an http(s) address.</summary>
         [NotMapped]
         public string? SafeUrl =>

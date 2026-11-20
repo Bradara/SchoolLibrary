@@ -1,0 +1,14 @@
+@model SchoolLibrary.Data.Models.OnlineLibrary
+@*
+    The icon of an online library: the downloaded site icon when there is one, otherwise the chosen Bootstrap icon.
+    The image is sized by the font size of the parent, like the Bootstrap icon it replaces.
+*@
+@if (Model.HasSiteIcon)
+{
+    <img src="@Url.Action("Icon", "Libraries", new { area = "", id = Model.Id, v = System.IO.Path.GetFileNameWithoutExtension(Model.SiteIconKey) })"
+         alt="" class="sl-library-icon" loading="lazy" decoding="async" />
+}
+else
+{
+    <i class="bi @Model.Icon"></i>
+}

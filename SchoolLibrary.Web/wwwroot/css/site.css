@@ -294,3 +294,11 @@ body.sl-maximized-open {
   border-radius: 50%;
   background-color: rgba(var(--bs-primary-rgb), .12);
 }
+
+/* Site icon of an online library: takes the place of a Bootstrap icon of the same font size */
+.sl-library-icon {
+  width: 1.25em;
+  height: 1.25em;
+  object-fit: contain;
+  vertical-align: middle;
+}
