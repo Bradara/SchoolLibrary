@@ -105,6 +105,8 @@ public class QuizService : IQuizService
             Mode = input.Mode,
             TimeLimitMinutes = input.Mode == QuizMode.Exam ? input.TimeLimitMinutes : null,
             MaxLeaves = input.Mode == QuizMode.Exam ? input.MaxLeaves : null,
+            ShuffleQuestions = input.ShuffleQuestions,
+            ShuffleOptions = input.ShuffleOptions,
             ResourceId = input.ResourceId,
             OwnerId = ownerId,
             IsPublished = false,
@@ -153,6 +155,8 @@ public class QuizService : IQuizService
         quiz.Description = Clean(input.Description);
         quiz.ResourceId = input.ResourceId;
         quiz.Mode = input.Mode;
+        quiz.ShuffleQuestions = input.ShuffleQuestions;
+        quiz.ShuffleOptions = input.ShuffleOptions;
 
         if (input.Mode == QuizMode.Exam)
         {
@@ -506,13 +510,16 @@ public class QuizService : IQuizService
 
     public async Task<QuizAttempt?> GetExamAttemptAsync(Guid token)
     {
-        return await _context.QuizAttempts
+        var attempt = await _context.QuizAttempts
             .AsNoTracking()
             .Include(a => a.Quiz)
             .Include(a => a.Questions.OrderBy(x => x.Order))
                 .ThenInclude(aq => aq.Question)
                     .ThenInclude(q => q.Options.OrderBy(o => o.Order))
             .FirstOrDefaultAsync(a => a.Token == token);
+
+        ApplyOptionOrder(attempt);
+        return attempt;
     }
 
     public async Task<ServiceResult<QuizResult>> SubmitExamAsync(Guid token, IReadOnlyDictionary<int, int?> answers)
@@ -576,6 +583,7 @@ public class QuizService : IQuizService
             return ServiceResult<QuizResult>.Failure(ServiceError.Invalid, "Изпитът още не е предаден.");
         }
 
+        ApplyOptionOrder(attempt);
         return ServiceResult<QuizResult>.Success(BuildResult(attempt));
     }
 
@@ -655,6 +663,20 @@ public class QuizService : IQuizService
         => attempt.Questions.Count > 0
             ? attempt.Questions.OrderBy(aq => aq.Order).Select(aq => aq.Question).ToList()
             : attempt.Quiz.Questions.OrderBy(q => q.Order).ToList();
+
+    // Shows a (non-tracked) attempt's options in the order the student got, stable across reloads
+    private static void ApplyOptionOrder(QuizAttempt? attempt)
+    {
+        if (attempt == null || !attempt.Quiz.ShuffleOptions)
+        {
+            return;
+        }
+
+        foreach (var attemptQuestion in attempt.Questions)
+        {
+            QuizShuffle.ShuffleOptionsForAttempt(attemptQuestion.Question, attempt.Token);
+        }
+    }
 
     private async Task<bool> HasAttemptsAsync(int? quizId)
         => quizId != null && await _context.QuizAttempts.AnyAsync(a => a.QuizId == quizId.Value);

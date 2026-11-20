@@ -544,4 +544,97 @@ public class QuizExamTests
         Assert.Equal(2, result.Value!.Score);
         Assert.Equal(2, result.Value.MaxScore);
     }
+
+    // ---------- Shuffled options ----------
+
+    private static async Task<Quiz> PublishedExamWithSixOptionsAsync(QuizService service, bool shuffleOptions)
+    {
+        var input = new QuizInput("Изпит", null, QuizMode.Exam, 30, null, null, ShuffleQuestions: false, ShuffleOptions: shuffleOptions);
+        var quiz = (await service.CreateAsync(input, Owner)).Value!;
+        for (var i = 0; i < 5; i++)
+        {
+            await service.AddQuestionAsync(quiz.Id,
+                new QuestionInput("Въпрос " + i, new[] { "а", "б", "в", "г", "д", "е" }, 0), Owner, false);
+        }
+
+        await service.SetPublishedAsync(quiz.Id, true, Owner, false);
+        return (await service.GetByIdAsync(quiz.Id))!;
+    }
+
+    private static List<List<int>> OptionIds(IEnumerable<Question> questions)
+        => questions.Select(q => q.Options.Select(o => o.Id).ToList()).ToList();
+
+    [Fact]
+    public async Task GetExamAttemptAsync_ShuffleOptions_GivesTheSameOrderOnEveryReload()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context, new QuizItemService(context));
+        var exam = await PublishedExamWithSixOptionsAsync(service, shuffleOptions: true);
+        var token = (await service.StartExamAsync(exam.Code!, "Иван", "1")).Value!.Token;
+
+        var first = await service.GetExamAttemptAsync(token);
+        var second = await service.GetExamAttemptAsync(token);
+
+        Assert.Equal(OptionIds(first!.Questions.Select(aq => aq.Question)), OptionIds(second!.Questions.Select(aq => aq.Question)));
+        Assert.Contains(first.Questions, aq => !aq.Question.Options.Select(o => o.Order).SequenceEqual(Enumerable.Range(1, 6)));
+    }
+
+    [Fact]
+    public async Task GetExamAttemptAsync_ShuffleOptionsOff_KeepsTheAuthoredOrder()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context, new QuizItemService(context));
+        var exam = await PublishedExamWithSixOptionsAsync(service, shuffleOptions: false);
+        var token = (await service.StartExamAsync(exam.Code!, "Иван", "1")).Value!.Token;
+
+        var attempt = await service.GetExamAttemptAsync(token);
+
+        Assert.All(attempt!.Questions, aq => Assert.Equal(Enumerable.Range(1, 6), aq.Question.Options.Select(o => o.Order)));
+    }
+
+    [Fact]
+    public async Task GetExamResultAsync_ShuffleOptions_ShowsTheOrderTheStudentSaw()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context, new QuizItemService(context));
+        var exam = await PublishedExamWithSixOptionsAsync(service, shuffleOptions: true);
+        var token = (await service.StartExamAsync(exam.Code!, "Иван", "1")).Value!.Token;
+        var seen = OptionIds((await service.GetExamAttemptAsync(token))!.Questions.Select(aq => aq.Question));
+        await service.SubmitExamAsync(token, new Dictionary<int, int?>());
+
+        var result = await service.GetExamResultAsync(token);
+
+        Assert.Equal(seen, OptionIds(result.Value!.Questions.Select(q => q.Question)));
+    }
+
+    [Fact]
+    public async Task CreateAsync_StoresTheShuffleSettings()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context, new QuizItemService(context));
+
+        var defaults = (await service.CreateAsync(new QuizInput("А", null, QuizMode.Practice, null, null), Owner)).Value!;
+        var off = (await service.CreateAsync(
+            new QuizInput("Б", null, QuizMode.Practice, null, null, ShuffleQuestions: false, ShuffleOptions: false), Owner)).Value!;
+
+        Assert.True(defaults.ShuffleQuestions);
+        Assert.True(defaults.ShuffleOptions);
+        Assert.False(off.ShuffleQuestions);
+        Assert.False(off.ShuffleOptions);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ChangesTheShuffleSettings()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context, new QuizItemService(context));
+        var quiz = (await service.CreateAsync(new QuizInput("А", null, QuizMode.Practice, null, null), Owner)).Value!;
+
+        var result = await service.UpdateAsync(quiz.Id,
+            new QuizInput("А", null, QuizMode.Practice, null, null, ShuffleQuestions: false, ShuffleOptions: true), Owner, false);
+
+        Assert.True(result.Succeeded);
+        Assert.False(result.Value!.ShuffleQuestions);
+        Assert.True(result.Value.ShuffleOptions);
+    }
 }

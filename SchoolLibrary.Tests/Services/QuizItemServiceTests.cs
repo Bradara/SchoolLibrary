@@ -11,9 +11,10 @@ public class QuizItemServiceTests
     private const string Owner = "teacher-1";
     private const string Other = "teacher-2";
 
+    // Shuffling is off here so the order assertions stay deterministic
     private static async Task<Quiz> QuizAsync(ApplicationDbContext context, string owner = Owner)
     {
-        var quiz = new Quiz { Title = "Тест", OwnerId = owner };
+        var quiz = new Quiz { Title = "Тест", OwnerId = owner, ShuffleQuestions = false, ShuffleOptions = false };
         context.Quizzes.Add(quiz);
         await context.SaveChangesAsync();
         return quiz;
@@ -345,5 +346,85 @@ public class QuizItemServiceTests
 
         Assert.Equal(2, resolved.Count);
         Assert.Equal(pinnedId, resolved[0].Id); // the fixed item comes first
+    }
+
+    // ---------- ResolveAsync: shuffling ----------
+
+    private static async Task<Quiz> QuizWithPinnedQuestionsAsync(ApplicationDbContext context, QuizItemService service,
+        bool shuffleQuestions, bool shuffleOptions)
+    {
+        var quiz = await QuizAsync(context);
+        quiz.ShuffleQuestions = shuffleQuestions;
+        quiz.ShuffleOptions = shuffleOptions;
+
+        var section = new Section { Name = "Банка", OwnerId = Owner, CreatedOn = DateTime.UtcNow };
+        context.Sections.Add(section);
+        await context.SaveChangesAsync();
+
+        for (var i = 1; i <= 8; i++)
+        {
+            var question = new Question
+            {
+                SectionId = section.Id,
+                Text = "Въпрос " + i,
+                Points = 1,
+                Order = i,
+                Options = Enumerable.Range(1, 6)
+                    .Select(o => new AnswerOption { Text = "Отговор " + o, IsCorrect = o == 1, Order = o })
+                    .ToList()
+            };
+            context.Questions.Add(question);
+            await context.SaveChangesAsync();
+            await service.AddFixedQuestionAsync(quiz.Id, question.Id, Owner, false);
+        }
+
+        return quiz;
+    }
+
+    private static readonly List<string> AuthoredTexts = Enumerable.Range(1, 8).Select(i => "Въпрос " + i).ToList();
+
+    [Fact]
+    public async Task ResolveAsync_ShuffleOff_KeepsTheItemAndOptionOrder()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizItemService(context);
+        var quiz = await QuizWithPinnedQuestionsAsync(context, service, false, false);
+
+        var resolved = await service.ResolveAsync(quiz.Id, new Random(7));
+
+        Assert.Equal(AuthoredTexts, resolved.Select(q => q.Text));
+        Assert.All(resolved, q => Assert.Equal(Enumerable.Range(1, 6), q.Options.Select(o => o.Order)));
+    }
+
+    [Fact]
+    public async Task ResolveAsync_ShuffleQuestions_ReordersTheQuestionsButKeepsThemAll()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizItemService(context);
+        var quiz = await QuizWithPinnedQuestionsAsync(context, service, true, false);
+
+        var resolved = await service.ResolveAsync(quiz.Id, new Random(7));
+
+        Assert.NotEqual(AuthoredTexts, resolved.Select(q => q.Text));
+        Assert.Equal(AuthoredTexts.Order(), resolved.Select(q => q.Text).Order());
+        Assert.All(resolved, q => Assert.Equal(Enumerable.Range(1, 6), q.Options.Select(o => o.Order)));
+    }
+
+    [Fact]
+    public async Task ResolveAsync_ShuffleOptions_ReordersTheOptionsButKeepsTheQuestionOrder()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizItemService(context);
+        var quiz = await QuizWithPinnedQuestionsAsync(context, service, false, true);
+
+        var resolved = await service.ResolveAsync(quiz.Id, new Random(7));
+
+        Assert.Equal(AuthoredTexts, resolved.Select(q => q.Text));
+        Assert.Contains(resolved, q => !q.Options.Select(o => o.Order).SequenceEqual(Enumerable.Range(1, 6)));
+        Assert.All(resolved, q =>
+        {
+            Assert.Equal(Enumerable.Range(1, 6), q.Options.Select(o => o.Order).Order());
+            Assert.Single(q.Options, o => o.IsCorrect);
+        });
     }
 }

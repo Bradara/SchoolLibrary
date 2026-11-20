@@ -5,7 +5,8 @@ using SchoolLibrary.Services.Common;
 namespace SchoolLibrary.Services.Quizzes;
 
 /// <summary>What a teacher types in the quiz form. The exam code is generated, not entered.</summary>
-public record QuizInput(string Title, string? Description, QuizMode Mode, int? TimeLimitMinutes, int? ResourceId, int? MaxLeaves = null);
+public record QuizInput(string Title, string? Description, QuizMode Mode, int? TimeLimitMinutes, int? ResourceId, int? MaxLeaves = null,
+    bool ShuffleQuestions = true, bool ShuffleOptions = true);
 
 /// <summary>
 /// A single-choice question with its options, which one is correct (by index in <paramref name="Options"/>),

@@ -35,6 +35,14 @@ namespace SchoolLibrary.Data.Models
         /// </summary>
         public int? MaxLeaves { get; set; }
 
+        /// <summary>Whether the questions are served in random order (fixed per exam attempt).</summary>
+        [Display(Name = "Разбъркай въпросите")]
+        public bool ShuffleQuestions { get; set; } = true;
+
+        /// <summary>Whether each question's answer options are served in random order.</summary>
+        [Display(Name = "Разбъркай отговорите")]
+        public bool ShuffleOptions { get; set; } = true;
+
         /// <summary>Whether students can currently see and take the quiz.</summary>
         public bool IsPublished { get; set; }
 

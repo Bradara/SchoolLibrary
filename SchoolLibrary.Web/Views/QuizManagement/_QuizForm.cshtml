@@ -35,3 +35,16 @@
     <span asp-validation-for="MaxLeaves" class="text-danger small"></span>
     <div class="form-text">Само за изпит. Колко пъти ученикът може да напусне страницата, преди изпитът да се предаде автоматично. Празно = без надзор.</div>
 </div>
+
+<fieldset class="mb-3">
+    <legend class="form-label fs-6 mb-1">Разбъркване</legend>
+    <div class="form-check">
+        <input asp-for="ShuffleQuestions" class="form-check-input" />
+        <label asp-for="ShuffleQuestions" class="form-check-label"></label>
+    </div>
+    <div class="form-check">
+        <input asp-for="ShuffleOptions" class="form-check-input" />
+        <label asp-for="ShuffleOptions" class="form-check-label"></label>
+    </div>
+    <div class="form-text">Всеки ученик получава въпросите и отговорите в различен ред. При изпит редът е постоянен за опита (не се сменя при презареждане).</div>
+</fieldset>

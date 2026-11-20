@@ -588,6 +588,12 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<int?>("ResourceId")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("ShuffleOptions")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("ShuffleQuestions")
+                        .HasColumnType("boolean");
+
                     b.Property<int?>("TimeLimitMinutes")
                         .HasColumnType("integer");
 

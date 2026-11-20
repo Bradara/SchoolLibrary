@@ -251,7 +251,23 @@ public class QuizItemService : IQuizItemService
             }
         }
 
-        return resolved;
+        var shuffle = await _context.Quizzes
+            .AsNoTracking()
+            .Where(q => q.Id == quizId)
+            .Select(q => new { q.ShuffleQuestions, q.ShuffleOptions })
+            .FirstOrDefaultAsync();
+
+        if (shuffle?.ShuffleOptions == true)
+        {
+            foreach (var question in resolved)
+            {
+                QuizShuffle.ShuffleOptions(question, rng);
+            }
+        }
+
+        return shuffle?.ShuffleQuestions == true
+            ? QuizShuffle.Shuffle(resolved, rng)
+            : resolved;
     }
 
     private async Task<int> NextOrderAsync(int quizId)

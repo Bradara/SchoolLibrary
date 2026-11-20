@@ -27,6 +27,12 @@ public class QuizFormViewModel
     [Range(0, 100, ErrorMessage = "Напусканията са между 0 и 100")]
     [Display(Name = "Допустими напускания (изпит)")]
     public int? MaxLeaves { get; set; }
+
+    [Display(Name = "Разбъркай въпросите")]
+    public bool ShuffleQuestions { get; set; } = true;
+
+    [Display(Name = "Разбъркай отговорите")]
+    public bool ShuffleOptions { get; set; } = true;
 }
 
 /// <summary>The add-question form: the text, the answer options and which one is correct.</summary>

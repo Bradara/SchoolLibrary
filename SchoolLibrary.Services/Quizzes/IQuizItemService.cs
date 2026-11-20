@@ -29,7 +29,8 @@ public interface IQuizItemService
 
     /// <summary>
     /// Resolves the quiz's items into a concrete ordered list of questions (with options): the pinned
-    /// questions plus a random draw from each random item. Random items use <paramref name="rng"/>.
+    /// questions plus a random draw from each random item. Random items use <paramref name="rng"/>, as do
+    /// the question and option shuffles when the quiz has them switched on.
     /// </summary>
     Task<IReadOnlyList<Question>> ResolveAsync(int quizId, Random? rng = null);
 }
