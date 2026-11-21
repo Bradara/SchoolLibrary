@@ -1,0 +1,100 @@
+@using SchoolLibrary.Services.Quizzes
+@model QuestionResult
+@* The result of a code answer: the program, how the run ended and every test. A hidden test shows only
+   whether it passed; for the others the input, the expected output and what the program printed. *@
+@{
+    var results = Model.CodeResults;
+    var tests = results?.Tests ?? Array.Empty<StoredCodeTest>();
+    var passed = tests.Count(t => t.Passed);
+}
+
+@if (Model.TypedText == null)
+{
+    <p class="fst-italic text-body-secondary mb-0">Без отговор.</p>
+}
+else
+{
+    <details class="mb-2">
+        <summary class="small">Програмата</summary>
+        <pre class="border rounded p-2 mb-0 small bg-body-tertiary"><code>@Model.TypedText</code></pre>
+    </details>
+
+    switch (results?.Status)
+    {
+        case null:
+        case CodeGradeStatus.NotChecked:
+            <div class="alert alert-warning py-2 small mb-0">
+                Програмата още не е проверена@(string.IsNullOrEmpty(results?.Message) ? "" : $": {results.Message}")
+            </div>
+            break;
+
+        case CodeGradeStatus.CompileError:
+            <div class="alert alert-danger py-2 small mb-0">
+                <div class="fw-semibold">Грешка при компилиране</div>
+                <pre class="mb-0 small text-wrap">@results.Message</pre>
+            </div>
+            break;
+
+        case CodeGradeStatus.LimitExceeded:
+        case CodeGradeStatus.TooLong:
+            <div class="alert alert-danger py-2 small mb-0">@results.Message</div>
+            break;
+
+        default:
+            <p class="small mb-1">Минати тестове: <span class="fw-semibold">@passed от @tests.Count</span></p>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered align-top mb-0 small">
+                    <thead>
+                        <tr>
+                            <th scope="col" class="text-nowrap">Тест</th>
+                            <th scope="col">Вход</th>
+                            <th scope="col">Очакван изход</th>
+                            <th scope="col">Изход на програмата</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < tests.Count; i++)
+                        {
+                            var test = tests[i];
+                            <tr class="@(test.Passed ? "table-success" : "table-danger")">
+                                <td class="text-nowrap">
+                                    @if (test.Passed)
+                                    {
+                                        <i class="bi bi-check-circle-fill text-success" aria-hidden="true"></i>
+                                        <span class="visually-hidden">Минат</span>
+                                    }
+                                    else
+                                    {
+                                        <i class="bi bi-x-circle-fill text-danger" aria-hidden="true"></i>
+                                        <span class="visually-hidden">Неминат</span>
+                                    }
+                                    @(i + 1)
+                                </td>
+                                @if (test.IsHidden)
+                                {
+                                    <td colspan="3" class="fst-italic text-body-secondary">Скрит тест</td>
+                                }
+                                else
+                                {
+                                    <td><pre class="mb-0">@test.Stdin</pre></td>
+                                    <td><pre class="mb-0">@test.Expected</pre></td>
+                                    <td>
+                                        <pre class="mb-0">@test.Output</pre>
+                                        @if (test.TimedOut)
+                                        {
+                                            <div class="text-danger">Превишено време.</div>
+                                        }
+                                        @if (!string.IsNullOrEmpty(test.Error))
+                                        {
+                                            <pre class="mb-0 text-danger">@test.Error</pre>
+                                        }
+                                    </td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            break;
+    }
+}

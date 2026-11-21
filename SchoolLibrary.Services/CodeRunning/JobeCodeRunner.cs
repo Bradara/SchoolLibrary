@@ -20,11 +20,13 @@ public class JobeCodeRunner : ICodeRunner
 
     private readonly HttpClient _http;
     private readonly CodeRunnerOptions _options;
+    private readonly CodeRunGate? _gate;
 
-    public JobeCodeRunner(HttpClient http, CodeRunnerOptions options)
+    public JobeCodeRunner(HttpClient http, CodeRunnerOptions options, CodeRunGate? gate = null)
     {
         _http = http;
         _options = options;
+        _gate = gate;
     }
 
     public async Task<CodeRunResult> RunAsync(string language, string sourceCode, IReadOnlyList<string> stdins, CancellationToken cancellationToken = default)
@@ -49,6 +51,12 @@ public class JobeCodeRunner : ICodeRunner
                 },
             },
         };
+
+        using var slot = _gate == null ? null : await _gate.EnterAsync(cancellationToken);
+        if (_gate != null && slot == null)
+        {
+            return CodeRunResult.Failed(CodeRunStatus.Unavailable, "Too many programs are waiting to run");
+        }
 
         JobeResponse? response;
         try

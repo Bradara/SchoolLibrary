@@ -87,6 +87,12 @@ public record QuestionInput(string Text, IReadOnlyList<string> Options, int Corr
         => new(text, Array.Empty<string>(), -1, 0, QuestionType.Description);
 }
 
+/// <summary>
+/// A code answer that has already been run (or read back from an attempt): the program as accepted, the
+/// points it earned and the stored results.
+/// </summary>
+public record CodeOutcome(string Code, decimal AwardedPoints, bool IsCorrect, StoredCodeResults? Results);
+
 /// <summary>What a teacher sets for a code question: language, starting code, scoring and the tests.</summary>
 public record CodeQuestionInput(string Language, string? Preload, bool AllOrNothing, IReadOnlyList<CodeTestInput> Tests);
 
@@ -99,6 +105,12 @@ public record QuizListItem(Quiz Quiz, int QuestionCount, int AttemptCount);
 /// <summary>How one question was answered: the accepted answer, the points it earned and the outcome.</summary>
 public record QuestionResult(Question Question, SubmittedAnswer Answer, decimal AwardedPoints, bool IsCorrect)
 {
+    /// <summary>For a code question: how the program ran (status, compiler message, every test); null when unknown.</summary>
+    public StoredCodeResults? CodeResults { get; init; }
+
+    /// <summary>Whether this is a code question.</summary>
+    public bool IsCode => Question.Type == QuestionType.Code;
+
     /// <summary>The picked option of a single-choice question; null when unanswered.</summary>
     public int? SelectedOptionId => Answer.OptionId;
 

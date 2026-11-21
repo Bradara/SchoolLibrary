@@ -17,7 +17,12 @@ public static class QuizGrading
     /// Grades a specific, ordered set of questions (the attempt's snapshot) rather than the quiz's own
     /// question collection. Used for item-based quizzes where each attempt is served its own questions.
     /// </summary>
-    public static QuizResult Grade(Quiz quiz, IEnumerable<Question> questions, IReadOnlyDictionary<int, SubmittedAnswer> answers)
+    /// <remarks>
+    /// A code question is not run here: its outcome comes from <paramref name="code"/> (question id → the run's
+    /// outcome, made beforehand on the sandbox server or read back from an attempt). Without one it earns nothing.
+    /// </remarks>
+    public static QuizResult Grade(Quiz quiz, IEnumerable<Question> questions, IReadOnlyDictionary<int, SubmittedAnswer> answers,
+        IReadOnlyDictionary<int, CodeOutcome>? code = null)
     {
         var results = new List<QuestionResult>();
 
@@ -26,6 +31,15 @@ public static class QuizGrading
             var answer = answers.TryGetValue(question.Id, out var submitted) && submitted != null
                 ? submitted
                 : SubmittedAnswer.Empty;
+
+            if (question.Type == SchoolLibrary.Data.Enums.QuestionType.Code)
+            {
+                var outcome = code != null && code.TryGetValue(question.Id, out var known) ? known : null;
+                var program = outcome?.Code ?? answer.Text;
+                results.Add(new QuestionResult(question, string.IsNullOrEmpty(program) ? SubmittedAnswer.Empty : new SubmittedAnswer(Text: program),
+                    outcome?.AwardedPoints ?? 0m, outcome?.IsCorrect ?? false) { CodeResults = outcome?.Results });
+                continue;
+            }
 
             var grade = QuestionGraders.For(question.Type).Grade(question, answer);
             results.Add(new QuestionResult(question, grade.Answer, grade.AwardedPoints, grade.IsCorrect));

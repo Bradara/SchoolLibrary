@@ -39,7 +39,11 @@
                 }
                 <span class="badge text-bg-light">@QuizPoints.Format(questionResult.AwardedPoints) / @questionResult.Question.Points т.</span>
             </h2>
-            @if (questionResult.Question.Type == SchoolLibrary.Data.Enums.QuestionType.Matching)
+            @if (questionResult.IsCode)
+            {
+                <partial name="_CodeAnswerReview" model="questionResult" />
+            }
+            else if (questionResult.Question.Type == SchoolLibrary.Data.Enums.QuestionType.Matching)
             {
                 <ul class="list-unstyled mb-0">
                     @foreach (var item in MatchingAnswers.Items(questionResult.Question))

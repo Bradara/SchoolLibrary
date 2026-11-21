@@ -4,7 +4,7 @@
 @* The answer fields of one question while solving (practice or exam). One pick is posted as
    answers[questionId] = optionId; ticked options of a multiple-choice question as multi[questionId] = optionId
    (repeated); a typed short answer or number as text[questionId]; the answer picked for a matching item as
-   match[questionId][itemOptionId] = answer text. Nothing here reveals which options are correct: the options
+   match[questionId][itemOptionId] = answer text; a program as code[questionId]. Nothing here reveals which options are correct: the options
    of short-answer and numerical questions (the accepted answers) are never rendered, and a matching list
    offers answer texts in alphabetical order, never option ids. *@
 @switch (Model.Type)
@@ -41,6 +41,10 @@
                 </div>
             </div>
         }
+        break;
+
+    case QuestionType.Code:
+        <partial name="_CodeAnswerInput" model="Model" />
         break;
 
     case QuestionType.MultipleChoice:

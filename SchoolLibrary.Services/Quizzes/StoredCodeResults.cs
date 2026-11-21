@@ -3,8 +3,12 @@ using System.Text.Json.Serialization;
 
 namespace SchoolLibrary.Services.Quizzes;
 
-/// <summary>One test's stored result. <see cref="TestId"/> points to the question's test case.</summary>
-public record StoredCodeTest(int TestId, bool Passed, string Output, string Error, bool TimedOut);
+/// <summary>
+/// One test's stored result with a copy of the test as it was run (input, expected output, hidden), so the
+/// review shows what was checked even after the teacher edits the tests. <see cref="TestId"/> is the test case.
+/// </summary>
+public record StoredCodeTest(int TestId, bool Passed, string Output, string Error, bool TimedOut,
+    string Stdin = "", string Expected = "", bool IsHidden = false);
 
 /// <summary>
 /// The stored result of running a code answer (<c>AttemptAnswer.CodeResults</c>): how the run ended, the
@@ -28,10 +32,14 @@ public record StoredCodeResults(CodeGradeStatus Status, string? Message, IReadOn
         grade.Status,
         Cut(grade.Message, MaxMessageLength),
         grade.Tests
-            .Select(t => new StoredCodeTest(t.Test.Id, t.Passed, Cut(t.Output, MaxTextLength)!, Cut(t.Error, MaxTextLength)!, t.TimedOut))
+            .Select(t => new StoredCodeTest(t.Test.Id, t.Passed, Cut(t.Output, MaxTextLength)!, Cut(t.Error, MaxTextLength)!, t.TimedOut,
+                Cut(t.Test.Stdin, MaxTextLength)!, Cut(t.Test.Expected, MaxTextLength)!, t.Test.IsHidden))
             .ToList());
 
     public string ToJson() => JsonSerializer.Serialize(this, Json);
+
+    /// <summary>The result stored when no sandbox server is configured or the run could not be made.</summary>
+    public static StoredCodeResults NotChecked(string message) => new(CodeGradeStatus.NotChecked, message, []);
 
     /// <summary>Reads stored results; null when there are none or the text cannot be read.</summary>
     public static StoredCodeResults? FromJson(string? json)

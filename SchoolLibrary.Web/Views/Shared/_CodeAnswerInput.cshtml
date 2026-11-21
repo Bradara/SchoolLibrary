@@ -1,0 +1,38 @@
+@using SchoolLibrary.Services.CodeRunning
+@model SchoolLibrary.Data.Models.Question
+@* The answer box of a code question while solving, posted as code[questionId]. Only the tests marked as
+   examples are shown (input and expected output); the other tests, hidden or not, never reach the page. *@
+@{
+    var codeId = $"q{Model.Id}code";
+    var language = CodeLanguages.All.TryGetValue(Model.CodeLanguage ?? string.Empty, out var name) ? name : Model.CodeLanguage;
+    var examples = Model.TestCases.Where(t => t.IsExample).OrderBy(t => t.Order).ToList();
+}
+
+@if (examples.Count > 0)
+{
+    <div class="table-responsive mb-2">
+        <table class="table table-sm table-bordered align-top mb-0 small">
+            <caption class="caption-top pt-0">Примери</caption>
+            <thead>
+                <tr>
+                    <th scope="col">Вход</th>
+                    <th scope="col">Очакван изход</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var example in examples)
+                {
+                    <tr>
+                        <td><pre class="mb-0">@example.Stdin</pre></td>
+                        <td><pre class="mb-0">@example.Expected</pre></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
+<label class="form-label small text-body-secondary mb-1" for="@codeId">Вашата програма (@language)</label>
+<textarea class="form-control font-monospace" name="code[@Model.Id]" id="@codeId" rows="12" maxlength="10000"
+          spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off">@Model.AnswerPreload</textarea>
+<p class="form-text mb-0">Програмата чете от стандартния вход и печата на стандартния изход.</p>

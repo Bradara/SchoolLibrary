@@ -114,8 +114,10 @@ public static class ServiceCollectionExtensions
             client.BaseAddress = new Uri(baseUrl);
             client.Timeout = TimeSpan.FromSeconds(options.CpuTimeSeconds + 40); // compiling + every input + queueing
         });
+        services.AddSingleton(new CodeRunGate(options)); // one line for the whole application
         services.AddTransient<ICodeRunner>(sp => new JobeCodeRunner(
-            sp.GetRequiredService<IHttpClientFactory>().CreateClient(JobeCodeRunner.HttpClientName), options));
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient(JobeCodeRunner.HttpClientName), options,
+            sp.GetRequiredService<CodeRunGate>()));
         services.AddTransient<CodeGrader>();
 
         return services;

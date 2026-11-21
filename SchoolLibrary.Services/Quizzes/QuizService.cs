@@ -26,11 +26,40 @@ public class QuizService : IQuizService
 
     private readonly ApplicationDbContext _context;
     private readonly IQuizItemService _items;
+    private readonly CodeGrader? _codeGrader;
 
-    public QuizService(ApplicationDbContext context, IQuizItemService items)
+    /// <param name="codeGrader">Runs code answers; null when no sandbox server is configured (they are then not checked).</param>
+    public QuizService(ApplicationDbContext context, IQuizItemService items, CodeGrader? codeGrader = null)
     {
         _context = context;
         _items = items;
+        _codeGrader = codeGrader;
+    }
+
+    /// <summary>
+    /// Runs the code answers among <paramref name="questions"/> on the sandbox server, one after another
+    /// (the server's line limits how many run at once). Without a server they are stored as not checked.
+    /// </summary>
+    private async Task<IReadOnlyDictionary<int, CodeOutcome>> RunCodeAsync(IEnumerable<Question> questions,
+        IReadOnlyDictionary<int, SubmittedAnswer> answers)
+    {
+        var outcomes = new Dictionary<int, CodeOutcome>();
+        foreach (var question in questions.Where(q => q.Type == QuestionType.Code))
+        {
+            var program = answers.TryGetValue(question.Id, out var answer) ? answer?.Text : null;
+            if (_codeGrader == null)
+            {
+                outcomes[question.Id] = new CodeOutcome(program ?? string.Empty, 0m, false,
+                    string.IsNullOrWhiteSpace(program) ? null : StoredCodeResults.NotChecked("Проверката на код не е настроена."));
+                continue;
+            }
+
+            var grade = await _codeGrader.GradeAsync(question, program);
+            outcomes[question.Id] = new CodeOutcome(grade.Code, grade.AwardedPoints, grade.IsCorrect,
+                grade.Status == CodeGradeStatus.Unanswered ? null : StoredCodeResults.From(grade));
+        }
+
+        return outcomes;
     }
 
     public async Task<Quiz?> GetByIdAsync(int id)
@@ -399,6 +428,7 @@ public class QuizService : IQuizService
         var loaded = await _context.Questions.AsNoTracking()
             .Where(q => questionIds.Contains(q.Id))
             .Include(q => q.Options.OrderBy(o => o.Order))
+            .Include(q => q.TestCases)
             .ToListAsync();
         var ordered = questionIds
             .Select(qid => loaded.FirstOrDefault(q => q.Id == qid))
@@ -406,7 +436,7 @@ public class QuizService : IQuizService
             .Select(q => q!)
             .ToList();
 
-        var result = QuizGrading.Grade(quiz, ordered, answers);
+        var result = QuizGrading.Grade(quiz, ordered, answers, await RunCodeAsync(ordered, answers));
         return ServiceResult<QuizResult>.Success(result);
     }
 
@@ -525,6 +555,9 @@ public class QuizService : IQuizService
             .Include(a => a.Questions.OrderBy(x => x.Order))
                 .ThenInclude(aq => aq.Question)
                     .ThenInclude(q => q.Options.OrderBy(o => o.Order))
+            .Include(a => a.Questions)
+                .ThenInclude(aq => aq.Question)
+                    .ThenInclude(q => q.TestCases.OrderBy(t => t.Order))
             .FirstOrDefaultAsync(a => a.Token == token);
 
         QuizAttemptResults.ApplyOptionOrder(attempt);
@@ -540,6 +573,9 @@ public class QuizService : IQuizService
             .Include(a => a.Questions.OrderBy(x => x.Order))
                 .ThenInclude(aq => aq.Question)
                     .ThenInclude(q => q.Options)
+            .Include(a => a.Questions)
+                .ThenInclude(aq => aq.Question)
+                    .ThenInclude(q => q.TestCases)
             .Include(a => a.Answers).ThenInclude(answer => answer.Choices)
             .FirstOrDefaultAsync(a => a.Token == token);
         if (attempt == null)
@@ -553,7 +589,8 @@ public class QuizService : IQuizService
             return ServiceResult<QuizResult>.Success(QuizAttemptResults.Build(attempt));
         }
 
-        var result = QuizGrading.Grade(attempt.Quiz, QuizAttemptResults.SnapshotQuestions(attempt), answers);
+        var questions = QuizAttemptResults.SnapshotQuestions(attempt);
+        var result = QuizGrading.Grade(attempt.Quiz, questions, answers, await RunCodeAsync(questions, answers));
 
         foreach (var questionResult in result.Questions)
         {
@@ -562,6 +599,7 @@ public class QuizService : IQuizService
                 QuestionId = questionResult.Question.Id,
                 SelectedOptionId = questionResult.SelectedOptionId,
                 ResponseText = questionResult.TypedText,
+                CodeResults = questionResult.CodeResults?.ToJson(),
                 IsCorrect = questionResult.IsCorrect,
                 AwardedPoints = questionResult.AwardedPoints
             };

@@ -44,6 +44,21 @@ public sealed record SubmittedAnswer(int? OptionId = null, IReadOnlyList<int>? O
     }
 
     /// <summary>
+    /// A program (code question): kept as written except for white space at the end, cut to
+    /// <see cref="CodeGrader.MaxCodeLength"/> (the answer box allows no more), or <see cref="Empty"/> when blank.
+    /// </summary>
+    public static SubmittedAnswer Program(string? code)
+    {
+        var value = (code ?? string.Empty).TrimEnd();
+        if (value.Trim().Length == 0)
+        {
+            return Empty;
+        }
+
+        return new SubmittedAnswer(Text: value.Length > CodeGrader.MaxCodeLength ? value[..CodeGrader.MaxCodeLength] : value);
+    }
+
+    /// <summary>
     /// The answers picked for the items of a matching question (item option id → answer text). Blank picks
     /// are dropped; with none left the result is <see cref="Empty"/>.
     /// </summary>
@@ -63,12 +78,14 @@ public sealed record SubmittedAnswer(int? OptionId = null, IReadOnlyList<int>? O
     /// Combines the parts of a submitted quiz form: one picked option per question (<paramref name="choices"/>),
     /// the ticked options of multiple-choice questions (<paramref name="ticked"/>), typed answers
     /// (<paramref name="typed"/>) and the picks of matching questions (<paramref name="matched"/>: question id →
-    /// item option id → answer text). For a question that appears in more than one part, the later part wins.
+    /// item option id → answer text) and programs (<paramref name="code"/>). For a question that appears in more
+    /// than one part, the later part wins.
     /// </summary>
     public static IReadOnlyDictionary<int, SubmittedAnswer> FromForm(
         IReadOnlyDictionary<int, int?>? choices, IReadOnlyDictionary<int, List<int>>? ticked,
         IReadOnlyDictionary<int, string?>? typed = null,
-        IReadOnlyDictionary<int, Dictionary<int, string?>>? matched = null)
+        IReadOnlyDictionary<int, Dictionary<int, string?>>? matched = null,
+        IReadOnlyDictionary<int, string?>? code = null)
     {
         var answers = (choices ?? new Dictionary<int, int?>()).ToDictionary(c => c.Key, c => Choice(c.Value));
         foreach (var (questionId, optionIds) in ticked ?? new Dictionary<int, List<int>>())
@@ -84,6 +101,11 @@ public sealed record SubmittedAnswer(int? OptionId = null, IReadOnlyList<int>? O
         foreach (var (questionId, pairs) in matched ?? new Dictionary<int, Dictionary<int, string?>>())
         {
             answers[questionId] = Matched(pairs);
+        }
+
+        foreach (var (questionId, program) in code ?? new Dictionary<int, string?>())
+        {
+            answers[questionId] = Program(program);
         }
 
         return answers;

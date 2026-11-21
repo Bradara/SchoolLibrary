@@ -203,6 +203,7 @@ public class QuizItemService : IQuizItemService
             .Where(q => q.QuizId == quizId)
             .OrderBy(q => q.Order)
             .Include(q => q.Options.OrderBy(o => o.Order))
+                    .Include(q => q.TestCases.OrderBy(t => t.Order))
             .ToListAsync();
 
         var items = await _context.QuizItems
@@ -218,6 +219,7 @@ public class QuizItemService : IQuizItemService
                 var question = await _context.Questions
                     .AsNoTracking()
                     .Include(q => q.Options.OrderBy(o => o.Order))
+                    .Include(q => q.TestCases.OrderBy(t => t.Order))
                     .FirstOrDefaultAsync(q => q.Id == item.QuestionId);
                 if (question != null)
                 {
@@ -231,6 +233,7 @@ public class QuizItemService : IQuizItemService
                     .AsNoTracking()
                     .Where(q => q.SectionId == item.SectionId && q.Type != QuestionType.Description)
                     .Include(q => q.Options.OrderBy(o => o.Order))
+                    .Include(q => q.TestCases.OrderBy(t => t.Order))
                     .ToListAsync();
 
                 // Shuffle and take the requested count (or the whole pool if it is smaller)

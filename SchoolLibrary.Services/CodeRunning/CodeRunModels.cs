@@ -61,4 +61,43 @@ public class CodeRunnerOptions
 
     /// <summary>Longest output kept from one run (characters); the rest is cut.</summary>
     public int MaxOutputChars { get; set; } = 10_000;
+
+    /// <summary>
+    /// How many programs this application sends to the server at the same time; the others wait in line.
+    /// Practice quizzes are open to anyone, so this keeps the server (shared with Moodle) from being flooded.
+    /// </summary>
+    public int MaxConcurrentRuns { get; set; } = 4;
+
+    /// <summary>How long a program waits for its turn before the run is given up as unavailable.</summary>
+    public int QueueTimeoutSeconds { get; set; } = 60;
+}
+
+/// <summary>The line in front of the sandbox server: at most <see cref="CodeRunnerOptions.MaxConcurrentRuns"/> runs at a time.</summary>
+public sealed class CodeRunGate
+{
+    private readonly SemaphoreSlim _slots;
+    private readonly TimeSpan _wait;
+
+    public CodeRunGate(CodeRunnerOptions options)
+    {
+        _slots = new SemaphoreSlim(Math.Max(1, options.MaxConcurrentRuns));
+        _wait = TimeSpan.FromSeconds(Math.Max(1, options.QueueTimeoutSeconds));
+    }
+
+    /// <summary>Waits for a free slot; null when none came free in time. Dispose the result to free the slot.</summary>
+    public async Task<IDisposable?> EnterAsync(CancellationToken cancellationToken)
+        => await _slots.WaitAsync(_wait, cancellationToken) ? new Slot(_slots) : null;
+
+    private sealed class Slot(SemaphoreSlim slots) : IDisposable
+    {
+        private int _released;
+
+        public void Dispose()
+        {
+            if (Interlocked.Exchange(ref _released, 1) == 0)
+            {
+                slots.Release();
+            }
+        }
+    }
 }

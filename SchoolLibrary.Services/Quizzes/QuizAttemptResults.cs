@@ -20,7 +20,14 @@ public static class QuizAttemptResults
                 .ToDictionary(c => c.OptionId, c => matchTexts.GetValueOrDefault(c.MatchedOptionId!.Value)))
             : a.Choices.Count > 0 ? SubmittedAnswer.Choices(a.Choices.Select(c => c.OptionId))
             : SubmittedAnswer.Choice(a.SelectedOptionId));
-        return QuizGrading.Grade(attempt.Quiz, questions, answers);
+
+        // A program is not run again here: its stored points and results are shown as they were
+        var codeIds = questions.Where(q => q.Type == SchoolLibrary.Data.Enums.QuestionType.Code).Select(q => q.Id).ToHashSet();
+        var code = attempt.Answers
+            .Where(a => codeIds.Contains(a.QuestionId))
+            .ToDictionary(a => a.QuestionId, a => new CodeOutcome(a.ResponseText ?? string.Empty, a.AwardedPoints, a.IsCorrect,
+                StoredCodeResults.FromJson(a.CodeResults)));
+        return QuizGrading.Grade(attempt.Quiz, questions, answers, code);
     }
 
     /// <summary>
