@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using SchoolLibrary.Services.Categories;
+using SchoolLibrary.Services.CodeRunning;
 using SchoolLibrary.Services.Comments;
 using SchoolLibrary.Services.Discovery;
 using SchoolLibrary.Services.Exams;
@@ -92,6 +93,29 @@ public static class ServiceCollectionExtensions
             .ConfigurePrimaryHttpMessageHandler(PublicNetworkGuard.CreateHandler);
         services.AddTransient<ISiteIconFetcher, SiteIconFetcher>();
         services.AddScoped<ILibraryIconService, LibraryIconService>();
+
+        return services;
+    }
+
+    /// <summary>
+    /// Registers the sandbox server that checks code questions. Without a server address nothing is
+    /// registered and code questions are not offered.
+    /// </summary>
+    public static IServiceCollection AddCodeRunner(this IServiceCollection services, CodeRunnerOptions? options)
+    {
+        if (options is null || string.IsNullOrWhiteSpace(options.BaseUrl))
+        {
+            return services;
+        }
+
+        var baseUrl = options.BaseUrl.EndsWith('/') ? options.BaseUrl : options.BaseUrl + "/";
+        services.AddHttpClient(JobeCodeRunner.HttpClientName, client =>
+        {
+            client.BaseAddress = new Uri(baseUrl);
+            client.Timeout = TimeSpan.FromSeconds(options.CpuTimeSeconds + 40); // compiling + every input + queueing
+        });
+        services.AddTransient<ICodeRunner>(sp => new JobeCodeRunner(
+            sp.GetRequiredService<IHttpClientFactory>().CreateClient(JobeCodeRunner.HttpClientName), options));
 
         return services;
     }

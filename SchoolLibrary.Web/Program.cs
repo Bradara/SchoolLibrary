@@ -9,6 +9,7 @@ using SchoolLibrary.Middleware;
 using SchoolLibrary.Data.Seeding;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services;
+using SchoolLibrary.Services.CodeRunning;
 using SchoolLibrary.Services.Storage;
 
 namespace SchoolLibrary
@@ -72,6 +73,9 @@ namespace SchoolLibrary
             builder.Services.AddControllersWithViews(options =>
                 options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
             builder.Services.AddApplicationServices(builder.Configuration["YouTube:ApiKey"]);
+
+            // Sandbox server for code questions (Jobe); without CodeRunner:BaseUrl they are switched off
+            builder.Services.AddCodeRunner(builder.Configuration.GetSection("CodeRunner").Get<CodeRunnerOptions>());
 
             // Where uploaded files are kept, chosen by FileStorage:Provider:
             //   "Oci"  -> an S3-compatible bucket (OCI Object Storage), so the files live off the server's disk;
