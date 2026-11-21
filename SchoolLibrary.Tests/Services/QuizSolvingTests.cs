@@ -116,6 +116,48 @@ public class QuizSolvingTests
         Assert.Equal(expectedGrade, QuizGradeScale.Grade(score, maxScore));
     }
 
+    [Theory]
+    [InlineData(2.99, 10, 2)]   // 29.9% -> just below the 3 threshold
+    [InlineData(4.5, 9, 4)]     // 50% with a half point
+    [InlineData(8.49, 10, 5)]   // 84.9% -> just below the 6 threshold
+    [InlineData(8.5, 10, 6)]    // 85% exactly
+    public void GradeScale_WithFractionalPoints_ComparesTheExactRatio(double score, int maxScore, int expectedGrade)
+    {
+        Assert.Equal(expectedGrade, QuizGradeScale.Grade((decimal)score, maxScore));
+    }
+
+    [Theory]
+    [InlineData(1, 3, 33)]
+    [InlineData(2, 3, 67)]
+    [InlineData(2.5, 10, 25)]
+    [InlineData(0.5, 200, 0)]   // 0.25% rounds down
+    [InlineData(1, 200, 1)]     // 0.5% rounds away from zero
+    public void GradeScale_Percent_RoundsFractionalPoints(double score, int maxScore, int expected)
+    {
+        Assert.Equal(expected, QuizGradeScale.Percent((decimal)score, maxScore));
+    }
+
+    // ---------- QuizPoints (pure) ----------
+
+    [Theory]
+    [InlineData(5, "5")]
+    [InlineData(0, "0")]
+    [InlineData(2.5, "2,5")]
+    [InlineData(3.333, "3,33")]
+    [InlineData(0.125, "0,13")]   // rounds away from zero
+    [InlineData(-1.5, "-1,5")]
+    public void Points_FormatWithADecimalCommaAndNoTrailingZeros(double points, string expected)
+    {
+        Assert.Equal(expected, QuizPoints.Format((decimal)points));
+    }
+
+    [Fact]
+    public void Points_IgnoreTheStoredScale()
+    {
+        // PostgreSQL returns numeric(7,2) as 5.00; it must still read as a whole number
+        Assert.Equal("5", QuizPoints.Format(5.00m));
+    }
+
     [Fact]
     public void GradeScale_WithNothingToGrade_IsTheLowestGrade()
     {

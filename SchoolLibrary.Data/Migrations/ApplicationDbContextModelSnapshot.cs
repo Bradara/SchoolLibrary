@@ -680,14 +680,16 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<int>("LeaveCount")
                         .HasColumnType("integer");
 
-                    b.Property<int>("MaxScore")
-                        .HasColumnType("integer");
+                    b.Property<decimal>("MaxScore")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
 
                     b.Property<int>("QuizId")
                         .HasColumnType("integer");
 
-                    b.Property<int>("Score")
-                        .HasColumnType("integer");
+                    b.Property<decimal>("Score")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
 
                     b.Property<DateTime>("StartedOn")
                         .HasColumnType("timestamp with time zone");

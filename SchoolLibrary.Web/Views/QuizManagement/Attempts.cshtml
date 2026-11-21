@@ -53,7 +53,7 @@ else
                     <tr>
                         <td>@attempt.StudentName</td>
                         <td>@(string.IsNullOrEmpty(attempt.StudentNumber) ? "—" : attempt.StudentNumber)</td>
-                        <td class="text-center fw-semibold">@attempt.Score / @attempt.MaxScore</td>
+                        <td class="text-center fw-semibold">@QuizPoints.Format(attempt.Score) / @QuizPoints.Format(attempt.MaxScore)</td>
                         @{
                             var grade = QuizGradeScale.Grade(attempt.Score, attempt.MaxScore);
                         }

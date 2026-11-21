@@ -113,7 +113,7 @@ else
                         @if (submitted)
                         {
                             var grade = QuizGradeScale.Grade(attempt.Score, attempt.MaxScore);
-                            <td class="text-center fw-semibold">@attempt.Score / @attempt.MaxScore</td>
+                            <td class="text-center fw-semibold">@QuizPoints.Format(attempt.Score) / @QuizPoints.Format(attempt.MaxScore)</td>
                             <td class="text-center">
                                 <span class="badge @(grade >= 3 ? "text-bg-success" : "text-bg-danger")"
                                       title="@QuizGradeScale.Label(grade) · @QuizGradeScale.Percent(attempt.Score, attempt.MaxScore)%">@grade</span>

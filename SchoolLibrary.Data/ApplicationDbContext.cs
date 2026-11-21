@@ -244,6 +244,15 @@ namespace SchoolLibrary.Data
                 .HasForeignKey(a => a.SelectedOptionId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // Points can be fractional (partial credit); two decimals are enough for display and grading
+            builder.Entity<QuizAttempt>()
+                .Property(a => a.Score)
+                .HasPrecision(7, 2);
+
+            builder.Entity<QuizAttempt>()
+                .Property(a => a.MaxScore)
+                .HasPrecision(7, 2);
+
             // Teacher review: the attempts of one quiz, newest submission first
             builder.Entity<QuizAttempt>()
                 .HasIndex(a => new { a.QuizId, a.SubmittedOn });

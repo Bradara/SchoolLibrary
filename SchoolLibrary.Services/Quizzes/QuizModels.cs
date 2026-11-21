@@ -21,7 +21,7 @@ public record QuizListItem(Quiz Quiz, int QuestionCount, int AttemptCount);
 public record QuestionResult(Question Question, int? SelectedOptionId, int? CorrectOptionId, bool IsCorrect);
 
 /// <summary>The graded outcome of a quiz: the score, grade and the per-question breakdown.</summary>
-public record QuizResult(Quiz Quiz, int Score, int MaxScore, IReadOnlyList<QuestionResult> Questions)
+public record QuizResult(Quiz Quiz, decimal Score, decimal MaxScore, IReadOnlyList<QuestionResult> Questions)
 {
     /// <summary>The score as a whole-number percentage of the maximum.</summary>
     public int Percent => QuizGradeScale.Percent(Score, MaxScore);

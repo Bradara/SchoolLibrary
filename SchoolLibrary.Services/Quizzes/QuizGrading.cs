@@ -31,8 +31,8 @@ public static class QuizGrading
             results.Add(new QuestionResult(question, selected, correct?.Id, isCorrect));
         }
 
-        var score = results.Where(r => r.IsCorrect).Sum(r => r.Question.Points);
-        var maxScore = results.Sum(r => r.Question.Points);
+        var score = results.Where(r => r.IsCorrect).Sum(r => (decimal)r.Question.Points);
+        var maxScore = results.Sum(r => (decimal)r.Question.Points);
         return new QuizResult(quiz, score, maxScore, results);
     }
 }

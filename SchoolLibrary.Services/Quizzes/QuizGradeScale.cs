@@ -13,18 +13,18 @@ public static class QuizGradeScale
     public const int ThresholdSix = 85;
 
     /// <summary>The score as a whole-number percentage of the maximum (0 when there is nothing to grade).</summary>
-    public static int Percent(int score, int maxScore)
-        => maxScore <= 0 ? 0 : (int)Math.Round(score * 100.0 / maxScore, MidpointRounding.AwayFromZero);
+    public static int Percent(decimal score, decimal maxScore)
+        => maxScore <= 0 ? 0 : (int)Math.Round(score * 100m / maxScore, MidpointRounding.AwayFromZero);
 
     /// <summary>The 2–6 grade for a score, compared on the exact ratio (not the rounded percentage).</summary>
-    public static int Grade(int score, int maxScore)
+    public static int Grade(decimal score, decimal maxScore)
     {
         if (maxScore <= 0)
         {
             return 2;
         }
 
-        var percent = score * 100.0 / maxScore;
+        var percent = score * 100m / maxScore;
         if (percent >= ThresholdSix) return 6;
         if (percent >= ThresholdFive) return 5;
         if (percent >= ThresholdFour) return 4;

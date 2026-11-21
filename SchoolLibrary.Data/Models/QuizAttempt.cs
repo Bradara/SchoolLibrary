@@ -35,11 +35,11 @@ namespace SchoolLibrary.Data.Models
         /// <summary>When the attempt was graded; null while it is still in progress.</summary>
         public DateTime? SubmittedOn { get; set; }
 
-        /// <summary>Points scored.</summary>
-        public int Score { get; set; }
+        /// <summary>Points scored; fractional when a question earns partial credit.</summary>
+        public decimal Score { get; set; }
 
         /// <summary>The maximum score (the sum of the served questions' points).</summary>
-        public int MaxScore { get; set; }
+        public decimal MaxScore { get; set; }
 
         /// <summary>How many times the student left the exam tab/window (proctoring).</summary>
         public int LeaveCount { get; set; }
