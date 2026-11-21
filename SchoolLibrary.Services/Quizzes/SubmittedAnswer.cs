@@ -9,7 +9,7 @@ namespace SchoolLibrary.Services.Quizzes;
 public sealed record SubmittedAnswer(int? OptionId = null, IReadOnlyList<int>? OptionIds = null, string? Text = null,
     IReadOnlyDictionary<int, string>? Pairs = null)
 {
-    /// <summary>The longest typed answer that is kept (the database column's size); longer text is cut.</summary>
+    /// <summary>The longest typed answer that is kept; longer text is cut. Programs have their own limit (<see cref="CodeGrader.MaxCodeLength"/>).</summary>
     public const int MaxTextLength = 4000;
 
     /// <summary>A question left unanswered.</summary>

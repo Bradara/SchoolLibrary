@@ -29,6 +29,18 @@ public class CodeGraderTests
 
     private static CodeTestOutput Ok(string stdout) => new(stdout, "", 0, false);
 
+    private static Task<CodeGrade> Grade(CodeGrader grader, Question question, string? code, bool allOrNothing)
+    {
+        question.AllOrNothing = allOrNothing;
+        return grader.GradeAsync(question, code);
+    }
+
+    [Fact]
+    public void NewQuestion_IsAllOrNothing()
+    {
+        Assert.True(new Question().AllOrNothing);
+    }
+
     private static (CodeGrader Grader, Mock<ICodeRunner> Runner) Create(CodeRunResult result)
     {
         var runner = new Mock<ICodeRunner>();
@@ -42,7 +54,7 @@ public class CodeGraderTests
     {
         var (grader, runner) = Create(new CodeRunResult(CodeRunStatus.Completed, [Ok("5\n"), Ok("-6"), Ok("0  \n\n")]));
 
-        var grade = await grader.GradeAsync(CodeQuestion(), Code + "\n\n", allOrNothing: true);
+        var grade = await Grade(grader, CodeQuestion(), Code + "\n\n", true);
 
         Assert.Equal(CodeGradeStatus.Graded, grade.Status);
         Assert.Equal(4m, grade.AwardedPoints);
@@ -62,7 +74,7 @@ public class CodeGraderTests
             new CodeTestCase { Id = 9, Stdin = "a", Expected = "A", Order = 0 });
         var (grader, runner) = Create(new CodeRunResult(CodeRunStatus.Completed, [Ok("A"), Ok("B")]));
 
-        var grade = await grader.GradeAsync(question, "class P {}", allOrNothing: true);
+        var grade = await Grade(grader, question, "class P {}", true);
 
         Assert.True(grade.IsCorrect);
         Assert.Equal(new[] { 9, 5 }, grade.Tests.Select(t => t.Test.Id));
@@ -75,7 +87,7 @@ public class CodeGraderTests
     {
         var (grader, _) = Create(new CodeRunResult(CodeRunStatus.Completed, [Ok("5"), Ok("6"), Ok("0")]));
 
-        var grade = await grader.GradeAsync(CodeQuestion(), Code, allOrNothing: true);
+        var grade = await Grade(grader, CodeQuestion(), Code, true);
 
         Assert.Equal(0m, grade.AwardedPoints);
         Assert.False(grade.IsCorrect);
@@ -89,7 +101,7 @@ public class CodeGraderTests
         // weights 1, 1, 2: the first and the last pass → 3 of 4 → 3 of 4 points
         var (grader, _) = Create(new CodeRunResult(CodeRunStatus.Completed, [Ok("5"), Ok("6"), Ok("0")]));
 
-        var grade = await grader.GradeAsync(CodeQuestion(), Code, allOrNothing: false);
+        var grade = await Grade(grader, CodeQuestion(), Code, false);
 
         Assert.Equal(3m, grade.AwardedPoints);
         Assert.False(grade.IsCorrect);
@@ -104,7 +116,7 @@ public class CodeGraderTests
             new CodeTestCase { Stdin = "3", Expected = "3", Order = 2 });
         var (grader, _) = Create(new CodeRunResult(CodeRunStatus.Completed, [Ok("1"), Ok("x"), Ok("x")]));
 
-        var grade = await grader.GradeAsync(question, Code, allOrNothing: false);
+        var grade = await Grade(grader, question, Code, false);
 
         Assert.Equal(0.33m, grade.AwardedPoints);
     }
@@ -117,7 +129,7 @@ public class CodeGraderTests
             new CodeTestCase { Stdin = "2", Expected = "2", Order = 1, Weight = 0 });
         var (grader, _) = Create(new CodeRunResult(CodeRunStatus.Completed, [Ok("1"), Ok("x")]));
 
-        var grade = await grader.GradeAsync(question, Code, allOrNothing: false);
+        var grade = await Grade(grader, question, Code, false);
 
         Assert.Equal(1m, grade.AwardedPoints);
     }
@@ -128,7 +140,7 @@ public class CodeGraderTests
         var (grader, _) = Create(new CodeRunResult(CodeRunStatus.Completed,
             [Ok("5"), new CodeTestOutput("-6", "Traceback", 1, false), Ok("0")]));
 
-        var grade = await grader.GradeAsync(CodeQuestion(), Code, allOrNothing: true);
+        var grade = await Grade(grader, CodeQuestion(), Code, true);
 
         Assert.False(grade.Tests[1].Passed);
         Assert.Equal("Traceback", grade.Tests[1].Error);
@@ -140,7 +152,7 @@ public class CodeGraderTests
         var (grader, _) = Create(new CodeRunResult(CodeRunStatus.Completed,
             [Ok("5"), Ok("-6"), new CodeTestOutput("0", "", -1, true)]));
 
-        var grade = await grader.GradeAsync(CodeQuestion(), Code, allOrNothing: false);
+        var grade = await Grade(grader, CodeQuestion(), Code, false);
 
         Assert.False(grade.Tests[2].Passed);
         Assert.True(grade.Tests[2].TimedOut);
@@ -152,7 +164,7 @@ public class CodeGraderTests
     {
         var (grader, _) = Create(new CodeRunResult(CodeRunStatus.Completed, [Ok("5")]));
 
-        var grade = await grader.GradeAsync(CodeQuestion(), Code, allOrNothing: false);
+        var grade = await Grade(grader, CodeQuestion(), Code, false);
 
         Assert.Equal(new[] { true, false, false }, grade.Tests.Select(t => t.Passed));
         Assert.Equal(1m, grade.AwardedPoints);
@@ -165,7 +177,7 @@ public class CodeGraderTests
         var (grader, _) = Create(new CodeRunResult(CodeRunStatus.Completed,
             [new CodeTestOutput("", stderr, 1, false), Ok("-6"), Ok("0")]));
 
-        var grade = await grader.GradeAsync(CodeQuestion(), Code, allOrNothing: true);
+        var grade = await Grade(grader, CodeQuestion(), Code, true);
 
         Assert.Equal("Unhandled Exception:\nSystem.FormatException: bad", grade.Tests[0].Error);
     }
@@ -175,7 +187,7 @@ public class CodeGraderTests
     {
         var (grader, _) = Create(CodeRunResult.Failed(CodeRunStatus.CompileError, "Program.cs(1,7): error CS1001"));
 
-        var grade = await grader.GradeAsync(CodeQuestion(), "class {", allOrNothing: false);
+        var grade = await Grade(grader, CodeQuestion(), "class {", false);
 
         Assert.Equal(CodeGradeStatus.CompileError, grade.Status);
         Assert.Equal(0m, grade.AwardedPoints);
@@ -192,7 +204,7 @@ public class CodeGraderTests
     {
         var (grader, _) = Create(CodeRunResult.Failed(status));
 
-        var grade = await grader.GradeAsync(CodeQuestion(), Code, allOrNothing: false);
+        var grade = await Grade(grader, CodeQuestion(), Code, false);
 
         Assert.Equal(CodeGradeStatus.LimitExceeded, grade.Status);
         Assert.Equal(0m, grade.AwardedPoints);
@@ -205,7 +217,7 @@ public class CodeGraderTests
     {
         var (grader, _) = Create(CodeRunResult.Failed(CodeRunStatus.Unavailable, "Connection refused"));
 
-        var grade = await grader.GradeAsync(CodeQuestion(), Code, allOrNothing: true);
+        var grade = await Grade(grader, CodeQuestion(), Code, true);
 
         Assert.Equal(CodeGradeStatus.NotChecked, grade.Status);
         Assert.False(grade.IsFinal);
@@ -221,7 +233,7 @@ public class CodeGraderTests
     {
         var (grader, runner) = Create(new CodeRunResult(CodeRunStatus.Completed, []));
 
-        var grade = await grader.GradeAsync(CodeQuestion(), code, allOrNothing: true);
+        var grade = await Grade(grader, CodeQuestion(), code, true);
 
         Assert.Equal(CodeGradeStatus.Unanswered, grade.Status);
         Assert.Equal(0m, grade.AwardedPoints);
@@ -236,7 +248,7 @@ public class CodeGraderTests
         var (grader, runner) = Create(new CodeRunResult(CodeRunStatus.Completed, []));
         var code = new string('x', CodeGrader.MaxCodeLength + 1);
 
-        var grade = await grader.GradeAsync(CodeQuestion(), code, allOrNothing: true);
+        var grade = await Grade(grader, CodeQuestion(), code, true);
 
         Assert.Equal(CodeGradeStatus.TooLong, grade.Status);
         Assert.Equal(code, grade.Code);
@@ -250,7 +262,7 @@ public class CodeGraderTests
     {
         var (grader, runner) = Create(new CodeRunResult(CodeRunStatus.Completed, []));
 
-        var grade = await grader.GradeAsync(CodeQuestion(language: language), Code, allOrNothing: true);
+        var grade = await Grade(grader, CodeQuestion(language: language), Code, true);
 
         Assert.Equal(CodeGradeStatus.NotChecked, grade.Status);
         runner.VerifyNoOtherCalls();
@@ -263,7 +275,7 @@ public class CodeGraderTests
         question.TestCases.Clear();
         var (grader, runner) = Create(new CodeRunResult(CodeRunStatus.Completed, []));
 
-        var grade = await grader.GradeAsync(question, Code, allOrNothing: true);
+        var grade = await Grade(grader, question, Code, true);
 
         Assert.Equal(CodeGradeStatus.NotChecked, grade.Status);
         Assert.Equal("Въпросът няма тестове.", grade.Message);
@@ -276,7 +288,7 @@ public class CodeGraderTests
         var (grader, _) = Create(new CodeRunResult(CodeRunStatus.Completed, []));
 
         await Assert.ThrowsAsync<ArgumentException>(() =>
-            grader.GradeAsync(new Question { Type = QuestionType.ShortAnswer }, Code, allOrNothing: true));
+            Grade(grader, new Question { Type = QuestionType.ShortAnswer }, Code, true));
     }
 
     // ---------- CodeOutput ----------

@@ -25,6 +25,12 @@ namespace SchoolLibrary.Data.Models
         [MaxLength(20)]
         public string? CodeLanguage { get; set; }
 
+        /// <summary>
+        /// For a code question: full points only when every test passes (the CodeRunner default). When false,
+        /// the points are shared by the weights of the passed tests.
+        /// </summary>
+        public bool AllOrNothing { get; set; } = true;
+
         /// <summary>For a code question: the code the answer box starts with (e.g. an empty Main method).</summary>
         [MaxLength(10000, ErrorMessage = "Началният код не може да бъде по-дълъг от 10000 символа")]
         [Display(Name = "Начален код")]

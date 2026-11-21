@@ -17,9 +17,15 @@ namespace SchoolLibrary.Data.Models
         public int? SelectedOptionId { get; set; }
         public AnswerOption? SelectedOption { get; set; }
 
-        /// <summary>The typed answer (short answer, number or essay); null for choice questions.</summary>
-        [MaxLength(4000, ErrorMessage = "Отговорът не може да бъде по-дълъг от 4000 символа")]
+        /// <summary>The typed answer (short answer, number, essay or a program); null for choice questions.</summary>
+        [MaxLength(10000, ErrorMessage = "Отговорът не може да бъде по-дълъг от 10000 символа")]
         public string? ResponseText { get; set; }
+
+        /// <summary>
+        /// For a code question: the result of running the program (status, compiler message and every test's
+        /// output) as JSON, shown in the review. Null for the other types and while the answer is not checked yet.
+        /// </summary>
+        public string? CodeResults { get; set; }
 
         /// <summary>The ticked options, matching pairs or ordering of the answer (questions with several parts).</summary>
         public ICollection<AttemptAnswerChoice> Choices { get; set; } = new List<AttemptAnswerChoice>();

@@ -321,6 +321,9 @@ namespace SchoolLibrary.Data.Migrations
                         .HasPrecision(7, 2)
                         .HasColumnType("numeric(7,2)");
 
+                    b.Property<string>("CodeResults")
+                        .HasColumnType("text");
+
                     b.Property<bool>("IsCorrect")
                         .HasColumnType("boolean");
 
@@ -331,8 +334,8 @@ namespace SchoolLibrary.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("ResponseText")
-                        .HasMaxLength(4000)
-                        .HasColumnType("character varying(4000)");
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)");
 
                     b.Property<int?>("SelectedOptionId")
                         .HasColumnType("integer");
@@ -663,6 +666,9 @@ namespace SchoolLibrary.Data.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<bool>("AllOrNothing")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("AnswerPreload")
                         .HasMaxLength(10000)

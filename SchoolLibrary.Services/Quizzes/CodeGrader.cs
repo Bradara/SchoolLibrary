@@ -55,7 +55,8 @@ public sealed class CodeGrader
 
     public CodeGrader(ICodeRunner runner) => _runner = runner;
 
-    public async Task<CodeGrade> GradeAsync(Question question, string? code, bool allOrNothing, CancellationToken cancellationToken = default)
+    /// <summary>Grades <paramref name="code"/>; all or nothing when <see cref="Question.AllOrNothing"/> is set.</summary>
+    public async Task<CodeGrade> GradeAsync(Question question, string? code, CancellationToken cancellationToken = default)
     {
         if (question.Type != QuestionType.Code)
         {
@@ -108,7 +109,7 @@ public sealed class CodeGrader
         }).ToList();
 
         var allPassed = results.All(r => r.Passed);
-        var share = allOrNothing ? (allPassed ? 1m : 0m) : PassedShare(results);
+        var share = question.AllOrNothing ?(allPassed ? 1m : 0m) : PassedShare(results);
         var points = Math.Round(question.Points * share, 2, MidpointRounding.AwayFromZero);
         return new CodeGrade(CodeGradeStatus.Graded, points, allPassed, accepted, results);
     }
