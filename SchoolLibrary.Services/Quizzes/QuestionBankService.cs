@@ -121,11 +121,69 @@ public class QuestionBankService : IQuestionBankService
             return ServiceResult<Question>.Failure(ServiceError.Forbidden, "Нямате права за това действие.");
         }
 
-        // Cascade removes the question's options
-        _context.Questions.Remove(question);
-        await _context.SaveChangesAsync();
+        if ((await SolvedAmongAsync(new[] { question.Id })).Count > 0)
+        {
+            return ServiceResult<Question>.Failure(ServiceError.Conflict,
+                "Въпросът вече е решаван в тест и не може да се изтрие, за да се запазят резултатите на учениците.");
+        }
 
+        await RemoveAsync(new[] { question });
         return ServiceResult<Question>.Success(question);
+    }
+
+    public async Task<ServiceResult<QuestionDeleteSummary>> DeleteQuestionsAsync(IReadOnlyCollection<int> questionIds, string userId, bool isAdministrator)
+    {
+        var ids = questionIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return ServiceResult<QuestionDeleteSummary>.Success(new QuestionDeleteSummary(0, 0));
+        }
+
+        // A teacher can only delete questions from sections they own; skip the rest
+        var questions = (await _context.Questions
+                .Include(q => q.Section)
+                .Where(q => ids.Contains(q.Id) && q.SectionId != null)
+                .ToListAsync())
+            .Where(q => SectionPermissions.CanManage(q.Section!, userId, isAdministrator))
+            .ToList();
+
+        var solved = await SolvedAmongAsync(questions.Select(q => q.Id).ToList());
+        var deletable = questions.Where(q => !solved.Contains(q.Id)).ToList();
+
+        await RemoveAsync(deletable);
+        return ServiceResult<QuestionDeleteSummary>.Success(new QuestionDeleteSummary(deletable.Count, questions.Count - deletable.Count));
+    }
+
+    // The ids among the given ones that students have already been served or have answered
+    private async Task<HashSet<int>> SolvedAmongAsync(IReadOnlyCollection<int> ids)
+    {
+        var served = await _context.AttemptQuestions
+            .Where(a => ids.Contains(a.QuestionId))
+            .Select(a => a.QuestionId)
+            .ToListAsync();
+        var answered = await _context.AttemptAnswers
+            .Where(a => ids.Contains(a.QuestionId))
+            .Select(a => a.QuestionId)
+            .ToListAsync();
+        return served.Concat(answered).ToHashSet();
+    }
+
+    // Takes the questions out of the quizzes they are pinned to (the database restricts deleting a pinned
+    // question), then deletes them; cascade removes their options
+    private async Task RemoveAsync(IReadOnlyCollection<Question> questions)
+    {
+        if (questions.Count == 0)
+        {
+            return;
+        }
+
+        var ids = questions.Select(q => q.Id).ToList();
+        var pins = await _context.QuizItems
+            .Where(i => i.QuestionId != null && ids.Contains(i.QuestionId.Value))
+            .ToListAsync();
+        _context.QuizItems.RemoveRange(pins);
+        _context.Questions.RemoveRange(questions);
+        await _context.SaveChangesAsync();
     }
 
     public async Task<ServiceResult<int>> MoveQuestionsAsync(IReadOnlyCollection<int> questionIds, int targetSectionId, string userId, bool isAdministrator)

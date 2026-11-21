@@ -21,8 +21,17 @@ public interface IQuestionBankService
     /// <summary>Replaces a bank question's text, options and points. Fails when missing, not allowed, or invalid.</summary>
     Task<ServiceResult<Question>> UpdateAsync(int questionId, QuestionInput input, string userId, bool isAdministrator);
 
-    /// <summary>Removes a bank question. Fails when it is missing or not allowed.</summary>
+    /// <summary>
+    /// Removes a bank question, taking it out of the quizzes it is pinned to. Fails when it is missing, not
+    /// allowed, or already answered in an attempt (Conflict), so that students' results stay intact.
+    /// </summary>
     Task<ServiceResult<Question>> DeleteAsync(int questionId, string userId, bool isAdministrator);
+
+    /// <summary>
+    /// Removes the given bank questions, as <see cref="DeleteAsync"/> does for one. Ids that are missing or
+    /// that the user may not manage are skipped; answered questions are kept and counted.
+    /// </summary>
+    Task<ServiceResult<QuestionDeleteSummary>> DeleteQuestionsAsync(IReadOnlyCollection<int> questionIds, string userId, bool isAdministrator);
 
     /// <summary>
     /// Moves the given bank questions into another section, appending them after its current questions.

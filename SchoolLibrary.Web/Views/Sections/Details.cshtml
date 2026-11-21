@@ -66,13 +66,15 @@
 else
 {
     var canMove = Model.TargetSections.Count > 0;
-    if (canMove)
-    {
-        <form id="moveForm" method="post" asp-action="MoveQuestions" asp-route-id="@topic.Id"
-              class="card card-body py-2 mb-2"
-              onsubmit="return this.querySelectorAll('input[name=questionIds]:checked').length > 0 || (alert('Изберете поне един въпрос.'), false);">
-            <div class="d-flex flex-wrap align-items-center gap-2">
-                <span class="small text-body-secondary">Отметни въпроси и ги премести в:</span>
+    @* The checkboxes belong to this form; "move" and "delete" post it to different actions *@
+    <form id="selectionForm" method="post" asp-action="MoveQuestions" asp-route-id="@topic.Id"
+          class="card card-body py-2 mb-2"
+          onsubmit="return document.querySelectorAll('input[name=questionIds][form=selectionForm]:checked').length > 0 || (alert('Изберете поне един въпрос.'), false);">
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <span class="small text-body-secondary">Отметни въпроси и</span>
+            @if (canMove)
+            {
+                <span class="small text-body-secondary">ги премести в:</span>
                 <select name="targetSectionId" class="form-select form-select-sm" style="max-width: 20rem;" aria-label="Целеви раздел">
                     @foreach (var target in Model.TargetSections)
                     {
@@ -80,9 +82,14 @@ else
                     }
                 </select>
                 <button type="submit" class="btn btn-sm btn-outline-primary">Премести избраните</button>
-            </div>
-        </form>
-    }
+                <span class="small text-body-secondary">или</span>
+            }
+            <button type="submit" asp-action="DeleteQuestions" asp-route-id="@topic.Id" class="btn btn-sm btn-outline-danger"
+                    onclick="return document.querySelectorAll('input[name=questionIds][form=selectionForm]:checked').length === 0 || confirm('Да изтрия ли избраните въпроси? Ще бъдат махнати и от тестовете, в които са включени. Решаваните въпроси се запазват.');">
+                <i class="bi bi-trash"></i> Изтрий избраните
+            </button>
+        </div>
+    </form>
 
     var number = 0;
     foreach (var question in Model.Questions)
@@ -92,18 +99,15 @@ else
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start gap-2">
                     <h3 class="h6 mb-1 d-flex align-items-start gap-2">
-                        @if (canMove)
-                        {
-                            <input class="form-check-input mt-1 flex-shrink-0" type="checkbox" name="questionIds"
-                                   value="@question.Id" form="moveForm" aria-label="Избери въпроса" />
-                        }
+                        <input class="form-check-input mt-1 flex-shrink-0" type="checkbox" name="questionIds"
+                               value="@question.Id" form="selectionForm" aria-label="Избери въпроса" />
                         <span>@number. @question.Text @if (question.Type != SchoolLibrary.Data.Enums.QuestionType.Description) { <span class="badge text-bg-light">@question.Points т.</span> }<partial name="_QuestionTypeBadge" model="question" /></span>
                     </h3>
                     <div class="d-inline-flex gap-1">
                         <a asp-action="EditQuestion" asp-route-id="@topic.Id" asp-route-questionId="@question.Id"
                            class="btn btn-sm btn-outline-primary" aria-label="Редактирай въпроса"><i class="bi bi-pencil"></i></a>
                         <form method="post" asp-action="DeleteQuestion" asp-route-id="@topic.Id" class="d-inline"
-                              onsubmit="return confirm('Да изтрия ли въпроса?');">
+                              onsubmit="return confirm('Да изтрия ли въпроса? Ще бъде махнат и от тестовете, в които е включен.');">
                             <input type="hidden" name="questionId" value="@question.Id" />
                             <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Изтрий въпроса"><i class="bi bi-trash"></i></button>
                         </form>

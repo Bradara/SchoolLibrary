@@ -13,3 +13,9 @@ public record ImportParseResult(IReadOnlyList<QuestionInput> Questions, IReadOnl
 
 /// <summary>The outcome of importing questions into a section: how many were added and what failed.</summary>
 public record ImportSummary(int Added, IReadOnlyList<string> Errors);
+
+/// <summary>
+/// The outcome of deleting several bank questions: how many were deleted and how many were kept because
+/// students have already answered them (their results must stay intact).
+/// </summary>
+public record QuestionDeleteSummary(int Deleted, int KeptSolved);

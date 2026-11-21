@@ -31,7 +31,7 @@ Teachers keep good learning material scattered across bookmarks, chats and drive
 
 Every resource has an author, a license (required) and any number of subjects and grades. Students and parents can browse, keep favorites, comment and report content. Administrators moderate.
 
-Teachers also build **quizzes**: open practice tests students can take any time, and code-entered, timed exams students solve without an account.
+Teachers also build **quizzes** from their own **question bank**: open practice tests students can take any time, and timed exams for a class that students enter with a code, without an account. Questions can be imported from and exported to Moodle, so a teacher can move them between the two.
 
 ## Features
 
@@ -43,7 +43,24 @@ Teachers also build **quizzes**: open practice tests students can take any time,
 - **Duplicate protection**: links are normalized and must be unique across the platform.
 - **Favorites** with a personal paged list.
 - **Comments** under a resource (up to 500 characters, newest first, paged).
-- **Quizzes** (single choice) in two modes. *Practice* quizzes are open to everyone, with instant feedback and unlimited retries. *Exams* are entered by a short code together with the student's name and class number (no account needed), are timed, allow one attempt, and support light proctoring: a fullscreen button, counting how many times the student leaves the tab/window, and auto-submit once a set limit is passed. Teachers manage their quizzes and review the submissions (score, time, leave count) with pagination.
+- **Online libraries**: a page of cards linking to external digital libraries, managed by administrators. Each site's icon is downloaded once by the server and served from the platform, so visitors' browsers never contact the other site.
+- **Question bank**: teachers keep questions in a tree of sections (topics and subtopics), move questions between sections and reuse them in any number of quizzes.
+- **Seven question types**:
+
+  | Type | The student | Grading |
+  |---|---|---|
+  | Single choice | picks one option | the correct option earns all points |
+  | True/false | picks "True" or "False" | as single choice |
+  | Multiple choice | ticks any options | each option has a share; the sum of the ticked shares, cut to 0–100% (ticking everything earns nothing) |
+  | Short answer | types a word or phrase | the best matching accepted answer (`*` is a wildcard, optional case sensitivity, Latin look-alike letters are read as Cyrillic) |
+  | Numerical | types a number (`,` or `.`) | correct within a tolerance (±) |
+  | Matching | picks an answer for each item | the share of correct pairs; extra answers can be added as distractors |
+  | Description | — | text between the questions (instructions, a passage to read); no points, no number |
+
+  Every question has its own points (1–100). The score is the sum of the earned points, partial credit included, and the grade uses the Bulgarian 2–6 scale (3 from 30%, 4 from 50%, 5 from 70%, 6 from 85%).
+- **Quizzes**: a quiz is put together from pinned bank questions and "draw N random questions from a section" items, with optional shuffling of questions and options. *Practice* quizzes are open to everyone, with instant feedback and unlimited retries, and can be linked to a lesson.
+- **Class exams**: a teacher keeps a list of classes and assigns a practice quiz to a class as an exam with its own code, time limit and proctoring limit. Students enter the code, then their name and class number (no account needed); each class number gets one attempt. The teacher opens and closes the exam and decides when the results are released; after that a student sees the points, the grade and the answers. Light proctoring: a fullscreen button, counting how many times the student leaves the tab or window, and auto-submit once the limit is passed. Teachers review the attempts (score, time, leave count) with pagination.
+- **Question import and export**: questions are imported into a section from Aiken text or Moodle XML (every type above, with points and answer shares; unsupported types are skipped with a reason). A section (with its subsections as Moodle categories) or a quiz can be downloaded as Moodle XML and imported into Moodle or back into the platform.
 - **Reports** for a resource or a comment (copyright, inappropriate content, broken link, other) with moderation in the Admin area.
 - **Admin area**: dashboard, subjects, grades overview, licenses, users and roles, teacher approvals, reports, and CSV import of resources (preview with new/duplicate/invalid rows, then confirm).
 - **Accounts**: registration as student, parent or teacher; account deletion (resources stay in the catalog, comments and favorites are removed).
@@ -57,12 +74,12 @@ Every registered user has the base role `User` plus one more role.
 | Role | Can do |
 |---|---|
 | `Student`, `Parent` | Browse, favorites, comments, reports |
-| `Teacher` | Everything above, plus create, edit and delete **own** resources |
-| `Administrator` | Manage subjects, licenses, users, reports and imports; delete any resource (but not edit someone else's) |
+| `Teacher` | Everything above, plus create, edit and delete **own** resources; find resources; own question bank, quizzes, classes and exams |
+| `Administrator` | Manage subjects, licenses, online libraries, users, reports and imports; delete any resource (but not edit someone else's); see and manage every teacher's quizzes and question bank |
 
 Registration lets a user choose student, parent or teacher. Students and parents get the role at once. A teacher request waits for an administrator's approval and until then works as a student. The first registered user becomes the administrator.
 
-Teachers (and administrators) build and review quizzes. Practice quizzes are open to any visitor; exams are solved anonymously by code, so a student needs no account to sit one.
+Practice quizzes are open to any visitor; exams are solved anonymously by code, so a student needs no account to sit one.
 
 ## Architecture
 
@@ -92,11 +109,18 @@ Forms are bound to view models, not to entities, so a request cannot set fields 
 | `Favorite` | Composite key (user, resource) |
 | `Comment` | Text up to 500 characters, author, resource |
 | `Report` | Reported resource or comment, reason, description, status, a copy of the reported text |
-| `Quiz` | Title, description, mode (practice or exam), exam code (unique), time limit, leave allowance, published flag, owner (nullable) |
-| `Question` | A single-choice question with display order; belongs to a quiz |
-| `AnswerOption` | Option text, whether it is correct, display order; belongs to a question |
-| `QuizAttempt` | One run of a quiz: unguessable token (unique), student name and class number, start and submit times, score, leave count and flag |
-| `AttemptAnswer` | The option a student picked for one question and whether it was correct |
+| `OnlineLibrary` | An external library card: name, description, URL, icon, sort order, and the key of its downloaded site icon |
+| `Section` | A topic in a teacher's question bank; sections form a tree (parent section, nullable) |
+| `Question` | Text, type (one of the seven), points, case sensitivity for short answers, display order; belongs to a bank section (or, for older quizzes, directly to a quiz) |
+| `AnswerOption` | Option text, share of the points in percent (−100 to 100), tolerance (numerical), matching answer (matching), display order |
+| `Quiz` | Title, description, mode, shuffle settings, published flag, optional lesson, owner (nullable) |
+| `QuizItem` | One line of a quiz: a pinned bank question, or "draw N random questions from a section" |
+| `SchoolClass` | A teacher's class (a name, unique per teacher) |
+| `ExamAssignment` | A quiz assigned to a class as an exam: code (unique), time limit, proctoring limit, open flag, results released flag |
+| `QuizAttempt` | One run of a quiz: unguessable token (unique), student name and class number (unique per class exam), start and submit times, score and maximum (decimal, for partial credit), leave count and flag |
+| `AttemptQuestion` | The questions served to an attempt, in their order (a snapshot taken at the start, so random draws stay fixed) |
+| `AttemptAnswer` | A student's answer to one question: the picked option or the typed text, the points awarded, whether it was correct |
+| `AttemptAnswerChoice` | The ticked options of a multiple-choice answer and the chosen pairs of a matching answer |
 
 ## Services
 
@@ -111,11 +135,21 @@ Forms are bound to view models, not to entities, so a request cannot set fields 
 | `IFavoriteService` | Add, remove, paged list |
 | `ICommentService` | Add, delete (author or administrator), paged list |
 | `IReportService` | Create (one open report per user and content), moderation, delete reported content |
-| `IQuizService` | Create, edit and delete quizzes and questions (owner or administrator), publish, generate unique exam codes; grade practice; start, submit and grade exam attempts (one attempt, entered by code); record proctoring leaves; paged review of submissions |
+| `IOnlineLibraryService`, `ILibraryIconService` | Online library cards CRUD; download a library's site icon once and store it |
+| `IResourceDiscoveryService` | "Find resources": search the fixed list of sources (one `IResourceSourceProvider` per source) and save the ticked suggestions through `IResourceService` |
+| `ISectionService` | The question bank's section tree: create, rename, move (no cycles), delete when empty |
+| `IQuestionBankService` | Questions in a section: create, edit, delete, move to another section, import from Aiken or Moodle XML |
+| `IQuizService` | Create, edit, delete and publish quizzes (owner or administrator); validate questions of every type; grade practice; start, submit and grade exam attempts; record proctoring leaves; paged review of submissions |
+| `IQuizItemService` | Compose a quiz from pinned questions and random draws, reorder the items, resolve them into the questions served to a student |
+| `ISchoolClassService` | A teacher's classes |
+| `IExamAssignmentService` | Assign a quiz to a class as an exam, generate its unique code, open and close it, release the results |
+| `IQuestionExportService` | Write a section (with its subsections as categories) or a quiz as a Moodle XML file |
 | `IUserService` | Roles, teacher approvals, account deletion |
 | `IStatisticsService` | Numbers for the admin dashboard |
 | `IFileStorage` | Stores and serves uploaded file bytes outside the database, chosen by configuration: `LocalFileStorage` on a disk volume, or `OciObjectStorage` in an S3-compatible bucket (OCI Object Storage) |
 | `IMarkdownRenderer` | Renders uploaded Markdown to sanitized HTML (Markdig with raw HTML disabled, then HtmlSanitizer) |
+
+Grading is a strategy per question type: each type has an `IQuestionGrader` (`SingleChoiceGrader`, `MultipleChoiceGrader`, `ShortAnswerGrader`, `NumericalGrader`, `MatchingGrader`, …) that turns a question and a submitted answer into the points earned. The graders are pure logic with no state, so `QuizGrading` only adds up their results, and a new type needs a new grader rather than changes to the others. Import and export of questions are pure as well: `AikenParser`, `MoodleXmlParser` and `MoodleXmlWriter`.
 
 ## Validation and security
 
@@ -127,9 +161,11 @@ Forms are bound to view models, not to entities, so a request cannot set fields 
 - **CSRF**: `AutoValidateAntiforgeryToken` is applied globally to every unsafe request.
 - **Parameter tampering**: view models instead of entity binding, ownership and role checks in services, `[Authorize(Roles = ...)]` on controllers and on the whole Admin area. Each exam attempt is addressed by an unguessable GUID token in the URL, not a sequential id, so one student cannot open or submit another's attempt.
 - **Anonymous exams**: students sit exams without an account, so the start, submit and proctoring-ping endpoints are open — but they are POST actions that still validate the antiforgery token, and they change nothing a signed-in user owns. The exam timer, the single-attempt rule and the proctoring limit are enforced on the server (it holds the start time, the code and the leave count); the browser scripts only show the clock and send pings, and a web page cannot truly prevent switching tabs.
+- **Quiz answers**: grading happens only on the server. The page a student solves never contains the correct answers: no accepted short answers, numbers or tolerances, and a matching question's lists carry answer texts in alphabetical order, never ids that would reveal the pairs. An option that does not belong to the question is treated as no answer. Short-answer patterns run with a regex timeout.
+- **Outgoing requests**: the server only calls the fixed sources of "Find resources" and, for library icons, an address an administrator entered; `PublicNetworkGuard` allows public IP addresses only (checked after DNS and on every redirect), ports 80 and 443 only, with size and time limits, so the server cannot be made to reach its own network (SSRF).
 - **Accounts**: the account locks for 5 minutes after 5 failed sign-ins.
 - **Headers and cookies**: `X-Content-Type-Options`, `X-Frame-Options`, `Referrer-Policy` and a Content-Security-Policy for framing, plugins, base URI and form targets; in Production every cookie is `Secure`; `AllowedHosts` limits the host names.
-- **Size limits** on the CSV upload.
+- **Size limits** on the CSV upload and the question import.
 
 ## Seeding
 
@@ -137,7 +173,8 @@ On start the app applies migrations and seeds reference data (only what is missi
 
 - grades 5 to 12,
 - 31 subjects,
-- 15 licenses (Creative Commons variants, public domain, MIT, Apache 2.0, GPL 2.0, standard YouTube license and others),
+- 17 licenses (Creative Commons variants, public domain, MIT, Apache 2.0, GPL 2.0, the standard YouTube license, the GeoGebra license and others),
+- 4 online libraries (only when the table is empty),
 - roles, and the first administrator.
 
 **Demo data** for development: accounts `admin`, `teacher`, `student` and `parent` at `@demo.local`, three lessons, comments, favorites and reports. It is added only in the `Development` environment and only when `Seed:DemoData` is `true`. The password comes from `Seed:DemoPassword`; set both with user secrets, they are not stored in the repository:
@@ -153,17 +190,17 @@ dotnet user-secrets set "Seed:DemoPassword" "<a password>" --project SchoolLibra
 dotnet test SchoolLibrary.slnx
 ```
 
-1087 tests (xUnit, Moq, EF Core InMemory). They cover every service (success and failure paths, including file upload validation, the file storage, the Markdown renderer and the full quiz flow — authoring, practice grading, exam attempts and proctoring), seeders, DI registration, controllers (redirects, messages, permissions, file serving), security conventions, error pages and helpers.
+1778 tests (xUnit, Moq, EF Core InMemory). They cover every service (success and failure paths, including file upload validation, the file storage, the Markdown renderer, the resource sources with fake HTTP responses, and the full quiz flow: the question bank, every question type and its grader, import and export with import → export → import round trips, class exams, attempts and proctoring), seeders, DI registration, controllers (redirects, messages, permissions, file serving), security conventions, error pages and helpers.
 
 Line coverage measured with coverlet (`dotnet test -c Release --collect:"XPlat Code Coverage"`):
 
 | Part | Coverage |
 |---|---|
-| `SchoolLibrary.Services` (the logic the assignment asks for) | **98.1%** |
-| `SchoolLibrary.Data` without generated migrations | 96.9% |
-| `SchoolLibrary.Web` without compiled Razor views, Identity scaffolding and `Program.cs` | 93.8% |
+| `SchoolLibrary.Services` (the logic the assignment asks for) | **97.0%** |
+| `SchoolLibrary.Data` without generated migrations | 96.1% |
+| `SchoolLibrary.Web` without compiled Razor views, Identity scaffolding and `Program.cs` | 92.8% |
 
-The raw numbers per assembly are lower for Data and Web because generated migrations and compiled Razor views count as code; they are excluded above.
+The raw numbers per assembly are lower for Data (2.7%) and Web (51.9%) because generated migrations and compiled Razor views count as code; they are excluded above.
 
 ## Getting started
 

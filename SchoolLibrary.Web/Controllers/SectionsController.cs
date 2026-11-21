@@ -349,7 +349,34 @@ namespace SchoolLibrary.Controllers
                 return Forbid();
             }
 
+            if (!result.Succeeded)
+            {
+                TempData["ErrorMessage"] = result.Message;
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
             TempData["SuccessMessage"] = "Въпросът е изтрит.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        // POST: Sections/DeleteQuestions/5 — bulk-delete the checked questions
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteQuestions(int id, int[] questionIds)
+        {
+            if (questionIds is not { Length: > 0 })
+            {
+                TempData["ErrorMessage"] = "Изберете поне един въпрос.";
+                return RedirectToAction(nameof(Details), new { id });
+            }
+
+            var summary = (await _questions.DeleteQuestionsAsync(questionIds, CurrentUserId, IsAdministrator)).Value!;
+            TempData["SuccessMessage"] = $"Изтрити въпроси: {summary.Deleted}.";
+            if (summary.KeptSolved > 0)
+            {
+                TempData["ErrorMessage"] = $"Не са изтрити {summary.KeptSolved}, защото вече са решавани в тест (резултатите на учениците се запазват).";
+            }
+
             return RedirectToAction(nameof(Details), new { id });
         }
 
