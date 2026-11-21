@@ -24,6 +24,8 @@
     <h1 class="h3 mb-0">@topic.Name</h1>
     <div class="d-flex flex-wrap gap-1">
         <a asp-action="Edit" asp-route-id="@topic.Id" class="btn btn-sm btn-outline-primary">Редактирай</a>
+        <a asp-action="Export" asp-route-id="@topic.Id" class="btn btn-sm btn-outline-secondary"
+           title="Въпросите на раздела и подразделите му (всеки като категория), за внос в Moodle или тук"><i class="bi bi-download"></i> Изтегли като Moodle XML</a>
         <form method="post" asp-action="Delete" asp-route-id="@topic.Id" class="d-inline"
               onsubmit="return confirm('Да изтрия ли раздела? Трябва да е празен.');">
             <button type="submit" class="btn btn-sm btn-outline-danger">Изтрий</button>

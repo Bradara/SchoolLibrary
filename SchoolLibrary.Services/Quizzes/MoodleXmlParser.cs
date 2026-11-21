@@ -20,6 +20,7 @@ namespace SchoolLibrary.Services.Quizzes;
 /// <item><c>matching</c>: each <c>subquestion</c> with its answer; one with empty text is an extra wrong answer;</item>
 /// <item><c>description</c>: text shown between the questions, without points.</item>
 /// </list>
+/// A question's points come from <c>defaultgrade</c> (rounded, between 1 and 100; 1 when missing).
 /// Other question types (and the <c>category</c> marker) are skipped, each with a reported reason.
 /// </summary>
 public static class MoodleXmlParser
@@ -89,6 +90,7 @@ public static class MoodleXmlParser
             }
 
             var answers = question.Elements("answer").ToList();
+            var points = Points(question);
 
             if (string.Equals(type, "truefalse", StringComparison.OrdinalIgnoreCase))
             {
@@ -99,7 +101,7 @@ public static class MoodleXmlParser
                     continue;
                 }
 
-                questions.Add(QuestionInput.TrueFalse(questionText, answer));
+                questions.Add(QuestionInput.TrueFalse(questionText, answer, points));
                 continue;
             }
 
@@ -117,7 +119,7 @@ public static class MoodleXmlParser
                 }
 
                 var caseSensitive = CleanText(question.Element("usecase")) == "1";
-                questions.Add(new QuestionInput(questionText, accepted.Select(a => a.Text).ToList(), -1, 1,
+                questions.Add(new QuestionInput(questionText, accepted.Select(a => a.Text).ToList(), -1, points,
                     QuestionType.ShortAnswer, accepted.Select(a => a.Fraction).ToList(), caseSensitive));
                 continue;
             }
@@ -136,7 +138,7 @@ public static class MoodleXmlParser
                     continue;
                 }
 
-                questions.Add(QuestionInput.Matching(questionText, pairs));
+                questions.Add(QuestionInput.Matching(questionText, pairs, points));
                 continue;
             }
 
@@ -160,7 +162,7 @@ public static class MoodleXmlParser
                     continue;
                 }
 
-                questions.Add(new QuestionInput(questionText, accepted.Select(a => a.Text).ToList(), -1, 1,
+                questions.Add(new QuestionInput(questionText, accepted.Select(a => a.Text).ToList(), -1, points,
                     QuestionType.Numerical, accepted.Select(a => a.Fraction).ToList(),
                     Tolerances: accepted.Select(a => (decimal?)Math.Abs(a.Tolerance)).ToList()));
                 continue;
@@ -183,7 +185,7 @@ public static class MoodleXmlParser
                     continue;
                 }
 
-                questions.Add(new QuestionInput(questionText, options, -1, 1, QuestionType.MultipleChoice, fractions));
+                questions.Add(new QuestionInput(questionText, options, -1, points, QuestionType.MultipleChoice, fractions));
                 continue;
             }
 
@@ -194,10 +196,25 @@ public static class MoodleXmlParser
                 continue;
             }
 
-            questions.Add(new QuestionInput(questionText, options, correctIndex));
+            questions.Add(new QuestionInput(questionText, options, correctIndex, points));
         }
 
         return new ImportParseResult(questions, errors);
+    }
+
+    // The question's points from <defaultgrade> ("1.0000000" in Moodle's own files), rounded and kept within
+    // 1..100; a missing or unreadable value means 1
+    private static int Points(XElement question)
+    {
+        var raw = CleanText(question.Element("defaultgrade"));
+        if (!decimal.TryParse(raw, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var grade))
+        {
+            return 1;
+        }
+
+        var rounded = Math.Round(grade, MidpointRounding.AwayFromZero);
+        return (int)Math.Clamp(rounded, 1m, QuizService.MaxQuestionPoints);
     }
 
     // The correct option is the answer with the highest positive fraction (100 for a single-choice key)

@@ -19,6 +19,8 @@
     <h1 class="h3 mb-0">@quiz.Title</h1>
     <div class="d-flex flex-wrap gap-1">
         <a asp-action="Edit" asp-route-id="@quiz.Id" class="btn btn-sm btn-outline-primary">Редактирай</a>
+        <a asp-action="Export" asp-route-id="@quiz.Id" class="btn btn-sm btn-outline-secondary"
+           title="Въпросите на теста. Случайните тегления от раздели не се включват — изтеглете самия раздел."><i class="bi bi-download"></i> Изтегли като Moodle XML</a>
         @if (quiz.Mode == QuizMode.Practice)
         {
             <a asp-controller="Exams" asp-action="Create" asp-route-quizId="@quiz.Id" class="btn btn-sm btn-outline-primary"><i class="bi bi-clipboard-check"></i> Назначи като изпит</a>

@@ -279,6 +279,24 @@ namespace SchoolLibrary.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
+        // GET: Sections/Export/5 — the section and its subsections as a Moodle XML file
+        public async Task<IActionResult> Export(int id, [FromServices] IQuestionExportService export)
+        {
+            var result = await export.ExportSectionAsync(id, CurrentUserId, IsAdministrator);
+            if (result.Error == ServiceError.NotFound)
+            {
+                return NotFound();
+            }
+
+            if (result.Error == ServiceError.Forbidden)
+            {
+                return Forbid();
+            }
+
+            var file = result.Value!;
+            return File(System.Text.Encoding.UTF8.GetBytes(file.Content), "application/xml", file.FileName);
+        }
+
         // POST: Sections/Import/5 — bulk-load questions from pasted text or an uploaded file (Aiken .txt or Moodle .xml)
         [HttpPost]
         [ValidateAntiForgeryToken]

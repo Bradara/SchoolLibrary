@@ -56,6 +56,24 @@ namespace SchoolLibrary.Controllers
             return View(result.Value);
         }
 
+        // GET: QuizManagement/Export/5 — the quiz's own and pinned questions as a Moodle XML file
+        public async Task<IActionResult> Export(int id, [FromServices] IQuestionExportService export)
+        {
+            var result = await export.ExportQuizAsync(id, CurrentUserId, IsAdministrator);
+            if (result.Error == ServiceError.NotFound)
+            {
+                return NotFound();
+            }
+
+            if (result.Error == ServiceError.Forbidden)
+            {
+                return Forbid();
+            }
+
+            var file = result.Value!;
+            return File(System.Text.Encoding.UTF8.GetBytes(file.Content), "application/xml", file.FileName);
+        }
+
         // GET: QuizManagement/Details/5 — the hub for managing one quiz
         public async Task<IActionResult> Details(int id)
         {
