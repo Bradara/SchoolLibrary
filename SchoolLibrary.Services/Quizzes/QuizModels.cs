@@ -24,6 +24,20 @@ public record QuestionInput(string Text, IReadOnlyList<string> Options, int Corr
     QuestionType Type = QuestionType.SingleChoice, IReadOnlyList<decimal>? Fractions = null, bool CaseSensitive = false,
     IReadOnlyList<decimal?>? Tolerances = null, IReadOnlyList<string>? Matches = null, IReadOnlyList<int?>? OptionIds = null)
 {
+    /// <summary>A code question's settings and tests; null for the other types.</summary>
+    public CodeQuestionInput? Code { get; init; }
+
+    /// <summary>
+    /// A code question in <paramref name="language"/> (a <c>CodeLanguages</c> id) whose answer box starts with
+    /// <paramref name="preload"/>, checked with <paramref name="tests"/>.
+    /// </summary>
+    public static QuestionInput CodeQuestion(string text, string language, IReadOnlyList<CodeTestInput> tests,
+        string? preload = null, bool allOrNothing = true, int points = 1)
+        => new(text, Array.Empty<string>(), -1, points, QuestionType.Code)
+        {
+            Code = new CodeQuestionInput(language, preload, allOrNothing, tests)
+        };
+
     /// <summary>The option texts of a true/false question, in their fixed order.</summary>
     public static readonly IReadOnlyList<string> TrueFalseOptions = new[] { "Вярно", "Невярно" };
 
@@ -72,6 +86,12 @@ public record QuestionInput(string Text, IReadOnlyList<string> Options, int Corr
     public static QuestionInput Description(string text)
         => new(text, Array.Empty<string>(), -1, 0, QuestionType.Description);
 }
+
+/// <summary>What a teacher sets for a code question: language, starting code, scoring and the tests.</summary>
+public record CodeQuestionInput(string Language, string? Preload, bool AllOrNothing, IReadOnlyList<CodeTestInput> Tests);
+
+/// <summary>One test of a code question as typed in the form.</summary>
+public record CodeTestInput(string Stdin, string Expected, bool IsExample = false, bool IsHidden = false, decimal Weight = 1m);
 
 /// <summary>A quiz with its question and (submitted) attempt counts, for the management list.</summary>
 public record QuizListItem(Quiz Quiz, int QuestionCount, int AttemptCount);

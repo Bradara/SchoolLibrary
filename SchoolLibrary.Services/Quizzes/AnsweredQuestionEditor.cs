@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
+using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
 
@@ -43,6 +44,13 @@ internal class AnsweredQuestionEditor
         {
             return ServiceResult<Question>.Failure(ServiceError.Conflict,
                 "Въпросът вече е решаван в тест, затова видът му не може да се променя.");
+        }
+
+        // A program has to be run again on the sandbox server to regrade it; that comes with the grading queue
+        if (question.Type == QuestionType.Code)
+        {
+            return ServiceResult<Question>.Failure(ServiceError.Conflict,
+                "Въпросът с код вече е решаван в тест и засега не може да се редактира.");
         }
 
         if (!_context.Database.IsRelational())

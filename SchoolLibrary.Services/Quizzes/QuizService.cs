@@ -22,6 +22,7 @@ public class QuizService : IQuizService
     public const int MaxProctorLeaves = 100;
     public const int MaxPageSize = 100;
     public const int MaxClassNumber = 99;
+    public const int MaxCodeTests = 20;
 
     private readonly ApplicationDbContext _context;
     private readonly IQuizItemService _items;
@@ -270,6 +271,7 @@ public class QuizService : IQuizService
             .AsNoTracking()
             .Include(q => q.Quiz)
             .Include(q => q.Options.OrderBy(o => o.Order))
+            .Include(q => q.TestCases.OrderBy(t => t.Order))
             .FirstOrDefaultAsync(q => q.Id == questionId);
     }
 
@@ -278,6 +280,7 @@ public class QuizService : IQuizService
         var question = await _context.Questions
             .Include(q => q.Quiz)
             .Include(q => q.Options)
+            .Include(q => q.TestCases)
             .FirstOrDefaultAsync(q => q.Id == questionId);
         if (question == null)
         {
@@ -305,6 +308,7 @@ public class QuizService : IQuizService
 
         // Replace the options wholesale; the question keeps its place in the quiz
         _context.AnswerOptions.RemoveRange(question.Options);
+        _context.CodeTestCases.RemoveRange(question.TestCases);
         QuestionContent.Apply(question, input);
 
         await _context.SaveChangesAsync();
@@ -857,7 +861,14 @@ public class QuizService : IQuizService
         // The type comes from the form, so an unknown value is rejected rather than stored
         if (input.Type is not (QuestionType.SingleChoice or QuestionType.TrueFalse or QuestionType.MultipleChoice
             or QuestionType.ShortAnswer or QuestionType.Numerical or QuestionType.Matching
-            or QuestionType.Description))
+            or QuestionType.Description or QuestionType.Code))
+        {
+            return "Неподдържан вид въпрос.";
+        }
+
+        // Code settings belong only to a code question, which in turn has no options
+        if ((input.Code != null) != (input.Type == QuestionType.Code)
+            || (input.Type == QuestionType.Code && (input.Options?.Count > 0 || input.Fractions != null)))
         {
             return "Неподдържан вид въпрос.";
         }
@@ -883,6 +894,11 @@ public class QuizService : IQuizService
         if (input.Type == QuestionType.Description)
         {
             return null;
+        }
+
+        if (input.Type == QuestionType.Code)
+        {
+            return ValidateCode(input.Code!) ?? ValidatePoints(input.Points);
         }
 
         var options = (input.Options ?? new List<string>())
@@ -964,6 +980,48 @@ public class QuizService : IQuizService
             : null;
 
     // At least two items, each with an answer; every row (item or extra answer) has an answer on the right
+    // A code question: a known language, a starting code and tests within their limits, weights 0–1000
+    private static string? ValidateCode(CodeQuestionInput code)
+    {
+        if (!CodeRunning.CodeLanguages.IsSupported(code.Language))
+        {
+            return "Изберете език за програмиране.";
+        }
+
+        if (code.Preload?.Length > CodeGrader.MaxCodeLength)
+        {
+            return $"Началният код не може да бъде по-дълъг от {CodeGrader.MaxCodeLength} символа.";
+        }
+
+        var tests = code.Tests ?? Array.Empty<CodeTestInput>();
+        if (tests.Count == 0)
+        {
+            return "Добавете поне един тест.";
+        }
+
+        if (tests.Count > MaxCodeTests)
+        {
+            return $"Тестовете не може да са повече от {MaxCodeTests}.";
+        }
+
+        if (tests.Any(t => (t.Stdin?.Length ?? 0) > CodeTestCase.MaxTextLength || (t.Expected?.Length ?? 0) > CodeTestCase.MaxTextLength))
+        {
+            return $"Входът и очакваният изход на тест са най-много {CodeTestCase.MaxTextLength} символа.";
+        }
+
+        if (tests.Any(t => string.IsNullOrWhiteSpace(t.Expected)))
+        {
+            return "Всеки тест трябва да има очакван изход.";
+        }
+
+        if (tests.Any(t => t.Weight < 0 || t.Weight > 1000))
+        {
+            return "Тежестта на тест трябва да е между 0 и 1000.";
+        }
+
+        return null;
+    }
+
     private static string? ValidateMatching(QuestionInput input, IReadOnlyList<string> items)
     {
         if (input.Fractions != null)

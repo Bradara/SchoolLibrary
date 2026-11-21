@@ -1,5 +1,8 @@
 @using SchoolLibrary.Data.Enums
+@using SchoolLibrary.Services.CodeRunning
+@using SchoolLibrary.Services.Quizzes
 @model SchoolLibrary.ViewModels.QuestionFormViewModel
+@inject IServiceProvider Services
 @*
     The type picker and the answer fields of a question form. The form must carry the "question-form"
     class: CSS (site.css) shows only the fields of the picked type, so no script is needed. Hidden fields
@@ -12,6 +15,8 @@
     - Matching: each option row is an item with its answer on the right (.qt-matching); no marker.
     - Description: text only (.qt-description); the option rows and the points field (.qt-points, in the
       including view) are hidden.
+    - Code: language, starting code, scoring and test rows (.qt-code); the option rows are hidden. Offered only
+      when a sandbox server is configured (or when an existing code question is edited).
 *@
 @{
     var rowCount = Math.Min(10, Math.Max(4, Model.Options.Count + 2));
@@ -24,7 +29,13 @@
         (Type: QuestionType.Numerical, Id: "qt-numerical", Label: "Число"),
         (Type: QuestionType.Matching, Id: "qt-matching", Label: "Съпоставяне"),
         (Type: QuestionType.Description, Id: "qt-description", Label: "Описание")
-    };
+    }.ToList();
+    var codeEnabled = Services.GetService<ICodeRunner>() != null || Model.Type == QuestionType.Code;
+    if (codeEnabled)
+    {
+        types.Add((Type: QuestionType.Code, Id: "qt-code", Label: "Код"));
+    }
+    var testRows = Math.Min(QuizService.MaxCodeTests, Math.Max(3, Model.Tests.Count + 2));
     var customSharesPanel = Model.Type switch
     {
         QuestionType.ShortAnswer => "qt-short",
@@ -122,3 +133,85 @@
         <label class="form-check-label" for="tf-false">Невярно</label>
     </div>
 </fieldset>
+
+@if (codeEnabled)
+{
+    <div class="qt-code">
+        <p class="form-text mb-2">
+            Ученикът пише цяла програма, която чете от стандартния вход и печата на стандартния изход. Тя се пуска на
+            отделен сървър с входа на всеки тест и изходът се сравнява с очаквания (интервалите в края на редовете и
+            празните редове накрая не се броят; малките и главните букви се броят).
+        </p>
+        <div class="row g-2 mb-2">
+            <div class="col-sm-4">
+                <label class="form-label" for="q-code-language">Език</label>
+                <select class="form-select" name="CodeLanguage" id="q-code-language">
+                    <option value="">— изберете —</option>
+                    @foreach (var language in CodeLanguages.All)
+                    {
+                        <option value="@language.Key" selected="@(Model.CodeLanguage == language.Key)">@language.Value</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-8 d-flex align-items-end">
+                <div class="form-check mb-2">
+                    <input class="form-check-input" type="checkbox" name="AllOrNothing" id="q-all-or-nothing" value="true"
+                           @(Model.AllOrNothing ? "checked" : "") />
+                    <label class="form-check-label" for="q-all-or-nothing">Точки само ако минат всички тестове</label>
+                </div>
+                @* After the checkbox: unchecked posts only "false"; checked posts "true" first, which the binder takes *@
+                <input type="hidden" name="AllOrNothing" value="false" />
+            </div>
+        </div>
+        <p class="form-text mb-2">
+            Без отметката точките се делят според тежестта на минатите тестове.
+        </p>
+        <div class="mb-3">
+            <label class="form-label" for="q-answer-preload">Начален код <span class="text-body-secondary">(по избор)</span></label>
+            <textarea class="form-control font-monospace" name="AnswerPreload" id="q-answer-preload" rows="6"
+                      maxlength="10000" spellcheck="false">@Model.AnswerPreload</textarea>
+        </div>
+
+        <h3 class="h6">Тестове</h3>
+        <p class="form-text mb-2">
+            Нужен е поне един тест с очакван изход. Отметка „Пример“ показва входа и изхода в условието; „Скрит“ —
+            ученикът вижда само дали тестът е минал. Празните тестове се пропускат.
+        </p>
+        @for (var i = 0; i < testRows; i++)
+        {
+            var test = i < Model.Tests.Count ? Model.Tests[i] : new SchoolLibrary.ViewModels.CodeTestFormRow();
+            <fieldset class="border rounded p-2 mb-2">
+                <legend class="float-none w-auto px-1 fs-6 mb-0">Тест @(i + 1)</legend>
+                <div class="row g-2">
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1" for="q-test-stdin-@i">Вход</label>
+                        <textarea class="form-control font-monospace" name="Tests[@i].Stdin" id="q-test-stdin-@i" rows="2"
+                                  maxlength="10000" spellcheck="false">@test.Stdin</textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small mb-1" for="q-test-expected-@i">Очакван изход</label>
+                        <textarea class="form-control font-monospace" name="Tests[@i].Expected" id="q-test-expected-@i" rows="2"
+                                  maxlength="10000" spellcheck="false">@test.Expected</textarea>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap align-items-center gap-3 mt-2">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="Tests[@i].IsExample" id="q-test-example-@i"
+                               value="true" @(test.IsExample ? "checked" : "") />
+                        <label class="form-check-label small" for="q-test-example-@i">Пример</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="Tests[@i].IsHidden" id="q-test-hidden-@i"
+                               value="true" @(test.IsHidden ? "checked" : "") />
+                        <label class="form-check-label small" for="q-test-hidden-@i">Скрит</label>
+                    </div>
+                    <div class="d-flex align-items-center gap-1">
+                        <label class="small" for="q-test-weight-@i">Тежест</label>
+                        <input class="form-control form-control-sm" name="Tests[@i].Weight" id="q-test-weight-@i"
+                               value="@test.Weight" inputmode="decimal" maxlength="10" style="max-width: 5rem;" />
+                    </div>
+                </div>
+            </fieldset>
+        }
+    </div>
+}

@@ -82,6 +82,22 @@ public class QuestionFormViewModel
     [Display(Name = "Точки")]
     public int Points { get; set; } = 1;
 
+    /// <summary>The language of a code question (a <c>CodeLanguages</c> id).</summary>
+    [Display(Name = "Език")]
+    public string? CodeLanguage { get; set; }
+
+    /// <summary>The code the student's answer box starts with.</summary>
+    [StringLength(10000, ErrorMessage = "Началният код е най-много 10000 символа")]
+    [Display(Name = "Начален код")]
+    public string? AnswerPreload { get; set; }
+
+    /// <summary>Full points only when every test passes; otherwise the passed tests' share.</summary>
+    [Display(Name = "Точки само ако минат всички тестове")]
+    public bool AllOrNothing { get; set; } = true;
+
+    /// <summary>The test rows of a code question; rows with neither input nor output are dropped.</summary>
+    public List<CodeTestFormRow> Tests { get; set; } = new();
+
     /// <summary>The form filled in with a saved question, for editing.</summary>
     public static QuestionFormViewModel FromQuestion(Question question)
     {
@@ -98,6 +114,23 @@ public class QuestionFormViewModel
         {
             // A description stores 0 points; the hidden points field keeps a valid value
             form.Points = 1;
+        }
+        else if (question.Type == QuestionType.Code)
+        {
+            form.CodeLanguage = question.CodeLanguage;
+            form.AnswerPreload = question.AnswerPreload;
+            form.AllOrNothing = question.AllOrNothing;
+            form.Tests = question.TestCases
+                .OrderBy(t => t.Order)
+                .Select(t => new CodeTestFormRow
+                {
+                    Stdin = t.Stdin,
+                    Expected = t.Expected,
+                    IsExample = t.IsExample,
+                    IsHidden = t.IsHidden,
+                    Weight = NumericAnswer.Display(t.Weight)
+                })
+                .ToList();
         }
         else if (question.Type == QuestionType.TrueFalse)
         {
@@ -160,6 +193,18 @@ public class QuestionFormViewModel
         if (Type == QuestionType.Description)
         {
             return QuestionInput.Description(Text ?? string.Empty);
+        }
+
+        if (Type == QuestionType.Code)
+        {
+            // Fully empty rows are dropped; a weight that is not a number becomes -1, which the service rejects
+            var tests = (Tests ?? new List<CodeTestFormRow>())
+                .Where(t => !string.IsNullOrWhiteSpace(t.Stdin) || !string.IsNullOrWhiteSpace(t.Expected))
+                .Select(t => new CodeTestInput(t.Stdin ?? string.Empty, t.Expected ?? string.Empty, t.IsExample, t.IsHidden,
+                    string.IsNullOrWhiteSpace(t.Weight) ? 1m : NumericAnswer.Parse(t.Weight) ?? -1m))
+                .ToList();
+            return QuestionInput.CodeQuestion(Text ?? string.Empty, CodeLanguage ?? string.Empty, tests, AnswerPreload,
+                AllOrNothing, Points);
         }
 
         if (Type == QuestionType.Matching)
@@ -229,6 +274,23 @@ public class QuestionFormViewModel
 
     // The option id posted for a row, if any (the service ignores ids that are not the question's)
     private int? RowId(int row) => OptionIds != null && row < OptionIds.Count ? OptionIds[row] : null;
+}
+
+/// <summary>One test row of a code question in the editor.</summary>
+public class CodeTestFormRow
+{
+    public string? Stdin { get; set; }
+
+    public string? Expected { get; set; }
+
+    /// <summary>Shown to the student in the question as an example.</summary>
+    public bool IsExample { get; set; }
+
+    /// <summary>The student sees only whether it passed.</summary>
+    public bool IsHidden { get; set; }
+
+    /// <summary>The test's weight as typed (a comma or a point); blank means 1.</summary>
+    public string? Weight { get; set; } = "1";
 }
 
 /// <summary>The manage page: a quiz with its questions, bank composition and an add-question form.</summary>

@@ -17,6 +17,7 @@ public static class QuestionContent
         // A description is worth nothing, whatever the form sent
         question.Points = input.Type == QuestionType.Description ? 0 : input.Points;
         question.CaseSensitive = input.Type == QuestionType.ShortAnswer && input.CaseSensitive;
+        ApplyCode(question, input);
 
         question.Options.Clear();
         if (input.Type == QuestionType.Description)
@@ -49,6 +50,38 @@ public static class QuestionContent
                 Fraction = fraction,
                 Tolerance = tolerance,
                 MatchText = match,
+                Order = i + 1
+            });
+        }
+    }
+
+    /// <summary>
+    /// Sets a code question's language, starting code and scoring and replaces its tests with the input's
+    /// (the caller removes the old test rows from the context). Other types get no code settings and no tests.
+    /// </summary>
+    private static void ApplyCode(Question question, QuestionInput input)
+    {
+        question.TestCases.Clear();
+        var code = input.Type == QuestionType.Code ? input.Code : null;
+        question.CodeLanguage = code?.Language;
+        question.AnswerPreload = string.IsNullOrWhiteSpace(code?.Preload) ? null : code.Preload.TrimEnd();
+        question.AllOrNothing = code?.AllOrNothing ?? true;
+        if (code == null)
+        {
+            return;
+        }
+
+        for (var i = 0; i < code.Tests.Count; i++)
+        {
+            var test = code.Tests[i];
+            question.TestCases.Add(new CodeTestCase
+            {
+                // Inputs and outputs are kept as typed (only the line endings unified): spaces may matter
+                Stdin = (test.Stdin ?? string.Empty).Replace("\r\n", "\n"),
+                Expected = (test.Expected ?? string.Empty).Replace("\r\n", "\n"),
+                IsExample = test.IsExample,
+                IsHidden = test.IsHidden,
+                Weight = test.Weight,
                 Order = i + 1
             });
         }

@@ -39,6 +39,7 @@ public class QuestionBankService : IQuestionBankService
             .AsNoTracking()
             .Include(q => q.Section)
             .Include(q => q.Options.OrderBy(o => o.Order))
+            .Include(q => q.TestCases.OrderBy(t => t.Order))
             .FirstOrDefaultAsync(q => q.Id == questionId);
 
     public async Task<ServiceResult<Question>> CreateAsync(int sectionId, QuestionInput input, string userId, bool isAdministrator)
@@ -83,6 +84,7 @@ public class QuestionBankService : IQuestionBankService
         var question = await _context.Questions
             .Include(q => q.Section)
             .Include(q => q.Options)
+            .Include(q => q.TestCases)
             .FirstOrDefaultAsync(q => q.Id == questionId && q.SectionId != null);
         if (question == null)
         {
@@ -106,6 +108,7 @@ public class QuestionBankService : IQuestionBankService
         }
 
         _context.AnswerOptions.RemoveRange(question.Options);
+        _context.CodeTestCases.RemoveRange(question.TestCases);
         QuestionContent.Apply(question, input);
 
         await _context.SaveChangesAsync();

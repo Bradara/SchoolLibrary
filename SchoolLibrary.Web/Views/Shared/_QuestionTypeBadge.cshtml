@@ -21,4 +21,7 @@
     case QuestionType.Description:
         <span class="badge text-bg-secondary ms-1">Описание</span>
         break;
+    case QuestionType.Code:
+        <span class="badge text-bg-dark ms-1">Код@(SchoolLibrary.Services.CodeRunning.CodeLanguages.All.TryGetValue(Model.CodeLanguage ?? "", out var language) ? $" · {language}" : "")</span>
+        break;
 }
