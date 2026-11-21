@@ -10,6 +10,8 @@
     - Short answer: the option rows hold the accepted answers (.qt-short); the marker column is hidden (.qt-mark).
     - Numerical: the option rows hold the accepted values, each with a tolerance field (.qt-numeric); no marker.
     - Matching: each option row is an item with its answer on the right (.qt-matching); no marker.
+    - Description: text only (.qt-description); the option rows and the points field (.qt-points, in the
+      including view) are hidden.
 *@
 @{
     var rowCount = Math.Min(10, Math.Max(4, Model.Options.Count + 2));
@@ -20,7 +22,8 @@
         (Type: QuestionType.TrueFalse, Id: "qt-truefalse", Label: "Вярно / Невярно"),
         (Type: QuestionType.ShortAnswer, Id: "qt-shortanswer", Label: "Кратък отговор"),
         (Type: QuestionType.Numerical, Id: "qt-numerical", Label: "Число"),
-        (Type: QuestionType.Matching, Id: "qt-matching", Label: "Съпоставяне")
+        (Type: QuestionType.Matching, Id: "qt-matching", Label: "Съпоставяне"),
+        (Type: QuestionType.Description, Id: "qt-description", Label: "Описание")
     };
     var customSharesPanel = Model.Type switch
     {
@@ -41,6 +44,11 @@
         }
     </div>
 </fieldset>
+
+<p class="form-text mb-2 qt-description">
+    Описанието е само текст между въпросите (указания, откъс за четене). Няма отговор и точки, не се номерира
+    и не участва в случайните тегления от раздел. При разбъркване на въпросите и то се разбърква.
+</p>
 
 <div class="qt-options">
     <p class="form-text mb-1 qt-single">Попълни поне 2 отговора и посочи верния. Празните редове се пропускат.</p>

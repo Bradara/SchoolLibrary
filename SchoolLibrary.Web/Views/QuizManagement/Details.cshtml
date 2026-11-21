@@ -181,7 +181,7 @@ else
         <div class="card mb-2">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start gap-2">
-                    <h3 class="h6 mb-1">@number. @question.Text <span class="badge text-bg-light">@question.Points т.</span><partial name="_QuestionTypeBadge" model="question" /></h3>
+                    <h3 class="h6 mb-1">@number. @question.Text @if (question.Type != SchoolLibrary.Data.Enums.QuestionType.Description) { <span class="badge text-bg-light">@question.Points т.</span> }<partial name="_QuestionTypeBadge" model="question" /></h3>
                     <div class="d-inline-flex gap-1">
                         <a asp-action="EditQuestion" asp-route-id="@quiz.Id" asp-route-questionId="@question.Id"
                            class="btn btn-sm btn-outline-primary" aria-label="Редактирай въпроса"><i class="bi bi-pencil"></i></a>
@@ -210,7 +210,7 @@ else
             <div class="mb-2">
                 <input name="Text" value="@newQuestion.Text" class="form-control" maxlength="1000" placeholder="Текст на въпроса" required />
             </div>
-            <div class="mb-2" style="max-width: 9rem;">
+            <div class="mb-2 qt-points" style="max-width: 9rem;">
                 <label class="form-label small mb-0" for="q-points">Точки</label>
                 <input id="q-points" name="Points" type="number" min="1" max="100" value="@points" class="form-control" />
             </div>

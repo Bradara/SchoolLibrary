@@ -97,6 +97,12 @@
         @{ var number = 0; }
         @foreach (var question in Model.Attempt.Questions.OrderBy(aq => aq.Order).Select(aq => aq.Question))
         {
+            if (question.Type == SchoolLibrary.Data.Enums.QuestionType.Description)
+            {
+                <partial name="_QuestionDescription" model="question" />
+                continue;
+            }
+
             number++;
             <fieldset class="card mb-3">
                 <div class="card-body">

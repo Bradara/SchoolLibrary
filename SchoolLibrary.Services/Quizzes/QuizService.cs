@@ -494,7 +494,7 @@ public class QuizService : IQuizService
             StudentNumber = number,
             StartedOn = DateTime.UtcNow,
             Score = 0,
-            MaxScore = served.Sum(q => q.Points)
+            MaxScore = served.Sum(QuizGrading.MaxPoints)
         };
 
         var order = 0;
@@ -727,7 +727,7 @@ public class QuizService : IQuizService
             StudentNumber = number,
             StartedOn = DateTime.UtcNow,
             Score = 0,
-            MaxScore = served.Sum(q => q.Points)
+            MaxScore = served.Sum(QuizGrading.MaxPoints)
         };
 
         var order = 0;
@@ -765,7 +765,7 @@ public class QuizService : IQuizService
     private async Task<Dictionary<int, int>> CountQuestionsAsync(IReadOnlyCollection<int> quizIds)
     {
         var counts = await _context.Questions
-            .Where(x => x.QuizId != null && quizIds.Contains(x.QuizId.Value))
+            .Where(x => x.QuizId != null && quizIds.Contains(x.QuizId.Value) && x.Type != QuestionType.Description)
             .GroupBy(x => x.QuizId!.Value)
             .Select(g => new { QuizId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(g => g.QuizId, g => g.Count);
@@ -781,7 +781,7 @@ public class QuizService : IQuizService
 
         var sectionIds = items.Where(i => i.SectionId != null).Select(i => i.SectionId!.Value).Distinct().ToList();
         var poolSizes = await _context.Questions
-            .Where(q => q.SectionId != null && sectionIds.Contains(q.SectionId.Value))
+            .Where(q => q.SectionId != null && sectionIds.Contains(q.SectionId.Value) && q.Type != QuestionType.Description)
             .GroupBy(q => q.SectionId!.Value)
             .Select(g => new { SectionId = g.Key, Count = g.Count() })
             .ToDictionaryAsync(g => g.SectionId, g => g.Count);
@@ -851,7 +851,8 @@ public class QuizService : IQuizService
     {
         // The type comes from the form, so an unknown value is rejected rather than stored
         if (input.Type is not (QuestionType.SingleChoice or QuestionType.TrueFalse or QuestionType.MultipleChoice
-            or QuestionType.ShortAnswer or QuestionType.Numerical or QuestionType.Matching))
+            or QuestionType.ShortAnswer or QuestionType.Numerical or QuestionType.Matching
+            or QuestionType.Description))
         {
             return "Неподдържан вид въпрос.";
         }
@@ -871,6 +872,12 @@ public class QuizService : IQuizService
         if (input.Text.Trim().Length > QuestionMaxLength)
         {
             return $"Въпросът не може да бъде по-дълъг от {QuestionMaxLength} символа.";
+        }
+
+        // A description needs only its text: it has no options and no points
+        if (input.Type == QuestionType.Description)
+        {
+            return null;
         }
 
         var options = (input.Options ?? new List<string>())

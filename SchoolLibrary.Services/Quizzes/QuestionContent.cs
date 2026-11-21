@@ -14,10 +14,16 @@ public static class QuestionContent
     {
         question.Text = input.Text.Trim();
         question.Type = input.Type;
-        question.Points = input.Points;
+        // A description is worth nothing, whatever the form sent
+        question.Points = input.Type == QuestionType.Description ? 0 : input.Points;
         question.CaseSensitive = input.Type == QuestionType.ShortAnswer && input.CaseSensitive;
 
         question.Options.Clear();
+        if (input.Type == QuestionType.Description)
+        {
+            return;
+        }
+
         for (var i = 0; i < input.Options.Count; i++)
         {
             // Explicit shares (multiple choice, short answer, numerical) or full credit for the one correct option

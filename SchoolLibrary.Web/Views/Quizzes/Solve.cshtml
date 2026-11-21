@@ -29,8 +29,14 @@ else
         @{ var number = 0; }
         @foreach (var question in Model.Questions)
         {
-            number++;
             <input type="hidden" name="questionIds" value="@question.Id" />
+            if (question.Type == SchoolLibrary.Data.Enums.QuestionType.Description)
+            {
+                <partial name="_QuestionDescription" model="question" />
+                continue;
+            }
+
+            number++;
             <fieldset class="card mb-3">
                 <div class="card-body">
                     <legend class="h6 card-title">@number. @question.Text</legend>

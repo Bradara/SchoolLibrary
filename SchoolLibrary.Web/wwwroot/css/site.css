@@ -333,6 +333,9 @@ body.sl-maximized-open {
 
 /* Question form: show only the fields of the picked question type (_QuestionAnswersEditor) */
 .question-form:has(input[name="Type"][value="TrueFalse"]:checked) .qt-options,
+.question-form:has(input[name="Type"][value="Description"]:checked) .qt-options,
+.question-form:has(input[name="Type"][value="Description"]:checked) .qt-points,
+.question-form:not(:has(input[name="Type"][value="Description"]:checked)) .qt-description,
 .question-form:not(:has(input[name="Type"][value="TrueFalse"]:checked)) .qt-truefalse,
 .question-form:not(:has(input[name="Type"][value="SingleChoice"]:checked)) .qt-single,
 .question-form:not(:has(input[name="Type"][value="MultipleChoice"]:checked)) .qt-multi,

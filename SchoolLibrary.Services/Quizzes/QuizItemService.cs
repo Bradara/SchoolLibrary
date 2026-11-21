@@ -226,9 +226,10 @@ public class QuizItemService : IQuizItemService
             }
             else if (item.Kind == QuizItemKind.RandomFromSection && item.SectionId != null)
             {
+                // A description is not a question and is never drawn at random
                 var pool = await _context.Questions
                     .AsNoTracking()
-                    .Where(q => q.SectionId == item.SectionId)
+                    .Where(q => q.SectionId == item.SectionId && q.Type != QuestionType.Description)
                     .Include(q => q.Options.OrderBy(o => o.Order))
                     .ToListAsync();
 

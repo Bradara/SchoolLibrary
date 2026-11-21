@@ -65,6 +65,10 @@ public record QuestionInput(string Text, IReadOnlyList<string> Options, int Corr
     public static QuestionInput Matching(string text, IReadOnlyList<(string Item, string Answer)> pairs, int points = 1)
         => new(text, pairs.Select(p => p.Item).ToList(), -1, points, QuestionType.Matching,
             Matches: pairs.Select(p => p.Answer).ToList());
+
+    /// <summary>A description: text only, no options and no points.</summary>
+    public static QuestionInput Description(string text)
+        => new(text, Array.Empty<string>(), -1, 0, QuestionType.Description);
 }
 
 /// <summary>A quiz with its question and (submitted) attempt counts, for the management list.</summary>
@@ -78,6 +82,9 @@ public record QuestionResult(Question Question, SubmittedAnswer Answer, decimal 
 
     /// <summary>The option worth full credit, for showing the right answer.</summary>
     public int? CorrectOptionId => Question.Options.FirstOrDefault(o => o.IsCorrect)?.Id;
+
+    /// <summary>Whether this is a description (text only) rather than a question.</summary>
+    public bool IsDescription => Question.Type == QuestionType.Description;
 
     /// <summary>Whether the answer earned some, but not all, of the points.</summary>
     public bool IsPartial => !IsCorrect && AwardedPoints > 0;

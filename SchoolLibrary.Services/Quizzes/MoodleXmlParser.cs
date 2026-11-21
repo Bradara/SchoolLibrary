@@ -17,7 +17,8 @@ namespace SchoolLibrary.Services.Quizzes;
 /// <item><c>shortanswer</c>: the accepted answers with their <c>fraction</c>, and <c>usecase</c>;</item>
 /// <item><c>numerical</c>: the accepted values (or <c>*</c>) with their <c>fraction</c> and <c>tolerance</c>;
 /// units are ignored;</item>
-/// <item><c>matching</c>: each <c>subquestion</c> with its answer; one with empty text is an extra wrong answer.</item>
+/// <item><c>matching</c>: each <c>subquestion</c> with its answer; one with empty text is an extra wrong answer;</item>
+/// <item><c>description</c>: text shown between the questions, without points.</item>
 /// </list>
 /// Other question types (and the <c>category</c> marker) are skipped, each with a reported reason.
 /// </summary>
@@ -64,7 +65,8 @@ public static class MoodleXmlParser
                 && !string.Equals(type, "truefalse", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(type, "shortanswer", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(type, "numerical", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(type, "matching", StringComparison.OrdinalIgnoreCase))
+                && !string.Equals(type, "matching", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(type, "description", StringComparison.OrdinalIgnoreCase))
             {
                 errors.Add($"{label}: типът „{type}“ не се поддържа.");
                 continue;
@@ -77,6 +79,12 @@ public static class MoodleXmlParser
             if (questionText.Length == 0)
             {
                 errors.Add($"{label}: липсва текст на въпроса.");
+                continue;
+            }
+
+            if (string.Equals(type, "description", StringComparison.OrdinalIgnoreCase))
+            {
+                questions.Add(QuestionInput.Description(questionText));
                 continue;
             }
 

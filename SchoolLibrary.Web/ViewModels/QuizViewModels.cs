@@ -90,7 +90,12 @@ public class QuestionFormViewModel
             Points = question.Points
         };
 
-        if (question.Type == QuestionType.TrueFalse)
+        if (question.Type == QuestionType.Description)
+        {
+            // A description stores 0 points; the hidden points field keeps a valid value
+            form.Points = 1;
+        }
+        else if (question.Type == QuestionType.TrueFalse)
         {
             // "Вярно" is the first option, so the answer is true when the first option is the correct one
             var correct = options.FindIndex(o => o.IsCorrect);
@@ -146,6 +151,11 @@ public class QuestionFormViewModel
         if (Type == QuestionType.TrueFalse)
         {
             return QuestionInput.TrueFalse(Text ?? string.Empty, TrueFalseAnswer, Points);
+        }
+
+        if (Type == QuestionType.Description)
+        {
+            return QuestionInput.Description(Text ?? string.Empty);
         }
 
         if (Type == QuestionType.Matching)

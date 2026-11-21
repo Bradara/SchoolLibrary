@@ -42,7 +42,13 @@ public enum QuestionType
     /// <c>MatchText</c>), picked from a list. An option with empty text is an extra wrong answer on the right.
     /// The points are shared equally between the items.
     /// </summary>
-    Matching = 5
+    Matching = 5,
+
+    /// <summary>
+    /// Not a question: text shown between the questions (instructions, a passage to read). It has no options,
+    /// is worth 0 points, takes no number and is never drawn at random from a section.
+    /// </summary>
+    Description = 6
 }
 
 /// <summary>How a quiz item pulls questions from the bank. The numbers are stored in the database.</summary>

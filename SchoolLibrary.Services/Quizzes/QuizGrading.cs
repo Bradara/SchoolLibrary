@@ -8,7 +8,7 @@ public static class QuizGrading
     /// <summary>
     /// Grades <paramref name="answers"/> (question id → submitted answer; a missing entry means unanswered)
     /// against <paramref name="quiz"/>. Each question is graded by the grader for its type. The score is the
-    /// sum of the awarded points, and the maximum is the sum of every question's points.
+    /// sum of the awarded points, and the maximum is the sum of every question's points (descriptions add none).
     /// </summary>
     public static QuizResult Grade(Quiz quiz, IReadOnlyDictionary<int, SubmittedAnswer> answers)
         => Grade(quiz, quiz.Questions.OrderBy(q => q.Order), answers);
@@ -32,7 +32,11 @@ public static class QuizGrading
         }
 
         var score = results.Sum(r => r.AwardedPoints);
-        var maxScore = results.Sum(r => (decimal)r.Question.Points);
+        var maxScore = results.Sum(r => (decimal)MaxPoints(r.Question));
         return new QuizResult(quiz, score, maxScore, results);
     }
+
+    /// <summary>The points a question adds to the maximum score: none for a description, whatever is stored.</summary>
+    public static int MaxPoints(Question question)
+        => question.Type == SchoolLibrary.Data.Enums.QuestionType.Description ? 0 : question.Points;
 }

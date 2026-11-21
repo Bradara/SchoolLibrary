@@ -13,6 +13,12 @@
 @{ var number = 0; }
 @foreach (var questionResult in Model.Questions)
 {
+    if (questionResult.IsDescription)
+    {
+        <partial name="_QuestionDescription" model="questionResult.Question" />
+        continue;
+    }
+
     number++;
     var border = questionResult.IsCorrect ? "success" : questionResult.IsPartial ? "warning" : "danger";
     <div class="card mb-3 border-@border">
