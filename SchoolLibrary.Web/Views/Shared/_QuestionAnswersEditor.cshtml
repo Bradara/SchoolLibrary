@@ -89,6 +89,8 @@
         var text = i < Model.Options.Count ? Model.Options[i] : string.Empty;
         var tolerance = i < Model.Tolerances.Count ? Model.Tolerances[i] : string.Empty;
         var match = i < Model.Matches.Count ? Model.Matches[i] : string.Empty;
+        var optionId = i < Model.OptionIds.Count ? Model.OptionIds[i] : null;
+        <input type="hidden" name="OptionIds[@i]" value="@optionId" />
         <div class="input-group mb-2">
             <div class="input-group-text qt-mark">
                 <input class="form-check-input mt-0 qt-single" type="radio" name="CorrectIndex" value="@i"

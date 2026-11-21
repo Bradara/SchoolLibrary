@@ -98,12 +98,139 @@ public class QuestionBankService : IQuestionBankService
             return ServiceResult<Question>.Failure(ServiceError.Invalid, validation);
         }
 
+        if ((await SolvedAmongAsync(new[] { question.Id })).Count > 0)
+        {
+            return await UpdateSolvedAsync(question, input);
+        }
+
         _context.AnswerOptions.RemoveRange(question.Options);
         QuestionContent.Apply(question, input);
 
         await _context.SaveChangesAsync();
 
         return ServiceResult<Question>.Success(question);
+    }
+
+    public async Task<int> CountAnsweredAttemptsAsync(int questionId)
+        => await _context.AttemptAnswers
+            .Where(a => a.QuestionId == questionId && a.Attempt.SubmittedOn != null)
+            .Select(a => a.AttemptId)
+            .Distinct()
+            .CountAsync();
+
+    // An answered question: edit the options in place, keep what students chose valid, then regrade.
+    // In a relational database both saves run in one transaction (through the retrying execution strategy).
+    private async Task<ServiceResult<Question>> UpdateSolvedAsync(Question question, QuestionInput input)
+    {
+        if (input.Type != question.Type)
+        {
+            return ServiceResult<Question>.Failure(ServiceError.Conflict,
+                "Въпросът вече е решаван в тест, затова видът му не може да се променя.");
+        }
+
+        if (!_context.Database.IsRelational())
+        {
+            return await EditAndRegradeAsync(question, input);
+        }
+
+        var strategy = _context.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            await using var transaction = await _context.Database.BeginTransactionAsync();
+            var result = await EditAndRegradeAsync(question, input);
+            if (result.Succeeded)
+            {
+                await transaction.CommitAsync();
+            }
+
+            return result;
+        });
+    }
+
+    private async Task<ServiceResult<Question>> EditAndRegradeAsync(Question question, QuestionInput input)
+    {
+        // An option a student picked or ticked (or a matching item they answered) cannot go away
+        var kept = QuestionContent.KeptOptionIds(question, input).OfType<int>().ToHashSet();
+        var removedIds = question.Options.Where(o => !kept.Contains(o.Id)).Select(o => o.Id).ToList();
+        var chosen = await _context.AttemptAnswers
+            .Where(a => a.SelectedOptionId != null && removedIds.Contains(a.SelectedOptionId.Value))
+            .Select(a => a.SelectedOptionId!.Value)
+            .Concat(_context.AttemptAnswerChoices
+                .Where(c => removedIds.Contains(c.OptionId))
+                .Select(c => c.OptionId))
+            .ToListAsync();
+        if (chosen.Count > 0)
+        {
+            var text = question.Options.First(o => o.Id == chosen[0]).Text;
+            return ServiceResult<Question>.Failure(ServiceError.Conflict,
+                $"Отговорът „{text}“ е избиран от ученици и не може да се премахне. Можете да промените текста му или да го направите грешен.");
+        }
+
+        // A matching answer points at the first option with the picked text; remember the texts the students
+        // picked, so that after the edit they point at an option with that text again (or at none)
+        var picks = await _context.AttemptAnswerChoices
+            .Where(c => c.AttemptAnswer.QuestionId == question.Id && c.MatchedOptionId != null)
+            .ToListAsync();
+        var oldTexts = question.Options.ToDictionary(o => o.Id, o => o.MatchText);
+        var pickedTexts = picks.ToDictionary(c => c, c => oldTexts.GetValueOrDefault(c.MatchedOptionId!.Value));
+
+        var removed = QuestionContent.ApplyInPlace(question, input);
+
+        foreach (var (pick, pickedText) in pickedTexts)
+        {
+            var target = MatchingAnswers.OptionFor(question, pickedText);
+            if (target == null)
+            {
+                // That answer is no longer offered: the item counts as unanswered
+                _context.AttemptAnswerChoices.Remove(pick);
+            }
+            else
+            {
+                // Through the navigation, so a newly added option gets its id on save
+                pick.MatchedOption = target;
+            }
+        }
+
+        _context.AnswerOptions.RemoveRange(removed);
+        await _context.SaveChangesAsync();
+
+        await RegradeAsync(question.Id);
+        return ServiceResult<Question>.Success(question);
+    }
+
+    // Regrades every submitted attempt that answered the question, from the answers it stored
+    private async Task RegradeAsync(int questionId)
+    {
+        var attempts = await _context.QuizAttempts
+            .Where(a => a.SubmittedOn != null && a.Answers.Any(answer => answer.QuestionId == questionId))
+            .Include(a => a.Quiz)
+                .ThenInclude(q => q.Questions)
+                    .ThenInclude(q => q.Options)
+            .Include(a => a.Questions)
+                .ThenInclude(aq => aq.Question)
+                    .ThenInclude(q => q.Options)
+            .Include(a => a.Answers)
+                .ThenInclude(answer => answer.Choices)
+            .ToListAsync();
+
+        foreach (var attempt in attempts)
+        {
+            var result = QuizAttemptResults.Build(attempt);
+            var byQuestion = result.Questions.ToDictionary(r => r.Question.Id);
+            foreach (var answer in attempt.Answers)
+            {
+                if (byQuestion.TryGetValue(answer.QuestionId, out var graded))
+                {
+                    answer.AwardedPoints = graded.AwardedPoints;
+                    answer.IsCorrect = graded.IsCorrect;
+                }
+            }
+
+            attempt.Score = result.Score;
+            attempt.MaxScore = result.MaxScore;
+        }
+
+        await _context.SaveChangesAsync();
     }
 
     public async Task<ServiceResult<Question>> DeleteAsync(int questionId, string userId, bool isAdministrator)

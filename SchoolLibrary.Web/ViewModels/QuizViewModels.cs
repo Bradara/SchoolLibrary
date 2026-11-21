@@ -62,6 +62,9 @@ public class QuestionFormViewModel
     /// <summary>The answer on the right of each row of a matching question (the item is in <see cref="Options"/>).</summary>
     public List<string> Matches { get; set; } = new();
 
+    /// <summary>The id of the option each row edits (empty for a new row), so editing keeps the options' identity.</summary>
+    public List<int?> OptionIds { get; set; } = new();
+
     /// <summary>The tolerance typed next to each accepted value of a numerical question; blank means exact.</summary>
     public List<string> Tolerances { get; set; } = new();
 
@@ -87,7 +90,8 @@ public class QuestionFormViewModel
         {
             Type = question.Type,
             Text = question.Text,
-            Points = question.Points
+            Points = question.Points,
+            OptionIds = options.Select(o => (int?)o.Id).ToList()
         };
 
         if (question.Type == QuestionType.Description)
@@ -163,6 +167,7 @@ public class QuestionFormViewModel
             // A row with only an answer is an extra wrong answer; a row with only an item is kept so the service
             // reports the missing answer; fully empty rows are dropped
             var pairs = new List<(string Item, string Answer)>();
+            var pairIds = new List<int?>();
             var items = Options ?? new List<string>();
             var answers = Matches ?? new List<string>();
             for (var i = 0; i < Math.Max(items.Count, answers.Count); i++)
@@ -172,13 +177,15 @@ public class QuestionFormViewModel
                 if (item.Length > 0 || answer.Length > 0)
                 {
                     pairs.Add((item, answer));
+                    pairIds.Add(RowId(i));
                 }
             }
 
-            return QuestionInput.Matching(Text ?? string.Empty, pairs, Points);
+            return QuestionInput.Matching(Text ?? string.Empty, pairs, Points) with { OptionIds = pairIds };
         }
 
         var options = new List<string>();
+        var ids = new List<int?>();
         var tolerances = new List<decimal?>();
         var correctIndex = -1;
         var correctIndexes = new List<int>();
@@ -207,16 +214,21 @@ public class QuestionFormViewModel
             tolerances.Add(string.IsNullOrWhiteSpace(toleranceText) ? 0m : NumericAnswer.Parse(toleranceText));
 
             options.Add(text);
+            ids.Add(RowId(i));
         }
 
-        return Type switch
+        var input = Type switch
         {
             QuestionType.MultipleChoice => QuestionInput.MultipleChoice(Text ?? string.Empty, options, correctIndexes, Points),
             QuestionType.ShortAnswer => QuestionInput.ShortAnswer(Text ?? string.Empty, options, CaseSensitive, Points),
             QuestionType.Numerical => QuestionInput.Numerical(Text ?? string.Empty, options, tolerances, Points),
             _ => new QuestionInput(Text ?? string.Empty, options, correctIndex, Points, Type)
         };
+        return input with { OptionIds = ids };
     }
+
+    // The option id posted for a row, if any (the service ignores ids that are not the question's)
+    private int? RowId(int row) => OptionIds != null && row < OptionIds.Count ? OptionIds[row] : null;
 }
 
 /// <summary>The manage page: a quiz with its questions, bank composition and an add-question form.</summary>

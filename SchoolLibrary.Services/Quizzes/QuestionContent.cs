@@ -53,4 +53,71 @@ public static class QuestionContent
             });
         }
     }
+
+    /// <summary>
+    /// The ids of the question's options that the input keeps: each row's id from
+    /// <see cref="QuestionInput.OptionIds"/> when it is one of the question's options (others, and repeats,
+    /// count as new rows). A true/false question always keeps its two options, in order.
+    /// </summary>
+    public static IReadOnlyList<int?> KeptOptionIds(Question question, QuestionInput input)
+    {
+        var existing = question.Options.Select(o => o.Id).ToHashSet();
+        var ids = input.OptionIds;
+        if (input.Type == QuestionType.TrueFalse && question.Type == QuestionType.TrueFalse && ids == null)
+        {
+            ids = question.Options.OrderBy(o => o.Order).Select(o => (int?)o.Id).ToList();
+        }
+
+        var used = new HashSet<int>();
+        return Enumerable.Range(0, input.Type == QuestionType.Description ? 0 : input.Options.Count)
+            .Select(i => ids != null && i < ids.Count && ids[i] is int id && existing.Contains(id) && used.Add(id) ? (int?)id : null)
+            .ToList();
+    }
+
+    /// <summary>
+    /// Applies the input like <see cref="Apply"/>, but edits the kept options in place (see
+    /// <see cref="KeptOptionIds"/>) instead of replacing them, so answers that point at them stay valid.
+    /// New rows are added; the options that are not kept are taken off the question and returned for the
+    /// caller to delete.
+    /// </summary>
+    public static IReadOnlyList<AnswerOption> ApplyInPlace(Question question, QuestionInput input)
+    {
+        var keptIds = KeptOptionIds(question, input);
+        var existing = question.Options.ToDictionary(o => o.Id);
+
+        // The new content, built the usual way on a scratch question
+        var fresh = new Question();
+        Apply(fresh, input);
+        question.Text = fresh.Text;
+        question.Type = fresh.Type;
+        question.Points = fresh.Points;
+        question.CaseSensitive = fresh.CaseSensitive;
+
+        var options = fresh.Options.ToList();
+        for (var i = 0; i < options.Count; i++)
+        {
+            if (keptIds[i] is int id)
+            {
+                var option = existing[id];
+                option.Text = options[i].Text;
+                option.Fraction = options[i].Fraction;
+                option.Tolerance = options[i].Tolerance;
+                option.MatchText = options[i].MatchText;
+                option.Order = options[i].Order;
+            }
+            else
+            {
+                question.Options.Add(options[i]);
+            }
+        }
+
+        var kept = keptIds.OfType<int>().ToHashSet();
+        var removed = existing.Values.Where(o => !kept.Contains(o.Id)).ToList();
+        foreach (var option in removed)
+        {
+            question.Options.Remove(option);
+        }
+
+        return removed;
+    }
 }

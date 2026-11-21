@@ -17,10 +17,12 @@ public record QuizInput(string Title, string? Description, QuizMode Mode, int? T
 /// and <paramref name="Tolerances"/> gives each one's tolerance (null where the typed tolerance is not a number).
 /// For a matching question the options are the items on the left (empty for an extra wrong answer) and
 /// <paramref name="Matches"/> the answers on the right that go with them.
+/// When an existing question is edited, <paramref name="OptionIds"/> gives the id of the option each row
+/// edits (null for a new row), so an answered question keeps its options and the students' answers.
 /// </summary>
 public record QuestionInput(string Text, IReadOnlyList<string> Options, int CorrectIndex, int Points = 1,
     QuestionType Type = QuestionType.SingleChoice, IReadOnlyList<decimal>? Fractions = null, bool CaseSensitive = false,
-    IReadOnlyList<decimal?>? Tolerances = null, IReadOnlyList<string>? Matches = null)
+    IReadOnlyList<decimal?>? Tolerances = null, IReadOnlyList<string>? Matches = null, IReadOnlyList<int?>? OptionIds = null)
 {
     /// <summary>The option texts of a true/false question, in their fixed order.</summary>
     public static readonly IReadOnlyList<string> TrueFalseOptions = new[] { "Вярно", "Невярно" };

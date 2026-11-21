@@ -248,6 +248,7 @@ namespace SchoolLibrary.Controllers
 
             ViewBag.SectionId = question.SectionId;
             ViewBag.QuestionId = questionId;
+            ViewBag.AnsweredAttempts = await _questions.CountAnsweredAttemptsAsync(questionId);
             return View(QuestionFormViewModel.FromQuestion(question));
         }
 
@@ -272,6 +273,7 @@ namespace SchoolLibrary.Controllers
                 ModelState.AddModelError(string.Empty, result.Message!);
                 ViewBag.SectionId = id;
                 ViewBag.QuestionId = questionId;
+                ViewBag.AnsweredAttempts = await _questions.CountAnsweredAttemptsAsync(questionId);
                 return View(vm);
             }
 

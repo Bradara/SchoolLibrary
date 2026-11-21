@@ -18,8 +18,15 @@ public interface IQuestionBankService
     /// <summary>Adds a question to a section. Fails when the section is missing, not allowed, or the input is invalid.</summary>
     Task<ServiceResult<Question>> CreateAsync(int sectionId, QuestionInput input, string userId, bool isAdministrator);
 
-    /// <summary>Replaces a bank question's text, options and points. Fails when missing, not allowed, or invalid.</summary>
+    /// <summary>
+    /// Changes a bank question's text, options and points. Fails when missing, not allowed, or invalid. When
+    /// students have already answered it, the options are edited in place and the submitted attempts are
+    /// regraded; it then also fails (Conflict) on a change of type or on removing an option a student chose.
+    /// </summary>
     Task<ServiceResult<Question>> UpdateAsync(int questionId, QuestionInput input, string userId, bool isAdministrator);
+
+    /// <summary>How many submitted attempts have answered the question (they are regraded when it is edited).</summary>
+    Task<int> CountAnsweredAttemptsAsync(int questionId);
 
     /// <summary>
     /// Removes a bank question, taking it out of the quizzes it is pinned to. Fails when it is missing, not

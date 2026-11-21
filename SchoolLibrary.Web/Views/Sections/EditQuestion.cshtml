@@ -16,6 +16,15 @@
 
 <h1 class="h3 mb-3">Редакция на въпрос</h1>
 
+@if (ViewBag.AnsweredAttempts is int answered && answered > 0)
+{
+    <div class="alert alert-info small" role="note">
+        Въпросът е решаван в @answered @(answered == 1 ? "опит" : "опита"). При запис решенията ще бъдат преоценени
+        според промените. Видът на въпроса не може да се смени, а отговор, който е избиран от ученици, не може да се
+        премахне (можете да промените текста му или да го направите грешен).
+    </div>
+}
+
 <div class="row">
     <div class="col-lg-7">
         <form method="post" asp-action="EditQuestion" asp-route-id="@sectionId" asp-route-questionId="@questionId" class="question-form">
