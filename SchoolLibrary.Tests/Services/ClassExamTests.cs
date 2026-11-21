@@ -31,7 +31,7 @@ public class ClassExamTests
     }
 
     private static async Task SubmitAsync(Setup s, Guid token)
-        => await s.Quizzes.SubmitExamAsync(token, new Dictionary<int, int?>());
+        => await s.Quizzes.SubmitExamAsync(token, SubmittedAnswer.FromChoices(new Dictionary<int, int?>()));
 
     // ---------- FindExamAsync ----------
 

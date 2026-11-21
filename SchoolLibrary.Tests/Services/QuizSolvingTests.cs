@@ -35,7 +35,7 @@ public class QuizSolvingTests
     {
         var answers = new Dictionary<int, int?> { [1] = 10, [2] = 21 };
 
-        var result = QuizGrading.Grade(TwoQuestionQuiz(), answers);
+        var result = QuizGrading.Grade(TwoQuestionQuiz(), SubmittedAnswer.FromChoices(answers));
 
         Assert.Equal(2, result.Score);
         Assert.Equal(2, result.MaxScore);
@@ -48,7 +48,7 @@ public class QuizSolvingTests
         // Q1 wrong (picked 11, correct 10); Q2 left unanswered
         var answers = new Dictionary<int, int?> { [1] = 11 };
 
-        var result = QuizGrading.Grade(TwoQuestionQuiz(), answers);
+        var result = QuizGrading.Grade(TwoQuestionQuiz(), SubmittedAnswer.FromChoices(answers));
 
         Assert.Equal(0, result.Score);
 
@@ -66,7 +66,7 @@ public class QuizSolvingTests
     [Fact]
     public void Grade_KeepsTheQuestionOrder()
     {
-        var result = QuizGrading.Grade(TwoQuestionQuiz(), new Dictionary<int, int?>());
+        var result = QuizGrading.Grade(TwoQuestionQuiz(), SubmittedAnswer.FromChoices(new Dictionary<int, int?>()));
 
         Assert.Equal(new[] { 1, 2 }, result.Questions.Select(q => q.Question.Id));
     }
@@ -92,7 +92,7 @@ public class QuizSolvingTests
         };
 
         // First question right (2 pts), second wrong (0 of 3)
-        var result = QuizGrading.Grade(quiz, new Dictionary<int, int?> { [1] = 10, [2] = 20 });
+        var result = QuizGrading.Grade(quiz, SubmittedAnswer.FromChoices(new Dictionary<int, int?> { [1] = 10, [2] = 20 }));
 
         Assert.Equal(2, result.Score);
         Assert.Equal(5, result.MaxScore);
@@ -251,7 +251,7 @@ public class QuizSolvingTests
         var correctId = first.Options.Single(o => o.IsCorrect).Id;
         var answers = new Dictionary<int, int?> { [first.Id] = correctId };
 
-        var result = await service.GradePracticeAsync(quiz.Id, questionIds, answers);
+        var result = await service.GradePracticeAsync(quiz.Id, questionIds, SubmittedAnswer.FromChoices(answers));
 
         Assert.True(result.Succeeded);
         Assert.Equal(1, result.Value!.Score);
@@ -265,7 +265,7 @@ public class QuizSolvingTests
         var service = new QuizService(context, new QuizItemService(context));
         var quiz = (await service.CreateAsync(new QuizInput("Чернова", null, QuizMode.Practice, null, null), Owner)).Value!;
 
-        var result = await service.GradePracticeAsync(quiz.Id, new List<int>(), new Dictionary<int, int?>());
+        var result = await service.GradePracticeAsync(quiz.Id, new List<int>(), new Dictionary<int, SubmittedAnswer>());
 
         Assert.Equal(ServiceError.NotFound, result.Error);
     }

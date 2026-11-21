@@ -57,7 +57,7 @@ public class QuizzesControllerTests
     public async Task Solve_Post_GradesTheShownQuestionsAndShowsTheResult()
     {
         var graded = new QuizResult(new Quiz { Id = 5, Title = "Дроби" }, 1, 2, new List<QuestionResult>());
-        _service.Setup(s => s.GradePracticeAsync(5, It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<IReadOnlyDictionary<int, int?>>()))
+        _service.Setup(s => s.GradePracticeAsync(5, It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<IReadOnlyDictionary<int, SubmittedAnswer>>()))
             .ReturnsAsync(ServiceResult<QuizResult>.Success(graded));
 
         var result = await Controller().Solve(5, new List<int> { 1 }, new Dictionary<int, int?> { [1] = 2 });
@@ -71,7 +71,7 @@ public class QuizzesControllerTests
     public async Task Solve_Post_WithNoAnswers_GradesWithEmptySets()
     {
         var graded = new QuizResult(new Quiz { Id = 5 }, 0, 2, new List<QuestionResult>());
-        _service.Setup(s => s.GradePracticeAsync(5, It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<IReadOnlyDictionary<int, int?>>()))
+        _service.Setup(s => s.GradePracticeAsync(5, It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<IReadOnlyDictionary<int, SubmittedAnswer>>()))
             .ReturnsAsync(ServiceResult<QuizResult>.Success(graded));
 
         var result = await Controller().Solve(5, null, null);
@@ -79,13 +79,13 @@ public class QuizzesControllerTests
         Assert.IsType<ViewResult>(result);
         _service.Verify(s => s.GradePracticeAsync(5,
             It.Is<IReadOnlyCollection<int>>(ids => ids.Count == 0),
-            It.Is<IReadOnlyDictionary<int, int?>>(d => d.Count == 0)), Times.Once);
+            It.Is<IReadOnlyDictionary<int, SubmittedAnswer>>(d => d.Count == 0)), Times.Once);
     }
 
     [Fact]
     public async Task Solve_Post_Missing_ReturnsNotFound()
     {
-        _service.Setup(s => s.GradePracticeAsync(5, It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<IReadOnlyDictionary<int, int?>>()))
+        _service.Setup(s => s.GradePracticeAsync(5, It.IsAny<IReadOnlyCollection<int>>(), It.IsAny<IReadOnlyDictionary<int, SubmittedAnswer>>()))
             .ReturnsAsync(ServiceResult<QuizResult>.Failure(ServiceError.NotFound, "Упражнението не е намерено."));
 
         Assert.IsType<NotFoundResult>(await Controller().Solve(5, new List<int>(), new Dictionary<int, int?>()));
@@ -264,7 +264,7 @@ public class QuizzesControllerTests
     public async Task Take_Post_Submits_AndRedirectsToTheResult()
     {
         var token = Guid.NewGuid();
-        _service.Setup(s => s.SubmitExamAsync(token, It.IsAny<IReadOnlyDictionary<int, int?>>()))
+        _service.Setup(s => s.SubmitExamAsync(token, It.IsAny<IReadOnlyDictionary<int, SubmittedAnswer>>()))
             .ReturnsAsync(ServiceResult<QuizResult>.Success(new QuizResult(new Quiz(), 1, 2, new List<QuestionResult>())));
 
         var result = await Controller().Take(token, new Dictionary<int, int?> { [1] = 2 });
@@ -277,7 +277,7 @@ public class QuizzesControllerTests
     [Fact]
     public async Task Take_Post_Unknown_ReturnsNotFound()
     {
-        _service.Setup(s => s.SubmitExamAsync(It.IsAny<Guid>(), It.IsAny<IReadOnlyDictionary<int, int?>>()))
+        _service.Setup(s => s.SubmitExamAsync(It.IsAny<Guid>(), It.IsAny<IReadOnlyDictionary<int, SubmittedAnswer>>()))
             .ReturnsAsync(ServiceResult<QuizResult>.Failure(ServiceError.NotFound, "Опитът не е намерен."));
 
         Assert.IsType<NotFoundResult>(await Controller().Take(Guid.NewGuid(), null));
@@ -320,13 +320,13 @@ public class QuizzesControllerTests
         var attempt = AttemptInProgress();
         attempt.Flagged = true;
         _service.Setup(s => s.GetExamAttemptAsync(attempt.Token)).ReturnsAsync(attempt);
-        _service.Setup(s => s.SubmitExamAsync(attempt.Token, It.IsAny<IReadOnlyDictionary<int, int?>>()))
+        _service.Setup(s => s.SubmitExamAsync(attempt.Token, It.IsAny<IReadOnlyDictionary<int, SubmittedAnswer>>()))
             .ReturnsAsync(ServiceResult<QuizResult>.Success(new QuizResult(new Quiz(), 0, 2, new List<QuestionResult>())));
 
         var result = await Controller().Take(attempt.Token);
 
         Assert.Equal("ExamResult", Assert.IsType<RedirectToActionResult>(result).ActionName);
-        _service.Verify(s => s.SubmitExamAsync(attempt.Token, It.Is<IReadOnlyDictionary<int, int?>>(d => d.Count == 0)), Times.Once);
+        _service.Verify(s => s.SubmitExamAsync(attempt.Token, It.Is<IReadOnlyDictionary<int, SubmittedAnswer>>(d => d.Count == 0)), Times.Once);
     }
 
     private static QuizAttempt ForcedAttempt(Guid token) => new()

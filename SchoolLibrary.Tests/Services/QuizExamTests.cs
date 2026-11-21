@@ -115,7 +115,7 @@ public class QuizExamTests
         var service = new QuizService(context, new QuizItemService(context));
         var exam = await PublishedExamAsync(service);
         var attempt = (await service.StartExamAsync(exam.Code!, "Иван", "5")).Value!;
-        await service.SubmitExamAsync(attempt.Token, new Dictionary<int, int?>());
+        await service.SubmitExamAsync(attempt.Token, SubmittedAnswer.FromChoices(new Dictionary<int, int?>()));
 
         var again = await service.StartExamAsync(exam.Code!, "Иван", "5");
 
@@ -162,7 +162,7 @@ public class QuizExamTests
         var attempt = (await service.StartExamAsync(exam.Code!, "Иван", "5")).Value!;
         var loaded = (await service.GetExamAttemptAsync(attempt.Token))!;
 
-        var result = await service.SubmitExamAsync(attempt.Token, CorrectAnswers(loaded));
+        var result = await service.SubmitExamAsync(attempt.Token, SubmittedAnswer.FromChoices(CorrectAnswers(loaded)));
 
         Assert.True(result.Succeeded);
         Assert.Equal(2, result.Value!.Score);
@@ -182,11 +182,11 @@ public class QuizExamTests
         var attempt = (await service.StartExamAsync(exam.Code!, "Иван", "5")).Value!;
         var loaded = (await service.GetExamAttemptAsync(attempt.Token))!;
 
-        await service.SubmitExamAsync(attempt.Token, CorrectAnswers(loaded));
+        await service.SubmitExamAsync(attempt.Token, SubmittedAnswer.FromChoices(CorrectAnswers(loaded)));
         var submittedOn = (await context.QuizAttempts.FirstAsync(a => a.Token == attempt.Token)).SubmittedOn;
 
         // A second submit (e.g. the timer firing) with no answers must not lower the score or add rows
-        var second = await service.SubmitExamAsync(attempt.Token, new Dictionary<int, int?>());
+        var second = await service.SubmitExamAsync(attempt.Token, SubmittedAnswer.FromChoices(new Dictionary<int, int?>()));
 
         Assert.True(second.Succeeded);
         Assert.Equal(2, second.Value!.Score);
@@ -200,7 +200,7 @@ public class QuizExamTests
         using var context = TestDbContextFactory.Create();
         var service = new QuizService(context, new QuizItemService(context));
 
-        var result = await service.SubmitExamAsync(Guid.NewGuid(), new Dictionary<int, int?>());
+        var result = await service.SubmitExamAsync(Guid.NewGuid(), SubmittedAnswer.FromChoices(new Dictionary<int, int?>()));
 
         Assert.Equal(ServiceError.NotFound, result.Error);
     }
@@ -222,10 +222,34 @@ public class QuizExamTests
             [questions[1].Id] = questions[1].Options.Single(o => !o.IsCorrect).Id
         };
 
-        var result = await service.SubmitExamAsync(attempt.Token, answers);
+        var result = await service.SubmitExamAsync(attempt.Token, SubmittedAnswer.FromChoices(answers));
 
         Assert.Equal(1, result.Value!.Score);
         Assert.Equal(2, result.Value!.MaxScore);
+    }
+
+    [Fact]
+    public async Task SubmitExamAsync_OptionOfAnotherQuestion_IsStoredAsUnanswered()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context, new QuizItemService(context));
+        var exam = await PublishedExamAsync(service, questions: 2);
+        var attempt = (await service.StartExamAsync(exam.Code!, "Иван", "5")).Value!;
+        var loaded = (await service.GetExamAttemptAsync(attempt.Token))!;
+        var questions = loaded.Questions.OrderBy(aq => aq.Order).Select(aq => aq.Question).ToList();
+
+        // A tampered form sends the second question's correct option as the answer to the first
+        var answers = new Dictionary<int, int?>
+        {
+            [questions[0].Id] = questions[1].Options.Single(o => o.IsCorrect).Id
+        };
+
+        var result = await service.SubmitExamAsync(attempt.Token, SubmittedAnswer.FromChoices(answers));
+
+        Assert.Equal(0, result.Value!.Score);
+        var stored = await context.AttemptAnswers.SingleAsync(a => a.AttemptId == attempt.Id && a.QuestionId == questions[0].Id);
+        Assert.Null(stored.SelectedOptionId);
+        Assert.False(stored.IsCorrect);
     }
 
     // ---------- GetExamResultAsync ----------
@@ -238,7 +262,7 @@ public class QuizExamTests
         var exam = await PublishedExamAsync(service, questions: 2);
         var attempt = (await service.StartExamAsync(exam.Code!, "Иван", "5")).Value!;
         var loaded = (await service.GetExamAttemptAsync(attempt.Token))!;
-        await service.SubmitExamAsync(attempt.Token, CorrectAnswers(loaded));
+        await service.SubmitExamAsync(attempt.Token, SubmittedAnswer.FromChoices(CorrectAnswers(loaded)));
 
         var result = await service.GetExamResultAsync(attempt.Token);
 
@@ -462,7 +486,7 @@ public class QuizExamTests
         var service = new QuizService(context, new QuizItemService(context));
         var exam = await PublishedExamWithLeavesAsync(service, maxLeaves: 1);
         var attempt = (await service.StartExamAsync(exam.Code!, "Иван", "5")).Value!;
-        await service.SubmitExamAsync(attempt.Token, new Dictionary<int, int?>());
+        await service.SubmitExamAsync(attempt.Token, SubmittedAnswer.FromChoices(new Dictionary<int, int?>()));
 
         var result = await service.RecordLeaveAsync(attempt.Token);
 
@@ -539,7 +563,7 @@ public class QuizExamTests
         var answers = loaded.Questions
             .Select(aq => aq.Question)
             .ToDictionary(q => q.Id, q => (int?)q.Options.Single(o => o.IsCorrect).Id);
-        var result = await service.SubmitExamAsync(attempt.Token, answers);
+        var result = await service.SubmitExamAsync(attempt.Token, SubmittedAnswer.FromChoices(answers));
 
         Assert.Equal(2, result.Value!.Score);
         Assert.Equal(2, result.Value.MaxScore);
@@ -600,7 +624,7 @@ public class QuizExamTests
         var exam = await PublishedExamWithSixOptionsAsync(service, shuffleOptions: true);
         var token = (await service.StartExamAsync(exam.Code!, "Иван", "1")).Value!.Token;
         var seen = OptionIds((await service.GetExamAttemptAsync(token))!.Questions.Select(aq => aq.Question));
-        await service.SubmitExamAsync(token, new Dictionary<int, int?>());
+        await service.SubmitExamAsync(token, SubmittedAnswer.FromChoices(new Dictionary<int, int?>()));
 
         var result = await service.GetExamResultAsync(token);
 

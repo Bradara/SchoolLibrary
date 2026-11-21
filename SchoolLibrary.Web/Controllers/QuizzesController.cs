@@ -46,7 +46,7 @@ namespace SchoolLibrary.Controllers
         public async Task<IActionResult> Solve(int id, [FromForm] List<int>? questionIds, [FromForm] Dictionary<int, int?>? answers)
         {
             var result = await _quizzes.GradePracticeAsync(
-                id, questionIds ?? new List<int>(), answers ?? new Dictionary<int, int?>());
+                id, questionIds ?? new List<int>(), SubmittedAnswer.FromChoices(answers));
             if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();
@@ -127,7 +127,7 @@ namespace SchoolLibrary.Controllers
             // being submitted): it is submitted now with no answers, so leaving cannot buy more time
             if (attempt.Flagged)
             {
-                await _quizzes.SubmitExamAsync(token, new Dictionary<int, int?>());
+                await _quizzes.SubmitExamAsync(token, new Dictionary<int, SubmittedAnswer>());
                 return RedirectToAction(nameof(ExamResult), new { token });
             }
 
@@ -139,7 +139,7 @@ namespace SchoolLibrary.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Take(Guid token, [FromForm] Dictionary<int, int?>? answers)
         {
-            var result = await _quizzes.SubmitExamAsync(token, answers ?? new Dictionary<int, int?>());
+            var result = await _quizzes.SubmitExamAsync(token, SubmittedAnswer.FromChoices(answers));
             if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();

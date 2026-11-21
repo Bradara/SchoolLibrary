@@ -347,7 +347,7 @@ public class ExamAssignmentServiceTests
         var attempt = await s.Quizzes.GetExamAttemptAsync(token);
         var correct = attempt!.Questions.ToDictionary(
             aq => aq.QuestionId, aq => (int?)aq.Question.Options.Single(o => o.IsCorrect).Id);
-        await s.Quizzes.SubmitExamAsync(token, correct);
+        await s.Quizzes.SubmitExamAsync(token, SubmittedAnswer.FromChoices(correct));
 
         var result = await s.Exams.GetAttemptReviewAsync(attempt.Id, Owner, false);
 

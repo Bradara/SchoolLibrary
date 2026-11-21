@@ -17,8 +17,15 @@ public record QuestionInput(string Text, IReadOnlyList<string> Options, int Corr
 /// <summary>A quiz with its question and (submitted) attempt counts, for the management list.</summary>
 public record QuizListItem(Quiz Quiz, int QuestionCount, int AttemptCount);
 
-/// <summary>How one question was answered: what was picked, which option was correct, and the outcome.</summary>
-public record QuestionResult(Question Question, int? SelectedOptionId, int? CorrectOptionId, bool IsCorrect);
+/// <summary>How one question was answered: the accepted answer, the points it earned and the outcome.</summary>
+public record QuestionResult(Question Question, SubmittedAnswer Answer, decimal AwardedPoints, bool IsCorrect)
+{
+    /// <summary>The picked option of a single-choice question; null when unanswered.</summary>
+    public int? SelectedOptionId => Answer.OptionId;
+
+    /// <summary>The option worth full credit, for showing the right answer.</summary>
+    public int? CorrectOptionId => Question.Options.FirstOrDefault(o => o.IsCorrect)?.Id;
+}
 
 /// <summary>The graded outcome of a quiz: the score, grade and the per-question breakdown.</summary>
 public record QuizResult(Quiz Quiz, decimal Score, decimal MaxScore, IReadOnlyList<QuestionResult> Questions)

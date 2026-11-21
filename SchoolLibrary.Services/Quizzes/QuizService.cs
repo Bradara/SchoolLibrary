@@ -404,7 +404,7 @@ public class QuizService : IQuizService
         return ServiceResult<PracticeSet>.Success(new PracticeSet(quiz, questions));
     }
 
-    public async Task<ServiceResult<QuizResult>> GradePracticeAsync(int quizId, IReadOnlyCollection<int> questionIds, IReadOnlyDictionary<int, int?> answers)
+    public async Task<ServiceResult<QuizResult>> GradePracticeAsync(int quizId, IReadOnlyCollection<int> questionIds, IReadOnlyDictionary<int, SubmittedAnswer> answers)
     {
         var quiz = await _context.Quizzes.AsNoTracking()
             .FirstOrDefaultAsync(q => q.Id == quizId && q.Mode == QuizMode.Practice && q.IsPublished);
@@ -549,7 +549,7 @@ public class QuizService : IQuizService
         return attempt;
     }
 
-    public async Task<ServiceResult<QuizResult>> SubmitExamAsync(Guid token, IReadOnlyDictionary<int, int?> answers)
+    public async Task<ServiceResult<QuizResult>> SubmitExamAsync(Guid token, IReadOnlyDictionary<int, SubmittedAnswer> answers)
     {
         var attempt = await _context.QuizAttempts
             .Include(a => a.Quiz)
