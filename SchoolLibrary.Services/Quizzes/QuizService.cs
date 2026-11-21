@@ -27,14 +27,32 @@ public class QuizService : IQuizService
     private readonly ApplicationDbContext _context;
     private readonly IQuizItemService _items;
     private readonly CodeGrader? _codeGrader;
+    private readonly CodeRunning.CodeGradingSignal? _codeQueue;
 
     /// <param name="codeGrader">Runs code answers; null when no sandbox server is configured (they are then not checked).</param>
-    public QuizService(ApplicationDbContext context, IQuizItemService items, CodeGrader? codeGrader = null)
+    /// <param name="codeQueue">
+    /// When set, the programs of a submitted exam are left to the background checker (marked as pending) and it is
+    /// woken; without it they are run while the exam is submitted.
+    /// </param>
+    public QuizService(ApplicationDbContext context, IQuizItemService items, CodeGrader? codeGrader = null,
+        CodeRunning.CodeGradingSignal? codeQueue = null)
     {
         _context = context;
         _items = items;
         _codeGrader = codeGrader;
+        _codeQueue = codeQueue;
     }
+
+    // The programs of a submitted exam, marked to be checked in the background (a blank one is simply unanswered)
+    private static IReadOnlyDictionary<int, CodeOutcome> PendingCode(IEnumerable<Question> questions,
+        IReadOnlyDictionary<int, SubmittedAnswer> answers)
+        => questions
+            .Where(q => q.Type == QuestionType.Code)
+            .ToDictionary(q => q.Id, q =>
+            {
+                var program = answers.TryGetValue(q.Id, out var answer) ? answer?.Text : null;
+                return new CodeOutcome(program ?? string.Empty, 0m, false, null, Pending: !string.IsNullOrWhiteSpace(program));
+            });
 
     /// <summary>
     /// Runs the code answers among <paramref name="questions"/> on the sandbox server, one after another
@@ -590,7 +608,9 @@ public class QuizService : IQuizService
         }
 
         var questions = QuizAttemptResults.SnapshotQuestions(attempt);
-        var result = QuizGrading.Grade(attempt.Quiz, questions, answers, await RunCodeAsync(questions, answers));
+        var background = _codeGrader != null && _codeQueue != null;
+        var code = background ? PendingCode(questions, answers) : await RunCodeAsync(questions, answers);
+        var result = QuizGrading.Grade(attempt.Quiz, questions, answers, code);
 
         foreach (var questionResult in result.Questions)
         {
@@ -600,6 +620,7 @@ public class QuizService : IQuizService
                 SelectedOptionId = questionResult.SelectedOptionId,
                 ResponseText = questionResult.TypedText,
                 CodeResults = questionResult.CodeResults?.ToJson(),
+                CodeCheckPending = questionResult.CodePending,
                 IsCorrect = questionResult.IsCorrect,
                 AwardedPoints = questionResult.AwardedPoints
             };
@@ -631,6 +652,11 @@ public class QuizService : IQuizService
         attempt.LateBySeconds = ExamTiming.LateBySeconds(attempt, attempt.SubmittedOn.Value);
 
         await _context.SaveChangesAsync();
+
+        if (background && result.HasPendingCode)
+        {
+            _codeQueue!.Notify();
+        }
 
         return ServiceResult<QuizResult>.Success(result);
     }

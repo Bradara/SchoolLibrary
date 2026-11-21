@@ -1,6 +1,14 @@
 @using SchoolLibrary.Services.Quizzes
 @model QuizResult
 
+@if (Model.HasPendingCode)
+{
+    <div class="alert alert-info d-flex align-items-center gap-2" role="status">
+        <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+        <span>Програмите още се проверяват. Точките и оценката ще се обновят след малко — презаредете страницата.</span>
+    </div>
+}
+
 <div class="alert @(Model.Grade >= 3 ? "alert-success" : "alert-danger")">
     <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
         <div>Точки: <strong>@QuizPoints.Format(Model.Score) от @QuizPoints.Format(Model.MaxScore)</strong> (@Model.Percent%)</div>

@@ -321,6 +321,9 @@ namespace SchoolLibrary.Data.Migrations
                         .HasPrecision(7, 2)
                         .HasColumnType("numeric(7,2)");
 
+                    b.Property<bool>("CodeCheckPending")
+                        .HasColumnType("boolean");
+
                     b.Property<string>("CodeResults")
                         .HasColumnType("text");
 
@@ -343,6 +346,8 @@ namespace SchoolLibrary.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("AttemptId");
+
+                    b.HasIndex("CodeCheckPending");
 
                     b.HasIndex("QuestionId");
 

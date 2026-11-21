@@ -27,6 +27,12 @@ namespace SchoolLibrary.Data.Models
         /// </summary>
         public string? CodeResults { get; set; }
 
+        /// <summary>
+        /// For a code question: the program still waits to be run on the sandbox server (exams are checked in the
+        /// background, so the student does not wait). Its points count once it has been checked.
+        /// </summary>
+        public bool CodeCheckPending { get; set; }
+
         /// <summary>The ticked options, matching pairs or ordering of the answer (questions with several parts).</summary>
         public ICollection<AttemptAnswerChoice> Choices { get; set; } = new List<AttemptAnswerChoice>();
 

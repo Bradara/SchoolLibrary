@@ -19,6 +19,12 @@ else
         <pre class="border rounded p-2 mb-0 small bg-body-tertiary"><code>@Model.TypedText</code></pre>
     </details>
 
+    if (Model.CodePending)
+    {
+        <div class="alert alert-info py-2 small mb-0" role="status">Програмата се проверява…</div>
+        return;
+    }
+
     switch (results?.Status)
     {
         case null:

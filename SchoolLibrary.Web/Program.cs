@@ -74,8 +74,14 @@ namespace SchoolLibrary
                 options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute()));
             builder.Services.AddApplicationServices(builder.Configuration["YouTube:ApiKey"]);
 
-            // Sandbox server for code questions (Jobe); without CodeRunner:BaseUrl they are switched off
-            builder.Services.AddCodeRunner(builder.Configuration.GetSection("CodeRunner").Get<CodeRunnerOptions>());
+            // Sandbox server for code questions (Jobe); without CodeRunner:BaseUrl they are switched off.
+            // With a server, the programs of submitted exams are checked in the background.
+            var codeRunner = builder.Configuration.GetSection("CodeRunner").Get<CodeRunnerOptions>();
+            builder.Services.AddCodeRunner(codeRunner);
+            if (!string.IsNullOrWhiteSpace(codeRunner?.BaseUrl))
+            {
+                builder.Services.AddHostedService<SchoolLibrary.BackgroundJobs.CodeGradingWorker>();
+            }
 
             // Where uploaded files are kept, chosen by FileStorage:Provider:
             //   "Oci"  -> an S3-compatible bucket (OCI Object Storage), so the files live off the server's disk;

@@ -45,6 +45,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IQuizItemService, QuizItemService>();
         services.AddScoped<ISchoolClassService, SchoolClassService>();
         services.AddScoped<IExamAssignmentService, ExamAssignmentService>();
+        services.AddScoped<ICodeGradingService, CodeGradingService>();
 
         // Default file storage; Program.cs replaces it with the configured path (a mounted volume on the
         // server). The folder is created lazily on the first upload, so this default touches no disk.
@@ -119,6 +120,7 @@ public static class ServiceCollectionExtensions
             sp.GetRequiredService<IHttpClientFactory>().CreateClient(JobeCodeRunner.HttpClientName), options,
             sp.GetRequiredService<CodeRunGate>()));
         services.AddTransient<CodeGrader>();
+        services.AddSingleton<CodeGradingSignal>(); // wakes the background checker after an exam is submitted
 
         return services;
     }

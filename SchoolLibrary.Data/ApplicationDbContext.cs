@@ -190,6 +190,10 @@ namespace SchoolLibrary.Data
                 .Property(o => o.Tolerance)
                 .HasPrecision(18, 6);
 
+            // The background checker looks for the code answers that still wait to be run
+            builder.Entity<AttemptAnswer>()
+                .HasIndex(a => a.CodeCheckPending);
+
             // A code question owns its test cases
             builder.Entity<CodeTestCase>()
                 .HasOne(t => t.Question)

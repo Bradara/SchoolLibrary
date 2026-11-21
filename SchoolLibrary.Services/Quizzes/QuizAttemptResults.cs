@@ -26,7 +26,7 @@ public static class QuizAttemptResults
         var code = attempt.Answers
             .Where(a => codeIds.Contains(a.QuestionId))
             .ToDictionary(a => a.QuestionId, a => new CodeOutcome(a.ResponseText ?? string.Empty, a.AwardedPoints, a.IsCorrect,
-                StoredCodeResults.FromJson(a.CodeResults)));
+                StoredCodeResults.FromJson(a.CodeResults), a.CodeCheckPending));
         return QuizGrading.Grade(attempt.Quiz, questions, answers, code);
     }
 

@@ -37,7 +37,11 @@ public static class QuizGrading
                 var outcome = code != null && code.TryGetValue(question.Id, out var known) ? known : null;
                 var program = outcome?.Code ?? answer.Text;
                 results.Add(new QuestionResult(question, string.IsNullOrEmpty(program) ? SubmittedAnswer.Empty : new SubmittedAnswer(Text: program),
-                    outcome?.AwardedPoints ?? 0m, outcome?.IsCorrect ?? false) { CodeResults = outcome?.Results });
+                    outcome?.AwardedPoints ?? 0m, outcome?.IsCorrect ?? false)
+                {
+                    CodeResults = outcome?.Results,
+                    CodePending = outcome?.Pending ?? false
+                });
                 continue;
             }
 

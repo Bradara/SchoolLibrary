@@ -91,7 +91,8 @@ public record QuestionInput(string Text, IReadOnlyList<string> Options, int Corr
 /// A code answer that has already been run (or read back from an attempt): the program as accepted, the
 /// points it earned and the stored results.
 /// </summary>
-public record CodeOutcome(string Code, decimal AwardedPoints, bool IsCorrect, StoredCodeResults? Results);
+/// <param name="Pending">The program waits to be checked in the background; its points are not known yet.</param>
+public record CodeOutcome(string Code, decimal AwardedPoints, bool IsCorrect, StoredCodeResults? Results, bool Pending = false);
 
 /// <summary>What a teacher sets for a code question: language, starting code, scoring and the tests.</summary>
 public record CodeQuestionInput(string Language, string? Preload, bool AllOrNothing, IReadOnlyList<CodeTestInput> Tests);
@@ -110,6 +111,9 @@ public record QuestionResult(Question Question, SubmittedAnswer Answer, decimal 
 
     /// <summary>Whether this is a code question.</summary>
     public bool IsCode => Question.Type == QuestionType.Code;
+
+    /// <summary>For a code question: the program still waits to be checked, so its points are not counted yet.</summary>
+    public bool CodePending { get; init; }
 
     /// <summary>The picked option of a single-choice question; null when unanswered.</summary>
     public int? SelectedOptionId => Answer.OptionId;
@@ -147,6 +151,9 @@ public record QuizResult(Quiz Quiz, decimal Score, decimal MaxScore, IReadOnlyLi
 
     /// <summary>The Bulgarian label for <see cref="Grade"/> (Отличен, Много добър, …).</summary>
     public string GradeLabel => QuizGradeScale.Label(Grade);
+
+    /// <summary>Whether some programs still wait to be checked, so the score may still go up.</summary>
+    public bool HasPendingCode => Questions.Any(q => q.CodePending);
 }
 
 /// <summary>A practice quiz with the concrete questions resolved for this run (random draws fixed).</summary>
