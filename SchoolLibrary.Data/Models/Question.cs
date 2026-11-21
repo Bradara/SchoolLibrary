@@ -3,7 +3,7 @@ using SchoolLibrary.Data.Enums;
 
 namespace SchoolLibrary.Data.Models
 {
-    /// <summary>A question in a quiz. The first version supports only single-choice questions.</summary>
+    /// <summary>A quiz question of one of the <see cref="QuestionType"/> kinds, with its answer options.</summary>
     public class Question
     {
         public int Id { get; set; }
@@ -17,6 +17,9 @@ namespace SchoolLibrary.Data.Models
 
         /// <summary>How many points the question is worth. Defaults to 1.</summary>
         public int Points { get; set; } = 1;
+
+        /// <summary>Whether a short answer must match the letter case of an accepted answer.</summary>
+        public bool CaseSensitive { get; set; }
 
         /// <summary>Display order within the quiz.</summary>
         public int Order { get; set; }

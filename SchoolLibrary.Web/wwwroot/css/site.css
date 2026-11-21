@@ -335,6 +335,8 @@ body.sl-maximized-open {
 .question-form:has(input[name="Type"][value="TrueFalse"]:checked) .qt-options,
 .question-form:not(:has(input[name="Type"][value="TrueFalse"]:checked)) .qt-truefalse,
 .question-form:not(:has(input[name="Type"][value="SingleChoice"]:checked)) .qt-single,
-.question-form:not(:has(input[name="Type"][value="MultipleChoice"]:checked)) .qt-multi {
+.question-form:not(:has(input[name="Type"][value="MultipleChoice"]:checked)) .qt-multi,
+.question-form:not(:has(input[name="Type"][value="ShortAnswer"]:checked)) .qt-short,
+.question-form:has(input[name="Type"][value="ShortAnswer"]:checked) .qt-mark {
   display: none;
 }

@@ -10,11 +10,12 @@ public record QuizInput(string Title, string? Description, QuizMode Mode, int? T
 
 /// <summary>
 /// A question with its options, which one is correct (by index in <paramref name="Options"/>), how many
-/// points it is worth and its type. A multiple-choice question sets <paramref name="Fractions"/> (each
-/// option's share of the points, -100 to 100) instead of <paramref name="CorrectIndex"/>.
+/// points it is worth and its type. Multiple-choice and short-answer questions set <paramref name="Fractions"/>
+/// (each option's share of the points, -100 to 100) instead of <paramref name="CorrectIndex"/>; for a
+/// short-answer question the options are the accepted answers and <paramref name="CaseSensitive"/> applies.
 /// </summary>
 public record QuestionInput(string Text, IReadOnlyList<string> Options, int CorrectIndex, int Points = 1,
-    QuestionType Type = QuestionType.SingleChoice, IReadOnlyList<decimal>? Fractions = null)
+    QuestionType Type = QuestionType.SingleChoice, IReadOnlyList<decimal>? Fractions = null, bool CaseSensitive = false)
 {
     /// <summary>The option texts of a true/false question, in their fixed order.</summary>
     public static readonly IReadOnlyList<string> TrueFalseOptions = new[] { "Вярно", "Невярно" };
@@ -38,6 +39,11 @@ public record QuestionInput(string Text, IReadOnlyList<string> Options, int Corr
         var fractions = options.Select((_, i) => correct.Contains(i) ? share : -share).ToList();
         return new QuestionInput(text, options, -1, points, QuestionType.MultipleChoice, fractions);
     }
+
+    /// <summary>A short-answer question where each of <paramref name="acceptedAnswers"/> earns all the points.</summary>
+    public static QuestionInput ShortAnswer(string text, IReadOnlyList<string> acceptedAnswers, bool caseSensitive = false, int points = 1)
+        => new(text, acceptedAnswers, -1, points, QuestionType.ShortAnswer,
+            acceptedAnswers.Select(_ => AnswerOption.FullCredit).ToList(), caseSensitive);
 }
 
 /// <summary>A quiz with its question and (submitted) attempt counts, for the management list.</summary>
@@ -54,6 +60,9 @@ public record QuestionResult(Question Question, SubmittedAnswer Answer, decimal 
 
     /// <summary>Whether the answer earned some, but not all, of the points.</summary>
     public bool IsPartial => !IsCorrect && AwardedPoints > 0;
+
+    /// <summary>What the student typed (short answer); null when nothing was typed.</summary>
+    public string? TypedText => Answer.Text;
 
     /// <summary>Whether the student picked or ticked <paramref name="optionId"/>.</summary>
     public bool IsChosen(int optionId) => Answer.OptionId == optionId || Answer.TickedOptionIds.Contains(optionId);

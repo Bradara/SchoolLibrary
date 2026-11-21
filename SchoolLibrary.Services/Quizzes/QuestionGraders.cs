@@ -10,7 +10,8 @@ public static class QuestionGraders
         {
             new SingleChoiceGrader(),
             new TrueFalseGrader(),
-            new MultipleChoiceGrader()
+            new MultipleChoiceGrader(),
+            new ShortAnswerGrader()
         }.ToDictionary(g => g.Type);
 
     /// <summary>The grader for <paramref name="type"/>.</summary>

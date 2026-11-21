@@ -2,15 +2,21 @@ using System.Net;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using SchoolLibrary.Data.Enums;
+using SchoolLibrary.Data.Models;
 
 namespace SchoolLibrary.Services.Quizzes;
 
 /// <summary>
-/// Parses the Moodle XML quiz format. Supports <c>multichoice</c> (with <c>&lt;single&gt;true&lt;/single&gt;</c>
-/// read as single-choice; with <c>false</c> read as multiple-choice, keeping each answer's <c>fraction</c>)
-/// and <c>truefalse</c> (read as true/false with the fixed options "Вярно"/"Невярно");
-/// the correct option is the answer whose <c>fraction</c> is the highest positive value. Other question types (and the
-/// <c>category</c> marker) are skipped, each with a reported reason.
+/// Parses the Moodle XML quiz format. Supports:
+/// <list type="bullet">
+/// <item><c>multichoice</c> with <c>&lt;single&gt;true&lt;/single&gt;</c>, read as single-choice: the correct
+/// option is the answer whose <c>fraction</c> is the highest positive value;</item>
+/// <item><c>multichoice</c> with <c>&lt;single&gt;false&lt;/single&gt;</c>, read as multiple-choice, keeping
+/// each answer's <c>fraction</c>;</item>
+/// <item><c>truefalse</c>, read as true/false with the fixed options "Вярно"/"Невярно";</item>
+/// <item><c>shortanswer</c>: the accepted answers with their <c>fraction</c>, and <c>usecase</c>.</item>
+/// </list>
+/// Other question types (and the <c>category</c> marker) are skipped, each with a reported reason.
 /// </summary>
 public static class MoodleXmlParser
 {
@@ -52,7 +58,8 @@ public static class MoodleXmlParser
             var label = Describe(question, number);
 
             if (!string.Equals(type, "multichoice", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(type, "truefalse", StringComparison.OrdinalIgnoreCase))
+                && !string.Equals(type, "truefalse", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(type, "shortanswer", StringComparison.OrdinalIgnoreCase))
             {
                 errors.Add($"{label}: типът „{type}“ не се поддържа.");
                 continue;
@@ -80,6 +87,25 @@ public static class MoodleXmlParser
                 }
 
                 questions.Add(QuestionInput.TrueFalse(questionText, answer));
+                continue;
+            }
+
+            if (string.Equals(type, "shortanswer", StringComparison.OrdinalIgnoreCase))
+            {
+                // The accepted answers with their shares; blank answers are dropped
+                var accepted = answers
+                    .Select(a => (Text: CleanText(a.Element("text")), Fraction: Fraction(a)))
+                    .Where(a => a.Text.Length > 0)
+                    .ToList();
+                if (!accepted.Any(a => a.Fraction >= AnswerOption.FullCredit))
+                {
+                    errors.Add($"{label}: няма приемлив отговор за всички точки (100%).");
+                    continue;
+                }
+
+                var caseSensitive = CleanText(question.Element("usecase")) == "1";
+                questions.Add(new QuestionInput(questionText, accepted.Select(a => a.Text).ToList(), -1, 1,
+                    QuestionType.ShortAnswer, accepted.Select(a => a.Fraction).ToList(), caseSensitive));
                 continue;
             }
 

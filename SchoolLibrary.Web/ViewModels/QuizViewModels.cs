@@ -59,9 +59,13 @@ public class QuestionFormViewModel
     /// <summary>The correct value of a true/false question; null when neither is chosen.</summary>
     public bool? TrueFalseAnswer { get; set; }
 
+    /// <summary>Whether a short answer must match the letter case of an accepted answer.</summary>
+    [Display(Name = "Различавай малки и главни букви")]
+    public bool CaseSensitive { get; set; }
+
     /// <summary>
-    /// Set when a saved multiple-choice question has shares other than the equal ones the form produces
-    /// (e.g. imported from Moodle), so the editor can warn that saving replaces them.
+    /// Set when a saved multiple-choice or short-answer question has shares other than the ones the form
+    /// produces (e.g. imported from Moodle), so the editor can warn that saving replaces them.
     /// </summary>
     public bool HasCustomShares { get; set; }
 
@@ -97,6 +101,13 @@ public class QuestionFormViewModel
 
             var equal = QuestionInput.MultipleChoice(question.Text, form.Options, form.CorrectIndexes).Fractions!;
             form.HasCustomShares = !options.Select(o => o.Fraction).SequenceEqual(equal);
+        }
+        else if (question.Type == QuestionType.ShortAnswer)
+        {
+            // The form gives every accepted answer all the points
+            form.Options = options.Select(o => o.Text).ToList();
+            form.CaseSensitive = question.CaseSensitive;
+            form.HasCustomShares = options.Any(o => o.Fraction != AnswerOption.FullCredit);
         }
         else
         {
@@ -145,9 +156,12 @@ public class QuestionFormViewModel
             options.Add(text);
         }
 
-        return Type == QuestionType.MultipleChoice
-            ? QuestionInput.MultipleChoice(Text ?? string.Empty, options, correctIndexes, Points)
-            : new QuestionInput(Text ?? string.Empty, options, correctIndex, Points, Type);
+        return Type switch
+        {
+            QuestionType.MultipleChoice => QuestionInput.MultipleChoice(Text ?? string.Empty, options, correctIndexes, Points),
+            QuestionType.ShortAnswer => QuestionInput.ShortAnswer(Text ?? string.Empty, options, CaseSensitive, Points),
+            _ => new QuestionInput(Text ?? string.Empty, options, correctIndex, Points, Type)
+        };
     }
 }
 

@@ -40,15 +40,15 @@ namespace SchoolLibrary.Controllers
         }
 
         // POST: Quizzes/Solve/5 — grade the answers and show the result
-        // Answers arrive as answers[questionId] = optionId (one pick) and multi[questionId] = optionId, repeated
-        // (ticked options); questionIds carries the shown set (for random draws).
+        // Answers arrive as answers[questionId] = optionId (one pick), multi[questionId] = optionId, repeated
+        // (ticked options) and text[questionId] (typed answers); questionIds carries the shown set (for random draws).
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Solve(int id, [FromForm] List<int>? questionIds, [FromForm] Dictionary<int, int?>? answers,
-            [FromForm] Dictionary<int, List<int>>? multi = null)
+            [FromForm] Dictionary<int, List<int>>? multi = null, [FromForm] Dictionary<int, string?>? text = null)
         {
             var result = await _quizzes.GradePracticeAsync(
-                id, questionIds ?? new List<int>(), SubmittedAnswer.FromForm(answers, multi));
+                id, questionIds ?? new List<int>(), SubmittedAnswer.FromForm(answers, multi, text));
             if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();
@@ -140,9 +140,9 @@ namespace SchoolLibrary.Controllers
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Take(Guid token, [FromForm] Dictionary<int, int?>? answers,
-            [FromForm] Dictionary<int, List<int>>? multi = null)
+            [FromForm] Dictionary<int, List<int>>? multi = null, [FromForm] Dictionary<int, string?>? text = null)
         {
-            var result = await _quizzes.SubmitExamAsync(token, SubmittedAnswer.FromForm(answers, multi));
+            var result = await _quizzes.SubmitExamAsync(token, SubmittedAnswer.FromForm(answers, multi, text));
             if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();

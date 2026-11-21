@@ -8,8 +8,9 @@ public static class QuizAttemptResults
     /// <summary>Regrades the attempt from the options the student picked (stored on the attempt).</summary>
     public static QuizResult Build(QuizAttempt attempt)
     {
-        var answers = attempt.Answers.ToDictionary(a => a.QuestionId, a => a.Choices.Count > 0
-            ? SubmittedAnswer.Choices(a.Choices.Select(c => c.OptionId))
+        var answers = attempt.Answers.ToDictionary(a => a.QuestionId, a =>
+            a.ResponseText != null ? SubmittedAnswer.Typed(a.ResponseText)
+            : a.Choices.Count > 0 ? SubmittedAnswer.Choices(a.Choices.Select(c => c.OptionId))
             : SubmittedAnswer.Choice(a.SelectedOptionId));
         return QuizGrading.Grade(attempt.Quiz, SnapshotQuestions(attempt), answers);
     }

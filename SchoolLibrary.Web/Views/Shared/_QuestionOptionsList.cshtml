@@ -2,7 +2,14 @@
 @using SchoolLibrary.Services.Quizzes
 @model SchoolLibrary.Data.Models.Question
 @* The answer options of a question for the teacher, with the correct ones marked. A multiple-choice
-   question also shows each option's share of the points. *@
+   question also shows each option's share of the points; a short-answer question lists its accepted
+   answers (and their share when it is not the full 100%). *@
+@if (Model.Type == QuestionType.ShortAnswer)
+{
+    <div class="small text-body-secondary">
+        Приемливи отговори@(Model.CaseSensitive ? " (различават се малки и главни букви)" : ""):
+    </div>
+}
 <ul class="list-unstyled mb-0">
     @foreach (var option in Model.Options.OrderBy(o => o.Order))
     {
@@ -17,7 +24,8 @@
                 <i class="bi bi-circle"></i>
             }
             @option.Text
-            @if (Model.Type == QuestionType.MultipleChoice)
+            @if (Model.Type == QuestionType.MultipleChoice
+                 || (Model.Type == QuestionType.ShortAnswer && option.Fraction != SchoolLibrary.Data.Models.AnswerOption.FullCredit))
             {
                 <span class="small text-body-secondary fw-normal">(@QuizPoints.Format(option.Fraction)%)</span>
             }

@@ -615,6 +615,9 @@ namespace SchoolLibrary.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<bool>("CaseSensitive")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 

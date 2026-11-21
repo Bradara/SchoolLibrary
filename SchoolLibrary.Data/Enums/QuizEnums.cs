@@ -23,7 +23,13 @@ public enum QuestionType
     /// Several options may be correct; the student ticks any number of them. Each option carries a share
     /// of the points (positive for correct, negative for wrong) and the ticked shares are added up.
     /// </summary>
-    MultipleChoice = 2
+    MultipleChoice = 2,
+
+    /// <summary>
+    /// The student types a short answer. The options are the accepted answers (with <c>*</c> matching any
+    /// text), each with its share of the points; the best matching one counts.
+    /// </summary>
+    ShortAnswer = 3
 }
 
 /// <summary>How a quiz item pulls questions from the bank. The numbers are stored in the database.</summary>
