@@ -579,7 +579,8 @@ public class QuizService : IQuizService
             {
                 QuestionId = questionResult.Question.Id,
                 SelectedOptionId = questionResult.SelectedOptionId,
-                IsCorrect = questionResult.IsCorrect
+                IsCorrect = questionResult.IsCorrect,
+                AwardedPoints = questionResult.AwardedPoints
             });
         }
 

@@ -229,6 +229,55 @@ public class QuizExamTests
     }
 
     [Fact]
+    public async Task SubmitExamAsync_StoresThePointsOfEachAnswer()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context, new QuizItemService(context));
+        var exam = await PublishedExamAsync(service, questions: 2);
+        var attempt = (await service.StartExamAsync(exam.Code!, "Иван", "5")).Value!;
+        var loaded = (await service.GetExamAttemptAsync(attempt.Token))!;
+        var questions = loaded.Questions.OrderBy(aq => aq.Order).Select(aq => aq.Question).ToList();
+        var answers = new Dictionary<int, int?>
+        {
+            [questions[0].Id] = questions[0].Options.Single(o => o.IsCorrect).Id,
+            [questions[1].Id] = questions[1].Options.Single(o => !o.IsCorrect).Id
+        };
+
+        var result = await service.SubmitExamAsync(attempt.Token, SubmittedAnswer.FromChoices(answers));
+
+        var stored = await context.AttemptAnswers.Where(a => a.AttemptId == attempt.Id).ToListAsync();
+        Assert.Equal(1m, stored.Single(a => a.QuestionId == questions[0].Id).AwardedPoints);
+        Assert.Equal(0m, stored.Single(a => a.QuestionId == questions[1].Id).AwardedPoints);
+        Assert.Equal(result.Value!.Score, stored.Sum(a => a.AwardedPoints));
+        Assert.All(stored, a => Assert.False(a.NeedsReview));
+        Assert.All(stored, a => Assert.Null(a.ResponseText));
+    }
+
+    [Fact]
+    public async Task DeletingAnAttempt_RemovesTheChoicesOfItsAnswers()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context, new QuizItemService(context));
+        var exam = await PublishedExamAsync(service, questions: 1);
+        var attempt = (await service.StartExamAsync(exam.Code!, "Иван", "5")).Value!;
+        var question = (await service.GetExamAttemptAsync(attempt.Token))!.Questions.Single().Question;
+        await service.SubmitExamAsync(attempt.Token, new Dictionary<int, SubmittedAnswer>());
+
+        var answer = await context.AttemptAnswers.SingleAsync(a => a.AttemptId == attempt.Id);
+        answer.Choices.Add(new AttemptAnswerChoice { OptionId = question.Options.First().Id, Position = 1 });
+        await context.SaveChangesAsync();
+        Assert.Equal(1, await context.AttemptAnswerChoices.CountAsync());
+
+        context.QuizAttempts.Remove(await context.QuizAttempts
+            .Include(a => a.Answers).ThenInclude(a => a.Choices)
+            .SingleAsync(a => a.Id == attempt.Id));
+        await context.SaveChangesAsync();
+
+        Assert.Equal(0, await context.AttemptAnswerChoices.CountAsync());
+        Assert.Equal(0, await context.AttemptAnswers.CountAsync(a => a.AttemptId == attempt.Id));
+    }
+
+    [Fact]
     public async Task SubmitExamAsync_OptionOfAnotherQuestion_IsStoredAsUnanswered()
     {
         using var context = TestDbContextFactory.Create();

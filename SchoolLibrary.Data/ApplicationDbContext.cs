@@ -244,6 +244,35 @@ namespace SchoolLibrary.Data
                 .HasForeignKey(a => a.SelectedOptionId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Entity<AttemptAnswer>()
+                .Property(a => a.AwardedPoints)
+                .HasPrecision(7, 2);
+
+            // The parts of an answer go with it; the options they refer to are kept (Restrict),
+            // like SelectedOption above
+            builder.Entity<AttemptAnswerChoice>()
+                .HasOne(c => c.AttemptAnswer)
+                .WithMany(a => a.Choices)
+                .HasForeignKey(c => c.AttemptAnswerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<AttemptAnswerChoice>()
+                .HasOne(c => c.Option)
+                .WithMany()
+                .HasForeignKey(c => c.OptionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<AttemptAnswerChoice>()
+                .HasOne(c => c.MatchedOption)
+                .WithMany()
+                .HasForeignKey(c => c.MatchedOptionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            // An option appears at most once in an answer
+            builder.Entity<AttemptAnswerChoice>()
+                .HasIndex(c => new { c.AttemptAnswerId, c.OptionId })
+                .IsUnique();
+
             // Points can be fractional (partial credit); two decimals are enough for display and grading
             builder.Entity<QuizAttempt>()
                 .Property(a => a.Score)
@@ -325,5 +354,6 @@ namespace SchoolLibrary.Data
         public DbSet<QuizAttempt> QuizAttempts { get; set; }
         public DbSet<AttemptQuestion> AttemptQuestions { get; set; }
         public DbSet<AttemptAnswer> AttemptAnswers { get; set; }
+        public DbSet<AttemptAnswerChoice> AttemptAnswerChoices { get; set; }
     }
 }

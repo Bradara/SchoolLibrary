@@ -309,11 +309,22 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<int>("AttemptId")
                         .HasColumnType("integer");
 
+                    b.Property<decimal>("AwardedPoints")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
                     b.Property<bool>("IsCorrect")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("NeedsReview")
                         .HasColumnType("boolean");
 
                     b.Property<int>("QuestionId")
                         .HasColumnType("integer");
+
+                    b.Property<string>("ResponseText")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
 
                     b.Property<int?>("SelectedOptionId")
                         .HasColumnType("integer");
@@ -327,6 +338,38 @@ namespace SchoolLibrary.Data.Migrations
                     b.HasIndex("SelectedOptionId");
 
                     b.ToTable("AttemptAnswers");
+                });
+
+            modelBuilder.Entity("SchoolLibrary.Data.Models.AttemptAnswerChoice", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AttemptAnswerId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("MatchedOptionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("OptionId")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("Position")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("MatchedOptionId");
+
+                    b.HasIndex("OptionId");
+
+                    b.HasIndex("AttemptAnswerId", "OptionId")
+                        .IsUnique();
+
+                    b.ToTable("AttemptAnswerChoices");
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.AttemptQuestion", b =>
@@ -1107,6 +1150,32 @@ namespace SchoolLibrary.Data.Migrations
                     b.Navigation("SelectedOption");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.AttemptAnswerChoice", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.AttemptAnswer", "AttemptAnswer")
+                        .WithMany("Choices")
+                        .HasForeignKey("AttemptAnswerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SchoolLibrary.Data.Models.AnswerOption", "MatchedOption")
+                        .WithMany()
+                        .HasForeignKey("MatchedOptionId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SchoolLibrary.Data.Models.AnswerOption", "Option")
+                        .WithMany()
+                        .HasForeignKey("OptionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AttemptAnswer");
+
+                    b.Navigation("MatchedOption");
+
+                    b.Navigation("Option");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.AttemptQuestion", b =>
                 {
                     b.HasOne("SchoolLibrary.Data.Models.QuizAttempt", "Attempt")
@@ -1337,6 +1406,11 @@ namespace SchoolLibrary.Data.Migrations
                     b.Navigation("Owner");
 
                     b.Navigation("Parent");
+                });
+
+            modelBuilder.Entity("SchoolLibrary.Data.Models.AttemptAnswer", b =>
+                {
+                    b.Navigation("Choices");
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.ExamAssignment", b =>
