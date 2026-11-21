@@ -116,6 +116,7 @@ public static class ServiceCollectionExtensions
         });
         services.AddTransient<ICodeRunner>(sp => new JobeCodeRunner(
             sp.GetRequiredService<IHttpClientFactory>().CreateClient(JobeCodeRunner.HttpClientName), options));
+        services.AddTransient<CodeGrader>();
 
         return services;
     }

@@ -257,5 +257,6 @@ public class JobeCodeRunnerTests
             .BuildServiceProvider();
 
         Assert.IsType<JobeCodeRunner>(provider.GetRequiredService<ICodeRunner>());
+        Assert.NotNull(provider.GetRequiredService<SchoolLibrary.Services.Quizzes.CodeGrader>());
     }
 }
