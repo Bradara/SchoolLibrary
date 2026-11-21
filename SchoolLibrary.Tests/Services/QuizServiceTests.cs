@@ -613,21 +613,6 @@ public class QuizServiceTests
     }
 
     [Fact]
-    public async Task UpdateQuestionAsync_WhenTheQuizHasAttempts_FailsAsConflict()
-    {
-        using var context = TestDbContextFactory.Create();
-        var service = new QuizService(context, new QuizItemService(context));
-        var quiz = (await service.CreateAsync(Practice(), Owner)).Value!;
-        var question = (await service.AddQuestionAsync(quiz.Id, Question(), Owner, false)).Value!;
-        context.QuizAttempts.Add(new QuizAttempt { QuizId = quiz.Id, StudentName = "Иван", StartedOn = DateTime.UtcNow });
-        await context.SaveChangesAsync();
-
-        var result = await service.UpdateQuestionAsync(question.Id, Question(text: "Променен"), Owner, false);
-
-        Assert.Equal(ServiceError.Conflict, result.Error);
-    }
-
-    [Fact]
     public async Task UpdateQuestionAsync_WithTooFewOptions_FailsAsInvalid()
     {
         using var context = TestDbContextFactory.Create();

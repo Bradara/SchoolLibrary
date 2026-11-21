@@ -309,6 +309,7 @@ namespace SchoolLibrary.Controllers
 
             ViewBag.QuizId = question.QuizId;
             ViewBag.QuestionId = questionId;
+            ViewBag.AnsweredAttempts = await _bank.CountAnsweredAttemptsAsync(questionId);
             return View(QuestionFormViewModel.FromQuestion(question));
         }
 
@@ -333,6 +334,7 @@ namespace SchoolLibrary.Controllers
                 ModelState.AddModelError(string.Empty, result.Message!);
                 ViewBag.QuizId = id;
                 ViewBag.QuestionId = questionId;
+                ViewBag.AnsweredAttempts = await _bank.CountAnsweredAttemptsAsync(questionId);
                 return View(vm);
             }
 

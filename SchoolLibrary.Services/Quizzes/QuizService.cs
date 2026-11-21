@@ -289,16 +289,18 @@ public class QuizService : IQuizService
             return ServiceResult<Question>.Failure(ServiceError.Forbidden, "Нямате права за това действие.");
         }
 
-        if (await HasAttemptsAsync(question.QuizId))
-        {
-            return ServiceResult<Question>.Failure(ServiceError.Conflict,
-                "Тестът вече има решения; въпросите не могат да се променят.");
-        }
-
         var validation = ValidateQuestion(input);
         if (validation != null)
         {
             return ServiceResult<Question>.Failure(ServiceError.Invalid, validation);
+        }
+
+        // Once the quiz has attempts, edit in place and regrade them (older attempts read the quiz's own questions)
+        var answered = new AnsweredQuestionEditor(_context);
+        if (await HasAttemptsAsync(question.QuizId)
+            || (await answered.SolvedAmongAsync(new[] { question.Id })).Count > 0)
+        {
+            return await answered.UpdateAsync(question, input);
         }
 
         // Replace the options wholesale; the question keeps its place in the quiz
