@@ -29,7 +29,13 @@ public enum QuestionType
     /// The student types a short answer. The options are the accepted answers (with <c>*</c> matching any
     /// text), each with its share of the points; the best matching one counts.
     /// </summary>
-    ShortAnswer = 3
+    ShortAnswer = 3,
+
+    /// <summary>
+    /// The student types a number. The options are the accepted values (stored with a decimal point, or
+    /// <c>*</c> for any number), each with a tolerance and a share of the points; the best match counts.
+    /// </summary>
+    Numerical = 4
 }
 
 /// <summary>How a quiz item pulls questions from the bank. The numbers are stored in the database.</summary>

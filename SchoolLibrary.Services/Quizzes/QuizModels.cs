@@ -10,12 +10,15 @@ public record QuizInput(string Title, string? Description, QuizMode Mode, int? T
 
 /// <summary>
 /// A question with its options, which one is correct (by index in <paramref name="Options"/>), how many
-/// points it is worth and its type. Multiple-choice and short-answer questions set <paramref name="Fractions"/>
-/// (each option's share of the points, -100 to 100) instead of <paramref name="CorrectIndex"/>; for a
-/// short-answer question the options are the accepted answers and <paramref name="CaseSensitive"/> applies.
+/// points it is worth and its type. Multiple-choice, short-answer and numerical questions set
+/// <paramref name="Fractions"/> (each option's share of the points, -100 to 100) instead of
+/// <paramref name="CorrectIndex"/>. For a short-answer question the options are the accepted answers and
+/// <paramref name="CaseSensitive"/> applies; for a numerical question they are the accepted values (or "*")
+/// and <paramref name="Tolerances"/> gives each one's tolerance (null where the typed tolerance is not a number).
 /// </summary>
 public record QuestionInput(string Text, IReadOnlyList<string> Options, int CorrectIndex, int Points = 1,
-    QuestionType Type = QuestionType.SingleChoice, IReadOnlyList<decimal>? Fractions = null, bool CaseSensitive = false)
+    QuestionType Type = QuestionType.SingleChoice, IReadOnlyList<decimal>? Fractions = null, bool CaseSensitive = false,
+    IReadOnlyList<decimal?>? Tolerances = null)
 {
     /// <summary>The option texts of a true/false question, in their fixed order.</summary>
     public static readonly IReadOnlyList<string> TrueFalseOptions = new[] { "Вярно", "Невярно" };
@@ -44,6 +47,14 @@ public record QuestionInput(string Text, IReadOnlyList<string> Options, int Corr
     public static QuestionInput ShortAnswer(string text, IReadOnlyList<string> acceptedAnswers, bool caseSensitive = false, int points = 1)
         => new(text, acceptedAnswers, -1, points, QuestionType.ShortAnswer,
             acceptedAnswers.Select(_ => AnswerOption.FullCredit).ToList(), caseSensitive);
+
+    /// <summary>
+    /// A numerical question where each of <paramref name="values"/> (a number with a comma or point, or "*")
+    /// earns all the points within its tolerance.
+    /// </summary>
+    public static QuestionInput Numerical(string text, IReadOnlyList<string> values, IReadOnlyList<decimal?> tolerances, int points = 1)
+        => new(text, values, -1, points, QuestionType.Numerical,
+            values.Select(_ => AnswerOption.FullCredit).ToList(), Tolerances: tolerances);
 }
 
 /// <summary>A quiz with its question and (submitted) attempt counts, for the management list.</summary>

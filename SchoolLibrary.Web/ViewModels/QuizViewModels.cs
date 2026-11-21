@@ -59,12 +59,15 @@ public class QuestionFormViewModel
     /// <summary>The correct value of a true/false question; null when neither is chosen.</summary>
     public bool? TrueFalseAnswer { get; set; }
 
+    /// <summary>The tolerance typed next to each accepted value of a numerical question; blank means exact.</summary>
+    public List<string> Tolerances { get; set; } = new();
+
     /// <summary>Whether a short answer must match the letter case of an accepted answer.</summary>
     [Display(Name = "Различавай малки и главни букви")]
     public bool CaseSensitive { get; set; }
 
     /// <summary>
-    /// Set when a saved multiple-choice or short-answer question has shares other than the ones the form
+    /// Set when a saved multiple-choice, short-answer or numerical question has shares other than the ones the form
     /// produces (e.g. imported from Moodle), so the editor can warn that saving replaces them.
     /// </summary>
     public bool HasCustomShares { get; set; }
@@ -102,6 +105,13 @@ public class QuestionFormViewModel
             var equal = QuestionInput.MultipleChoice(question.Text, form.Options, form.CorrectIndexes).Fractions!;
             form.HasCustomShares = !options.Select(o => o.Fraction).SequenceEqual(equal);
         }
+        else if (question.Type == QuestionType.Numerical)
+        {
+            // Values and tolerances are shown with a decimal comma; every accepted value gets all the points
+            form.Options = options.Select(o => o.Text == NumericAnswer.AnyNumber ? o.Text : NumericAnswer.Display(o.Text)).ToList();
+            form.Tolerances = options.Select(o => NumericAnswer.Display(o.Tolerance ?? 0m)).ToList();
+            form.HasCustomShares = options.Any(o => o.Fraction != AnswerOption.FullCredit);
+        }
         else if (question.Type == QuestionType.ShortAnswer)
         {
             // The form gives every accepted answer all the points
@@ -131,6 +141,7 @@ public class QuestionFormViewModel
         }
 
         var options = new List<string>();
+        var tolerances = new List<decimal?>();
         var correctIndex = -1;
         var correctIndexes = new List<int>();
         var ticked = (CorrectIndexes ?? new List<int>()).ToHashSet();
@@ -153,6 +164,10 @@ public class QuestionFormViewModel
                 correctIndexes.Add(options.Count);
             }
 
+            // Blank tolerance means exact; text that is not a number becomes null, which the service rejects
+            var toleranceText = Tolerances != null && i < Tolerances.Count ? Tolerances[i] : null;
+            tolerances.Add(string.IsNullOrWhiteSpace(toleranceText) ? 0m : NumericAnswer.Parse(toleranceText));
+
             options.Add(text);
         }
 
@@ -160,6 +175,7 @@ public class QuestionFormViewModel
         {
             QuestionType.MultipleChoice => QuestionInput.MultipleChoice(Text ?? string.Empty, options, correctIndexes, Points),
             QuestionType.ShortAnswer => QuestionInput.ShortAnswer(Text ?? string.Empty, options, CaseSensitive, Points),
+            QuestionType.Numerical => QuestionInput.Numerical(Text ?? string.Empty, options, tolerances, Points),
             _ => new QuestionInput(Text ?? string.Empty, options, correctIndex, Points, Type)
         };
     }

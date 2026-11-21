@@ -2,8 +2,8 @@
 @model SchoolLibrary.Data.Models.Question
 @* The answer fields of one question while solving (practice or exam). One pick is posted as
    answers[questionId] = optionId; ticked options of a multiple-choice question as multi[questionId] = optionId
-   (repeated); a typed short answer as text[questionId]. Nothing here reveals which options are correct, and
-   a short-answer question's options (its accepted answers) are never rendered. *@
+   (repeated); a typed short answer or number as text[questionId]. Nothing here reveals which options are
+   correct, and the options of short-answer and numerical questions (the accepted answers) are never rendered. *@
 @switch (Model.Type)
 {
     case QuestionType.ShortAnswer:
@@ -11,6 +11,13 @@
         <label class="visually-hidden" for="@inputId">Вашият отговор</label>
         <input class="form-control" type="text" name="text[@Model.Id]" id="@inputId" maxlength="500"
                autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Вашият отговор" />
+        break;
+
+    case QuestionType.Numerical:
+        var numberId = $"q{Model.Id}text";
+        <label class="visually-hidden" for="@numberId">Вашият отговор (число)</label>
+        <input class="form-control" type="text" name="text[@Model.Id]" id="@numberId" maxlength="50" inputmode="decimal"
+               autocomplete="off" placeholder="Число, напр. 3,14" style="max-width: 16rem;" />
         break;
 
     case QuestionType.MultipleChoice:

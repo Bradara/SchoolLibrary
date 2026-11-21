@@ -841,7 +841,7 @@ public class QuizService : IQuizService
     {
         // The type comes from the form, so an unknown value is rejected rather than stored
         if (input.Type is not (QuestionType.SingleChoice or QuestionType.TrueFalse or QuestionType.MultipleChoice
-            or QuestionType.ShortAnswer))
+            or QuestionType.ShortAnswer or QuestionType.Numerical))
         {
             return "Неподдържан вид въпрос.";
         }
@@ -867,13 +867,14 @@ public class QuizService : IQuizService
             .Select(o => (o ?? string.Empty).Trim())
             .ToList();
 
-        // A short answer needs only one accepted answer; the choice types need something to choose from
-        if (input.Type == QuestionType.ShortAnswer && options.Count == 0)
+        // A typed answer needs only one accepted answer; the choice types need something to choose from
+        var typed = input.Type is QuestionType.ShortAnswer or QuestionType.Numerical;
+        if (typed && options.Count == 0)
         {
             return "Добавете поне един приемлив отговор.";
         }
 
-        if (input.Type != QuestionType.ShortAnswer && options.Count < MinOptions)
+        if (!typed && options.Count < MinOptions)
         {
             return $"Добавете поне {MinOptions} отговора.";
         }
@@ -893,7 +894,7 @@ public class QuizService : IQuizService
             return $"Отговорът не може да бъде по-дълъг от {OptionMaxLength} символа.";
         }
 
-        if (input.Type is QuestionType.MultipleChoice or QuestionType.ShortAnswer)
+        if (input.Type is QuestionType.MultipleChoice or QuestionType.ShortAnswer or QuestionType.Numerical)
         {
             var fractionError = ValidateFractions(input.Fractions, options.Count);
             if (fractionError != null)
@@ -902,14 +903,23 @@ public class QuizService : IQuizService
             }
 
             // Some typed answer must be able to earn all the points
-            if (input.Type == QuestionType.ShortAnswer && !input.Fractions!.Any(f => f >= AnswerOption.FullCredit))
+            if (typed && !input.Fractions!.Any(f => f >= AnswerOption.FullCredit))
             {
                 return "Поне един приемлив отговор трябва да носи всички точки (100%).";
+            }
+
+            if (input.Type == QuestionType.Numerical)
+            {
+                var numericError = ValidateNumbers(options, input.Tolerances);
+                if (numericError != null)
+                {
+                    return numericError;
+                }
             }
         }
         else if (input.Fractions != null)
         {
-            // Only multiple choice and short answer carry per-option shares; the others mark one correct option
+            // Only the types above carry per-option shares; the others mark one correct option
             return "Неподдържан вид въпрос.";
         }
         else if (input.CorrectIndex < 0 || input.CorrectIndex >= options.Count)
@@ -920,6 +930,22 @@ public class QuizService : IQuizService
         if (input.Points < 1 || input.Points > MaxQuestionPoints)
         {
             return $"Точките за въпрос трябва да са между 1 и {MaxQuestionPoints}.";
+        }
+
+        return null;
+    }
+
+    // Each accepted value is a number (or "*" for any number) with a tolerance of 0 or more
+    private static string? ValidateNumbers(IReadOnlyList<string> values, IReadOnlyList<decimal?>? tolerances)
+    {
+        if (values.Any(v => v != NumericAnswer.AnyNumber && NumericAnswer.Parse(v) == null))
+        {
+            return "Приемливите отговори трябва да са числа (например 3,14) или „*“ за всяко число.";
+        }
+
+        if (tolerances != null && (tolerances.Count != values.Count || tolerances.Any(t => t is null or < 0)))
+        {
+            return "Толерансът трябва да е число, по-голямо или равно на 0 (например 0,01).";
         }
 
         return null;

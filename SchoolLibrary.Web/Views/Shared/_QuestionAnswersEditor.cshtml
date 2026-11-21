@@ -8,6 +8,7 @@
     - Multiple choice: the same rows with a checkbox per correct option (.qt-multi).
     - True/false: a pick between "Вярно" and "Невярно" (.qt-truefalse); the option rows are hidden (.qt-options).
     - Short answer: the option rows hold the accepted answers (.qt-short); the marker column is hidden (.qt-mark).
+    - Numerical: the option rows hold the accepted values, each with a tolerance field (.qt-numeric); no marker.
 *@
 @{
     var rowCount = Math.Min(10, Math.Max(4, Model.Options.Count + 2));
@@ -16,9 +17,15 @@
         (Type: QuestionType.SingleChoice, Id: "qt-single", Label: "Един верен отговор"),
         (Type: QuestionType.MultipleChoice, Id: "qt-multi", Label: "Няколко верни"),
         (Type: QuestionType.TrueFalse, Id: "qt-truefalse", Label: "Вярно / Невярно"),
-        (Type: QuestionType.ShortAnswer, Id: "qt-shortanswer", Label: "Кратък отговор")
+        (Type: QuestionType.ShortAnswer, Id: "qt-shortanswer", Label: "Кратък отговор"),
+        (Type: QuestionType.Numerical, Id: "qt-numerical", Label: "Число")
     };
-    var customSharesPanel = Model.Type == QuestionType.ShortAnswer ? "qt-short" : "qt-multi";
+    var customSharesPanel = Model.Type switch
+    {
+        QuestionType.ShortAnswer => "qt-short",
+        QuestionType.Numerical => "qt-numeric",
+        _ => "qt-multi"
+    };
 }
 
 <fieldset class="mb-2">
@@ -45,6 +52,11 @@
         кирилски. <code>*</code> замества произволен текст
         (напр. <code>*София*</code>), а <code>\*</code> е самата звездичка. Празните редове се пропускат.
     </p>
+    <p class="form-text mb-1 qt-numeric">
+        Въведи приемливите числа (всяко носи всички точки) и до всяко — допустимото отклонение (толеранс):
+        например 3,14 с толеранс 0,01 приема всичко от 3,13 до 3,15. Празен толеранс означава точно това число.
+        Може запетая или точка. <code>*</code> приема всяко число. Празните редове се пропускат.
+    </p>
     <div class="form-check mb-2 qt-short">
         <input class="form-check-input" type="checkbox" name="CaseSensitive" id="q-case-sensitive" value="true"
                @(Model.CaseSensitive ? "checked" : "") />
@@ -54,12 +66,13 @@
     {
         <div class="alert alert-warning py-2 small @customSharesPanel" role="note">
             Този въпрос има собствени дялове за отговорите (например от Moodle). При запис те ще бъдат заменени
-            (@(Model.Type == QuestionType.ShortAnswer ? "всеки приемлив отговор ще носи всички точки" : "равни части")).
+            (@(Model.Type is QuestionType.ShortAnswer or QuestionType.Numerical ? "всеки приемлив отговор ще носи всички точки" : "равни части")).
         </div>
     }
     @for (var i = 0; i < rowCount; i++)
     {
         var text = i < Model.Options.Count ? Model.Options[i] : string.Empty;
+        var tolerance = i < Model.Tolerances.Count ? Model.Tolerances[i] : string.Empty;
         <div class="input-group mb-2">
             <div class="input-group-text qt-mark">
                 <input class="form-check-input mt-0 qt-single" type="radio" name="CorrectIndex" value="@i"
@@ -68,6 +81,9 @@
                        aria-label="Отговор @(i + 1) е верен" @(Model.CorrectIndexes.Contains(i) ? "checked" : "") />
             </div>
             <input name="Options[@i]" value="@text" class="form-control" maxlength="500" placeholder="Отговор @(i + 1)" />
+            <span class="input-group-text qt-numeric">±</span>
+            <input name="Tolerances[@i]" value="@tolerance" class="form-control qt-numeric" maxlength="50" inputmode="decimal"
+                   placeholder="толеранс" aria-label="Толеранс на отговор @(i + 1)" style="max-width: 9rem;" />
         </div>
     }
 </div>

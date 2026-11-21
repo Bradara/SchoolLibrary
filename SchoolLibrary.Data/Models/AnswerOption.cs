@@ -31,6 +31,12 @@ namespace SchoolLibrary.Data.Models
             set => Fraction = value ? FullCredit : 0m;
         }
 
+        /// <summary>
+        /// For a numerical question: how far a typed number may be from this option's value and still match
+        /// (0 means exactly). Null for the other question types.
+        /// </summary>
+        public decimal? Tolerance { get; set; }
+
         /// <summary>Display order within the question.</summary>
         public int Order { get; set; }
 

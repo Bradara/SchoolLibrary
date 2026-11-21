@@ -185,6 +185,11 @@ namespace SchoolLibrary.Data
                 .Property(o => o.Fraction)
                 .HasPrecision(5, 2);
 
+            // Room for both large values and small tolerances such as 0.000001
+            builder.Entity<AnswerOption>()
+                .Property(o => o.Tolerance)
+                .HasPrecision(18, 6);
+
             // A quiz owns its composition items; a referenced bank question or section is kept (Restrict)
             builder.Entity<QuizItem>()
                 .HasOne(i => i.Quiz)

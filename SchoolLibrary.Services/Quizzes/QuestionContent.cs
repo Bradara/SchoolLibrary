@@ -20,14 +20,25 @@ public static class QuestionContent
         question.Options.Clear();
         for (var i = 0; i < input.Options.Count; i++)
         {
-            // Explicit shares (multiple choice, short answer) or full credit for the one correct option
+            // Explicit shares (multiple choice, short answer, numerical) or full credit for the one correct option
             var fraction = input.Fractions != null
                 ? input.Fractions[i]
                 : i == input.CorrectIndex ? AnswerOption.FullCredit : 0m;
+            var text = input.Options[i].Trim();
+            decimal? tolerance = null;
+            if (input.Type == QuestionType.Numerical)
+            {
+                // Store the value with a decimal point ("3,14" -> "3.14") and a missing tolerance as exact
+                var value = NumericAnswer.Parse(text);
+                text = value.HasValue ? NumericAnswer.Format(value.Value) : NumericAnswer.AnyNumber;
+                tolerance = input.Tolerances?[i] ?? 0m;
+            }
+
             question.Options.Add(new AnswerOption
             {
-                Text = input.Options[i].Trim(),
+                Text = text,
                 Fraction = fraction,
+                Tolerance = tolerance,
                 Order = i + 1
             });
         }
