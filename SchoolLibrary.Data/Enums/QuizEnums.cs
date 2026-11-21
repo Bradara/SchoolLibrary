@@ -13,8 +13,11 @@ public enum QuizMode
 /// <summary>The kind of a quiz question. The numbers are stored in the database.</summary>
 public enum QuestionType
 {
-    /// <summary>Exactly one correct option. The only type in the first version.</summary>
-    SingleChoice = 0
+    /// <summary>Exactly one correct option.</summary>
+    SingleChoice = 0,
+
+    /// <summary>A statement to mark true or false: two fixed options, "Вярно" first, never shuffled.</summary>
+    TrueFalse = 1
 }
 
 /// <summary>How a quiz item pulls questions from the bank. The numbers are stored in the database.</summary>

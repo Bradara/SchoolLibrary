@@ -289,16 +289,9 @@ namespace SchoolLibrary.Controllers
                 return Forbid();
             }
 
-            var options = question.Options.OrderBy(o => o.Order).ToList();
             ViewBag.QuizId = question.QuizId;
             ViewBag.QuestionId = questionId;
-            return View(new QuestionFormViewModel
-            {
-                Text = question.Text,
-                Options = options.Select(o => o.Text).ToList(),
-                CorrectIndex = options.FindIndex(o => o.IsCorrect),
-                Points = question.Points
-            });
+            return View(QuestionFormViewModel.FromQuestion(question));
         }
 
         // POST: QuizManagement/EditQuestion/5?questionId=9

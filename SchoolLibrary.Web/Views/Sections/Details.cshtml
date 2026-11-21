@@ -1,10 +1,10 @@
+@using SchoolLibrary.Data.Enums
 @model SchoolLibrary.ViewModels.SectionManageViewModel
 
 @{
     var topic = Model.Section;
     ViewData["Title"] = topic.Name;
     var newQuestion = Model.NewQuestion;
-    var rowCount = Math.Min(10, Math.Max(4, newQuestion.Options.Count));
     var points = newQuestion.Points < 1 ? 1 : newQuestion.Points;
 }
 
@@ -96,7 +96,7 @@ else
                             <input class="form-check-input mt-1 flex-shrink-0" type="checkbox" name="questionIds"
                                    value="@question.Id" form="moveForm" aria-label="Избери въпроса" />
                         }
-                        <span>@number. @question.Text <span class="badge text-bg-light">@question.Points т.</span></span>
+                        <span>@number. @question.Text <span class="badge text-bg-light">@question.Points т.</span>@if (question.Type == QuestionType.TrueFalse) { <span class="badge text-bg-info ms-1">Вярно/Невярно</span> }</span>
                     </h3>
                     <div class="d-inline-flex gap-1">
                         <a asp-action="EditQuestion" asp-route-id="@topic.Id" asp-route-questionId="@question.Id"
@@ -132,7 +132,7 @@ else
 <div class="card mt-3">
     <div class="card-body">
         <h2 class="h6 card-title">Нов въпрос</h2>
-        <form method="post" asp-action="AddQuestion" asp-route-id="@topic.Id">
+        <form method="post" asp-action="AddQuestion" asp-route-id="@topic.Id" class="question-form">
             <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
             <div class="mb-2">
                 <input name="Text" value="@newQuestion.Text" class="form-control" maxlength="1000" placeholder="Текст на въпроса" required />
@@ -141,18 +141,7 @@ else
                 <label class="form-label small mb-0" for="q-points">Точки</label>
                 <input id="q-points" name="Points" type="number" min="1" max="100" value="@points" class="form-control" />
             </div>
-            <p class="form-text mb-1">Попълни поне 2 отговора и посочи верния. Празните редове се пропускат.</p>
-            @for (var i = 0; i < rowCount; i++)
-            {
-                var optionText = i < newQuestion.Options.Count ? newQuestion.Options[i] : string.Empty;
-                <div class="input-group mb-2">
-                    <div class="input-group-text">
-                        <input class="form-check-input mt-0" type="radio" name="CorrectIndex" value="@i"
-                               aria-label="Верен отговор @(i + 1)" @(newQuestion.CorrectIndex == i ? "checked" : "") />
-                    </div>
-                    <input name="Options[@i]" value="@optionText" class="form-control" maxlength="500" placeholder="Отговор @(i + 1)" />
-                </div>
-            }
+            <partial name="_QuestionAnswersEditor" model="newQuestion" />
             <button type="submit" class="btn btn-primary">Добави въпрос</button>
         </form>
     </div>
@@ -185,8 +174,8 @@ ANSWER: B
         <details class="mt-2">
             <summary class="small text-body-secondary">Формат Moodle XML</summary>
             <p class="small text-body-secondary mt-1 mb-0">
-                Поддържат се въпроси с един верен отговор (<code>multichoice</code> с <code>&lt;single&gt;true&lt;/single&gt;</code> и <code>truefalse</code>).
-                Верен е отговорът с най-висок <code>fraction</code> (100). Останалите типове се пропускат.
+                Поддържат се въпроси с един верен отговор (<code>multichoice</code> с <code>&lt;single&gt;true&lt;/single&gt;</code>)
+                и „Вярно/Невярно“ (<code>truefalse</code>). Верен е отговорът с най-висок <code>fraction</code> (100). Останалите типове се пропускат.
             </p>
         </details>
     </div>

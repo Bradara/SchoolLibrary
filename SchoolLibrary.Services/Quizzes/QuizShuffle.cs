@@ -1,3 +1,4 @@
+using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 
 namespace SchoolLibrary.Services.Quizzes;
@@ -18,9 +19,19 @@ public static class QuizShuffle
         return list;
     }
 
-    /// <summary>Replaces the question's options with the same options in random order.</summary>
+    /// <summary>
+    /// Replaces the question's options with the same options in random order. True/false options keep
+    /// their fixed order ("Вярно" first), which students expect.
+    /// </summary>
     public static void ShuffleOptions(Question question, Random rng)
-        => question.Options = Shuffle(question.Options, rng);
+    {
+        if (question.Type == QuestionType.TrueFalse)
+        {
+            return;
+        }
+
+        question.Options = Shuffle(question.Options, rng);
+    }
 
     /// <summary>
     /// Shuffles the options of an exam attempt's question with a seed taken from the attempt token and

@@ -8,7 +8,8 @@ public static class QuestionGraders
     private static readonly IReadOnlyDictionary<QuestionType, IQuestionGrader> ByType =
         new IQuestionGrader[]
         {
-            new SingleChoiceGrader()
+            new SingleChoiceGrader(),
+            new TrueFalseGrader()
         }.ToDictionary(g => g.Type);
 
     /// <summary>The grader for <paramref name="type"/>.</summary>

@@ -5,9 +5,9 @@ using System.Xml.Linq;
 namespace SchoolLibrary.Services.Quizzes;
 
 /// <summary>
-/// Parses the Moodle XML quiz format into single-choice questions. Supports <c>multichoice</c>
-/// (with <c>&lt;single&gt;true&lt;/single&gt;</c>) and <c>truefalse</c> questions; the correct option is the
-/// answer whose <c>fraction</c> is the highest positive value. Other question types (and the
+/// Parses the Moodle XML quiz format. Supports <c>multichoice</c> (with <c>&lt;single&gt;true&lt;/single&gt;</c>,
+/// read as single-choice) and <c>truefalse</c> (read as true/false with the fixed options "Вярно"/"Невярно");
+/// the correct option is the answer whose <c>fraction</c> is the highest positive value. Other question types (and the
 /// <c>category</c> marker) are skipped, each with a reported reason.
 /// </summary>
 public static class MoodleXmlParser
@@ -71,6 +71,20 @@ public static class MoodleXmlParser
             }
 
             var answers = question.Elements("answer").ToList();
+
+            if (string.Equals(type, "truefalse", StringComparison.OrdinalIgnoreCase))
+            {
+                var answer = TrueFalseAnswer(answers);
+                if (answer == null)
+                {
+                    errors.Add($"{label}: няма посочен верен отговор.");
+                    continue;
+                }
+
+                questions.Add(QuestionInput.TrueFalse(questionText, answer));
+                continue;
+            }
+
             var options = answers.Select(a => CleanText(a.Element("text"))).ToList();
             if (options.Count(o => o.Length > 0) < 2)
             {
@@ -109,6 +123,30 @@ public static class MoodleXmlParser
         }
 
         return best;
+    }
+
+    // Moodle writes the two answers as "true" and "false"; the correct value is the one with the best
+    // fraction. When the texts are something else, the first answer is taken to mean "true".
+    private static bool? TrueFalseAnswer(List<XElement> answers)
+    {
+        var best = BestAnswerIndex(answers);
+        if (best < 0)
+        {
+            return null;
+        }
+
+        var text = CleanText(answers[best].Element("text"));
+        if (string.Equals(text, "true", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        if (string.Equals(text, "false", StringComparison.OrdinalIgnoreCase))
+        {
+            return false;
+        }
+
+        return best == 0;
     }
 
     private static string Describe(XElement question, int number)

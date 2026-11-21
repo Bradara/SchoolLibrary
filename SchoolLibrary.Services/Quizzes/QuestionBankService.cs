@@ -66,12 +66,9 @@ public class QuestionBankService : IQuestionBankService
         var question = new Question
         {
             SectionId = sectionId,
-            Text = input.Text.Trim(),
-            Type = QuestionType.SingleChoice,
-            Points = input.Points,
             Order = maxOrder + 1
         };
-        AddOptions(question, input);
+        QuestionContent.Apply(question, input);
 
         _context.Questions.Add(question);
         await _context.SaveChangesAsync();
@@ -101,12 +98,8 @@ public class QuestionBankService : IQuestionBankService
             return ServiceResult<Question>.Failure(ServiceError.Invalid, validation);
         }
 
-        question.Text = input.Text.Trim();
-        question.Points = input.Points;
-
         _context.AnswerOptions.RemoveRange(question.Options);
-        question.Options.Clear();
-        AddOptions(question, input);
+        QuestionContent.Apply(question, input);
 
         await _context.SaveChangesAsync();
 
@@ -223,12 +216,9 @@ public class QuestionBankService : IQuestionBankService
             var question = new Question
             {
                 SectionId = sectionId,
-                Text = input.Text.Trim(),
-                Type = QuestionType.SingleChoice,
-                Points = input.Points,
                 Order = ++maxOrder
             };
-            AddOptions(question, input);
+            QuestionContent.Apply(question, input);
             _context.Questions.Add(question);
             added++;
         }
@@ -240,16 +230,4 @@ public class QuestionBankService : IQuestionBankService
     private static string Shorten(string text)
         => text.Length <= 50 ? text : text[..50] + "…";
 
-    private static void AddOptions(Question question, QuestionInput input)
-    {
-        for (var i = 0; i < input.Options.Count; i++)
-        {
-            question.Options.Add(new AnswerOption
-            {
-                Text = input.Options[i].Trim(),
-                IsCorrect = i == input.CorrectIndex,
-                Order = i + 1
-            });
-        }
-    }
 }

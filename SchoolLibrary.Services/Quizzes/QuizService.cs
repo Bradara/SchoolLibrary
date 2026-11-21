@@ -254,21 +254,9 @@ public class QuizService : IQuizService
         var question = new Question
         {
             QuizId = quizId,
-            Text = input.Text.Trim(),
-            Type = QuestionType.SingleChoice,
-            Points = input.Points,
             Order = maxOrder + 1
         };
-
-        for (var i = 0; i < input.Options.Count; i++)
-        {
-            question.Options.Add(new AnswerOption
-            {
-                Text = input.Options[i].Trim(),
-                IsCorrect = i == input.CorrectIndex,
-                Order = i + 1
-            });
-        }
+        QuestionContent.Apply(question, input);
 
         _context.Questions.Add(question);
         await _context.SaveChangesAsync();
@@ -313,21 +301,9 @@ public class QuizService : IQuizService
             return ServiceResult<Question>.Failure(ServiceError.Invalid, validation);
         }
 
-        question.Text = input.Text.Trim();
-        question.Points = input.Points;
-
         // Replace the options wholesale; the question keeps its place in the quiz
         _context.AnswerOptions.RemoveRange(question.Options);
-        question.Options.Clear();
-        for (var i = 0; i < input.Options.Count; i++)
-        {
-            question.Options.Add(new AnswerOption
-            {
-                Text = input.Options[i].Trim(),
-                IsCorrect = i == input.CorrectIndex,
-                Order = i + 1
-            });
-        }
+        QuestionContent.Apply(question, input);
 
         await _context.SaveChangesAsync();
 
@@ -851,9 +827,22 @@ public class QuizService : IQuizService
         return null;
     }
 
-    /// <summary>Validates a single-choice question's text, options, correct index and points.</summary>
+    /// <summary>Validates a question's type, text, options, correct index and points.</summary>
     public static string? ValidateQuestion(QuestionInput input)
     {
+        // The type comes from the form, so an unknown value is rejected rather than stored
+        if (input.Type is not (QuestionType.SingleChoice or QuestionType.TrueFalse))
+        {
+            return "Неподдържан вид въпрос.";
+        }
+
+        // A true/false question always has the two fixed options; only which one is correct varies
+        if (input.Type == QuestionType.TrueFalse
+            && !(input.Options ?? new List<string>()).SequenceEqual(QuestionInput.TrueFalseOptions))
+        {
+            return "Въпросът „Вярно/Невярно“ има точно два отговора: „Вярно“ и „Невярно“.";
+        }
+
         if (string.IsNullOrWhiteSpace(input.Text))
         {
             return "Текстът на въпроса е задължителен.";

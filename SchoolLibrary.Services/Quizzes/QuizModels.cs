@@ -9,10 +9,22 @@ public record QuizInput(string Title, string? Description, QuizMode Mode, int? T
     bool ShuffleQuestions = true, bool ShuffleOptions = true);
 
 /// <summary>
-/// A single-choice question with its options, which one is correct (by index in <paramref name="Options"/>),
-/// and how many points it is worth.
+/// A question with its options, which one is correct (by index in <paramref name="Options"/>), how many
+/// points it is worth and its type.
 /// </summary>
-public record QuestionInput(string Text, IReadOnlyList<string> Options, int CorrectIndex, int Points = 1);
+public record QuestionInput(string Text, IReadOnlyList<string> Options, int CorrectIndex, int Points = 1,
+    QuestionType Type = QuestionType.SingleChoice)
+{
+    /// <summary>The option texts of a true/false question, in their fixed order.</summary>
+    public static readonly IReadOnlyList<string> TrueFalseOptions = new[] { "Вярно", "Невярно" };
+
+    /// <summary>
+    /// A true/false question. <paramref name="answer"/> is the correct value; null leaves no option marked,
+    /// which validation rejects.
+    /// </summary>
+    public static QuestionInput TrueFalse(string text, bool? answer, int points = 1)
+        => new(text, TrueFalseOptions, answer switch { true => 0, false => 1, null => -1 }, points, QuestionType.TrueFalse);
+}
 
 /// <summary>A quiz with its question and (submitted) attempt counts, for the management list.</summary>
 public record QuizListItem(Quiz Quiz, int QuestionCount, int AttemptCount);

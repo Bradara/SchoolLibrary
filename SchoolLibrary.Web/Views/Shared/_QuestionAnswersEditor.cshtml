@@ -1,0 +1,53 @@
+@using SchoolLibrary.Data.Enums
+@model SchoolLibrary.ViewModels.QuestionFormViewModel
+@*
+    The type picker and the answer fields of a question form. The form must carry the "question-form"
+    class: CSS (site.css) shows only the panel of the picked type, so no script is needed. The hidden
+    panel's fields are still posted, but the view model reads only the fields of the picked type.
+*@
+@{
+    var rowCount = Math.Min(10, Math.Max(4, Model.Options.Count + 2));
+    var isTrueFalse = Model.Type == QuestionType.TrueFalse;
+}
+
+<fieldset class="mb-2">
+    <legend class="form-label fs-6 mb-1">Вид на въпроса</legend>
+    <div class="btn-group" role="group">
+        <input type="radio" class="btn-check" name="Type" id="qt-single" value="@QuestionType.SingleChoice"
+               autocomplete="off" @(isTrueFalse ? "" : "checked") />
+        <label class="btn btn-sm btn-outline-secondary" for="qt-single">Един верен отговор</label>
+
+        <input type="radio" class="btn-check" name="Type" id="qt-truefalse" value="@QuestionType.TrueFalse"
+               autocomplete="off" @(isTrueFalse ? "checked" : "") />
+        <label class="btn btn-sm btn-outline-secondary" for="qt-truefalse">Вярно / Невярно</label>
+    </div>
+</fieldset>
+
+<div class="question-type-panel" data-question-type="@QuestionType.SingleChoice">
+    <p class="form-text mb-1">Попълни поне 2 отговора и посочи верния. Празните редове се пропускат.</p>
+    @for (var i = 0; i < rowCount; i++)
+    {
+        var text = i < Model.Options.Count ? Model.Options[i] : string.Empty;
+        <div class="input-group mb-2">
+            <div class="input-group-text">
+                <input class="form-check-input mt-0" type="radio" name="CorrectIndex" value="@i"
+                       aria-label="Верен отговор @(i + 1)" @(Model.CorrectIndex == i ? "checked" : "") />
+            </div>
+            <input name="Options[@i]" value="@text" class="form-control" maxlength="500" placeholder="Отговор @(i + 1)" />
+        </div>
+    }
+</div>
+
+<fieldset class="question-type-panel mb-2" data-question-type="@QuestionType.TrueFalse">
+    <legend class="form-text fs-6 mb-1">Твърдението е:</legend>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="TrueFalseAnswer" id="tf-true" value="true"
+               @(Model.TrueFalseAnswer == true ? "checked" : "") />
+        <label class="form-check-label" for="tf-true">Вярно</label>
+    </div>
+    <div class="form-check form-check-inline">
+        <input class="form-check-input" type="radio" name="TrueFalseAnswer" id="tf-false" value="false"
+               @(Model.TrueFalseAnswer == false ? "checked" : "") />
+        <label class="form-check-label" for="tf-false">Невярно</label>
+    </div>
+</fieldset>

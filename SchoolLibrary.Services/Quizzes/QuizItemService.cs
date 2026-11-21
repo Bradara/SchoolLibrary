@@ -93,20 +93,9 @@ public class QuizItemService : IQuizItemService
         var question = new Question
         {
             SectionId = section.Id,
-            Text = input.Text.Trim(),
-            Type = QuestionType.SingleChoice,
-            Points = input.Points,
             Order = maxQuestionOrder + 1
         };
-        for (var i = 0; i < input.Options.Count; i++)
-        {
-            question.Options.Add(new AnswerOption
-            {
-                Text = input.Options[i].Trim(),
-                IsCorrect = i == input.CorrectIndex,
-                Order = i + 1
-            });
-        }
+        QuestionContent.Apply(question, input);
         _context.Questions.Add(question);
         await _context.SaveChangesAsync();
 

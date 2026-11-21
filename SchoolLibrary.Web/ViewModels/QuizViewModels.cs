@@ -36,9 +36,12 @@ public class QuizFormViewModel
     public bool ShuffleOptions { get; set; } = true;
 }
 
-/// <summary>The add-question form: the text, the answer options and which one is correct.</summary>
+/// <summary>The add/edit question form: the type, the text, the answer options and which one is correct.</summary>
 public class QuestionFormViewModel
 {
+    [Display(Name = "Вид")]
+    public QuestionType Type { get; set; } = QuestionType.SingleChoice;
+
     [Required(ErrorMessage = "Въведете текст на въпроса")]
     [StringLength(1000, ErrorMessage = "Въпросът е най-много 1000 символа")]
     [Display(Name = "Въпрос")]
@@ -50,13 +53,51 @@ public class QuestionFormViewModel
     /// <summary>The position of the correct option; -1 when none is chosen.</summary>
     public int CorrectIndex { get; set; } = -1;
 
+    /// <summary>The correct value of a true/false question; null when neither is chosen.</summary>
+    public bool? TrueFalseAnswer { get; set; }
+
     [Range(1, 100, ErrorMessage = "Точките са между 1 и 100")]
     [Display(Name = "Точки")]
     public int Points { get; set; } = 1;
 
-    /// <summary>Maps the form to a service input, dropping empty option rows and remapping the correct index.</summary>
+    /// <summary>The form filled in with a saved question, for editing.</summary>
+    public static QuestionFormViewModel FromQuestion(Question question)
+    {
+        var options = question.Options.OrderBy(o => o.Order).ToList();
+        var form = new QuestionFormViewModel
+        {
+            Type = question.Type,
+            Text = question.Text,
+            Points = question.Points
+        };
+
+        if (question.Type == QuestionType.TrueFalse)
+        {
+            // "Вярно" is the first option, so the answer is true when the first option is the correct one
+            var correct = options.FindIndex(o => o.IsCorrect);
+            form.TrueFalseAnswer = correct < 0 ? null : correct == 0;
+        }
+        else
+        {
+            form.Options = options.Select(o => o.Text).ToList();
+            form.CorrectIndex = options.FindIndex(o => o.IsCorrect);
+        }
+
+        return form;
+    }
+
+    /// <summary>
+    /// Maps the form to a service input. A true/false question takes its fixed options; for the others,
+    /// empty option rows are dropped and the correct index is remapped. An unknown type is passed on as
+    /// sent, so the service rejects it.
+    /// </summary>
     public QuestionInput ToInput()
     {
+        if (Type == QuestionType.TrueFalse)
+        {
+            return QuestionInput.TrueFalse(Text ?? string.Empty, TrueFalseAnswer, Points);
+        }
+
         var options = new List<string>();
         var correctIndex = -1;
         var raw = Options ?? new List<string>();
@@ -76,7 +117,7 @@ public class QuestionFormViewModel
             options.Add(text);
         }
 
-        return new QuestionInput(Text ?? string.Empty, options, correctIndex, Points);
+        return new QuestionInput(Text ?? string.Empty, options, correctIndex, Points, Type);
     }
 }
 
