@@ -47,6 +47,12 @@ namespace SchoolLibrary.Data.Models
         /// <summary>Set when the student left more times than the exam allows.</summary>
         public bool Flagged { get; set; }
 
+        /// <summary>
+        /// How many seconds after the time limit the attempt was submitted (checked on the server); null when it
+        /// was on time or the exam has no time limit.
+        /// </summary>
+        public int? LateBySeconds { get; set; }
+
         /// <summary>The questions served to this attempt (the snapshot taken when it started).</summary>
         public ICollection<AttemptQuestion> Questions { get; set; } = new List<AttemptQuestion>();
 

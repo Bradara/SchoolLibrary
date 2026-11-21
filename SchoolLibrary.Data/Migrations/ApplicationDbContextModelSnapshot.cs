@@ -731,6 +731,9 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<bool>("Flagged")
                         .HasColumnType("boolean");
 
+                    b.Property<int?>("LateBySeconds")
+                        .HasColumnType("integer");
+
                     b.Property<int>("LeaveCount")
                         .HasColumnType("integer");
 

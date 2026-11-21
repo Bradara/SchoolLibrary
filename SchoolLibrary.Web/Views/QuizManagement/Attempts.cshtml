@@ -74,7 +74,10 @@ else
                                 }
                             </td>
                         }
-                        <td class="text-body-secondary small">@attempt.SubmittedOn?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                        <td class="text-body-secondary small">
+                            @attempt.SubmittedOn?.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                            <partial name="_LateBadge" model="attempt.LateBySeconds" />
+                        </td>
                     </tr>
                 }
             </tbody>

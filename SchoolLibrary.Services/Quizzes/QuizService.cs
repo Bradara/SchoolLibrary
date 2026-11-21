@@ -585,6 +585,9 @@ public class QuizService : IQuizService
         attempt.MaxScore = result.MaxScore;
         attempt.SubmittedOn = DateTime.UtcNow;
 
+        // A late submission is accepted (the answers are not lost), but the teacher sees how late it was
+        attempt.LateBySeconds = ExamTiming.LateBySeconds(attempt, attempt.SubmittedOn.Value);
+
         await _context.SaveChangesAsync();
 
         return ServiceResult<QuizResult>.Success(result);

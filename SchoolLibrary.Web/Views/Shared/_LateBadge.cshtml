@@ -1,0 +1,6 @@
+@model int?
+@* Shown next to the submission time when the server found the attempt was submitted after the time limit *@
+@if (Model is int seconds)
+{
+    <span class="badge text-bg-warning" title="Предаден след изтичане на времето (проверено от сървъра)"><i class="bi bi-hourglass-bottom"></i> @SchoolLibrary.Services.Quizzes.ExamTiming.LateLabel(seconds)</span>
+}
