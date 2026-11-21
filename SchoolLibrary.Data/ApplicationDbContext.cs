@@ -180,6 +180,11 @@ namespace SchoolLibrary.Data
                 .HasForeignKey(o => o.QuestionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // A percentage from -100 to 100 with two decimals (Moodle uses values such as 33.33333)
+            builder.Entity<AnswerOption>()
+                .Property(o => o.Fraction)
+                .HasPrecision(5, 2);
+
             // A quiz owns its composition items; a referenced bank question or section is kept (Restrict)
             builder.Entity<QuizItem>()
                 .HasOne(i => i.Quiz)

@@ -1,10 +1,14 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace SchoolLibrary.Data.Models
 {
     /// <summary>One answer option of a question. A single-choice question has exactly one correct option.</summary>
     public class AnswerOption
     {
+        /// <summary>The fraction of a fully correct option.</summary>
+        public const decimal FullCredit = 100m;
+
         public int Id { get; set; }
 
         [Required(ErrorMessage = "Въведете текст на отговора")]
@@ -12,7 +16,20 @@ namespace SchoolLibrary.Data.Models
         [Display(Name = "Отговор")]
         public string Text { get; set; } = string.Empty;
 
-        public bool IsCorrect { get; set; }
+        /// <summary>
+        /// The share of the question's points this option is worth, as a percentage from -100 to 100
+        /// (the Moodle <c>fraction</c>). A correct single-choice option is 100, a wrong one 0.
+        /// </summary>
+        [Range(-100, 100, ErrorMessage = "Делът трябва да е между -100 и 100")]
+        public decimal Fraction { get; set; }
+
+        /// <summary>Whether the option earns full credit. Setting it stores 100 or 0 in <see cref="Fraction"/>.</summary>
+        [NotMapped]
+        public bool IsCorrect
+        {
+            get => Fraction >= FullCredit;
+            set => Fraction = value ? FullCredit : 0m;
+        }
 
         /// <summary>Display order within the question.</summary>
         public int Order { get; set; }

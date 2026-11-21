@@ -196,8 +196,9 @@ namespace SchoolLibrary.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
-                    b.Property<bool>("IsCorrect")
-                        .HasColumnType("boolean");
+                    b.Property<decimal>("Fraction")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
 
                     b.Property<int>("Order")
                         .HasColumnType("integer");
