@@ -61,6 +61,7 @@ public class QuestionExportService : IQuestionExportService
             .AsNoTracking()
             .Where(q => q.SectionId != null && ids.Contains(q.SectionId.Value))
             .Include(q => q.Options.OrderBy(o => o.Order))
+            .Include(q => q.TestCases.OrderBy(t => t.Order))
             .ToListAsync();
         var bySection = questions.ToLookup(q => q.SectionId!.Value);
 
@@ -92,6 +93,7 @@ public class QuestionExportService : IQuestionExportService
             .Where(q => q.QuizId == quizId)
             .OrderBy(q => q.Order)
             .Include(q => q.Options.OrderBy(o => o.Order))
+            .Include(q => q.TestCases.OrderBy(t => t.Order))
             .ToListAsync();
 
         var items = await _context.QuizItems
@@ -100,6 +102,8 @@ public class QuestionExportService : IQuestionExportService
             .OrderBy(i => i.Order)
             .Include(i => i.Question!)
                 .ThenInclude(q => q.Options.OrderBy(o => o.Order))
+            .Include(i => i.Question!)
+                .ThenInclude(q => q.TestCases.OrderBy(t => t.Order))
             .ToListAsync();
 
         questions.AddRange(items

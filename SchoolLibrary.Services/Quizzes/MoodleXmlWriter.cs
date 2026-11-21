@@ -9,7 +9,9 @@ namespace SchoolLibrary.Services.Quizzes;
 /// <summary>
 /// Writes questions in the Moodle XML quiz format, the counterpart of <see cref="MoodleXmlParser"/>.
 /// Every supported question type is written: single choice and multiple choice (<c>multichoice</c>),
-/// <c>truefalse</c>, <c>shortanswer</c>, <c>numerical</c>, <c>matching</c> and <c>description</c>.
+/// <c>truefalse</c>, <c>shortanswer</c>, <c>numerical</c>, <c>matching</c>, <c>description</c> and code questions
+/// (<c>coderunner</c>: Python as the built-in <c>python3</c> type, C# as the <c>csharp_program</c> prototype,
+/// which has to be imported into Moodle first).
 /// Answer shares are written as Moodle expects them (33.33 → 33.33333), so Moodle accepts them as listed grades.
 /// </summary>
 public static class MoodleXmlWriter
@@ -99,6 +101,10 @@ public static class MoodleXmlWriter
                     new XElement("showunits", "3"), new XElement("unitsleft", "0"));
                 break;
 
+            case QuestionType.Code:
+                AddCodeRunner(element, question);
+                break;
+
             case QuestionType.Matching:
                 element.Add(new XElement("shuffleanswers", "true"));
                 element.Add(options.Select(o => new XElement("subquestion", new XAttribute("format", "html"),
@@ -128,8 +134,72 @@ public static class MoodleXmlWriter
         QuestionType.Numerical => "numerical",
         QuestionType.Matching => "matching",
         QuestionType.Description => "description",
+        QuestionType.Code => "coderunner",
         _ => "multichoice"
     };
+
+    /// <summary>The CodeRunner type a code question is written as, by language.</summary>
+    public static string CodeRunnerType(string? language) => language == CodeRunning.CodeLanguages.CSharp ? "csharp_program" : "python3";
+
+    // The CodeRunner fields: the type, scoring and starting code, everything else inherited from the prototype
+    // (empty), and the tests (input and expected output only)
+    private static void AddCodeRunner(XElement element, Question question)
+    {
+        element.Add(
+            new XElement("idnumber", string.Empty),
+            new XElement("coderunnertype", CodeRunnerType(question.CodeLanguage)),
+            new XElement("prototypetype", "0"),
+            new XElement("allornothing", question.AllOrNothing ? "1" : "0"),
+            new XElement("penaltyregime", "0"),
+            new XElement("precheck", "0"),
+            new XElement("hidecheck", "0"),
+            new XElement("showsource", "0"),
+            new XElement("answerboxlines", "18"),
+            new XElement("answerboxcolumns", "100"),
+            new XElement("answerpreload", question.AnswerPreload ?? string.Empty),
+            new XElement("globalextra", string.Empty),
+            new XElement("useace", string.Empty),
+            new XElement("resultcolumns", string.Empty),
+            new XElement("template", string.Empty),
+            new XElement("iscombinatortemplate", string.Empty),
+            new XElement("allowmultiplestdins", string.Empty),
+            new XElement("answer", string.Empty),
+            new XElement("validateonsave", "0"),
+            new XElement("testsplitterre", string.Empty),
+            new XElement("language", string.Empty),
+            new XElement("acelang", string.Empty),
+            new XElement("sandbox", string.Empty),
+            new XElement("grader", string.Empty),
+            new XElement("cputimelimitsecs", string.Empty),
+            new XElement("memlimitmb", string.Empty),
+            new XElement("sandboxparams", string.Empty),
+            new XElement("templateparams", string.Empty),
+            new XElement("hoisttemplateparams", "0"),
+            new XElement("templateparamslang", "twig"),
+            new XElement("templateparamsevalpertry", "0"),
+            new XElement("templateparamsevald", string.Empty),
+            new XElement("twigall", "0"),
+            new XElement("uiplugin", string.Empty),
+            new XElement("uiparameters", string.Empty),
+            new XElement("attachments", "0"),
+            new XElement("attachmentsrequired", "0"),
+            new XElement("maxfilesize", "0"),
+            new XElement("filenamesregex", string.Empty),
+            new XElement("filenamesexplain", string.Empty),
+            new XElement("displayfeedback", "1"),
+            new XElement("giveupallowed", "0"),
+            new XElement("prototypeextra", string.Empty),
+            new XElement("testcases", question.TestCases.OrderBy(t => t.Order).Select(t => new XElement("testcase",
+                new XAttribute("testtype", "0"),
+                new XAttribute("useasexample", t.IsExample ? "1" : "0"),
+                new XAttribute("hiderestiffail", "0"),
+                new XAttribute("mark", Number(t.Weight)),
+                new XElement("testcode", new XElement("text", string.Empty)),
+                new XElement("stdin", new XElement("text", t.Stdin)),
+                new XElement("expected", new XElement("text", t.Expected)),
+                new XElement("extra", new XElement("text", string.Empty)),
+                new XElement("display", new XElement("text", t.IsHidden ? "HIDE" : "SHOW"))))));
+    }
 
     // An answer whose text is plain (not HTML): true/false, short answer, numerical
     private static XElement PlainAnswer(string text, decimal fraction)

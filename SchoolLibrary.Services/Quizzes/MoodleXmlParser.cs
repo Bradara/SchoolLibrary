@@ -18,7 +18,11 @@ namespace SchoolLibrary.Services.Quizzes;
 /// <item><c>numerical</c>: the accepted values (or <c>*</c>) with their <c>fraction</c> and <c>tolerance</c>;
 /// units are ignored;</item>
 /// <item><c>matching</c>: each <c>subquestion</c> with its answer; one with empty text is an extra wrong answer;</item>
-/// <item><c>description</c>: text shown between the questions, without points.</item>
+/// <item><c>description</c>: text shown between the questions, without points;</item>
+/// <item><c>coderunner</c> of the types in <see cref="CodeRunnerTypes"/> whose tests give only an input
+/// (<c>stdin</c>) and an expected output: the tests (without the precheck-only ones), <c>useasexample</c>,
+/// <c>display</c> (HIDE and HIDE_IF_FAIL are hidden), <c>mark</c>, <c>allornothing</c> and <c>answerpreload</c>.
+/// Prototypes, questions with their own template and tests with test code are skipped.</item>
 /// </list>
 /// A question's points come from <c>defaultgrade</c> (rounded, between 1 and 100; 1 when missing).
 /// Other question types (and the <c>category</c> marker) are skipped, each with a reported reason.
@@ -26,6 +30,15 @@ namespace SchoolLibrary.Services.Quizzes;
 public static class MoodleXmlParser
 {
     private static readonly Regex HtmlTag = new("<[^>]+>", RegexOptions.Compiled);
+    private static readonly Regex HtmlLineBreak = new(@"<br\s*/?>|</(p|div|pre|li|h[1-6]|tr)>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+
+    /// <summary>CodeRunner question types that can be imported → the language they become.</summary>
+    public static readonly IReadOnlyDictionary<string, string> CodeRunnerTypes = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+    {
+        ["python3"] = CodeRunning.CodeLanguages.Python,
+        ["python3_w_input"] = CodeRunning.CodeLanguages.Python,
+        ["csharp_program"] = CodeRunning.CodeLanguages.CSharp,
+    };
 
     public static ImportParseResult Parse(string? text)
     {
@@ -67,9 +80,25 @@ public static class MoodleXmlParser
                 && !string.Equals(type, "shortanswer", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(type, "numerical", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(type, "matching", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(type, "description", StringComparison.OrdinalIgnoreCase))
+                && !string.Equals(type, "description", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(type, "coderunner", StringComparison.OrdinalIgnoreCase))
             {
                 errors.Add($"{label}: типът „{type}“ не се поддържа.");
+                continue;
+            }
+
+            if (string.Equals(type, "coderunner", StringComparison.OrdinalIgnoreCase))
+            {
+                var (code, error) = ParseCodeRunner(question);
+                if (code == null)
+                {
+                    errors.Add($"{label}: {error}");
+                }
+                else
+                {
+                    questions.Add(code);
+                }
+
                 continue;
             }
 
@@ -200,6 +229,82 @@ public static class MoodleXmlParser
         }
 
         return new ImportParseResult(questions, errors);
+    }
+
+    // A CodeRunner question that runs a whole program with each test's input; null with the reason otherwise
+    private static (QuestionInput? Question, string? Error) ParseCodeRunner(XElement question)
+    {
+        if (CleanText(question.Element("prototypetype")) is var prototype && prototype.Length > 0 && prototype != "0")
+        {
+            return (null, "прототипите на CodeRunner не се внасят.");
+        }
+
+        var codeRunnerType = CleanText(question.Element("coderunnertype"));
+        if (!CodeRunnerTypes.TryGetValue(codeRunnerType, out var language))
+        {
+            return (null, $"CodeRunner типът „{codeRunnerType}“ не се поддържа (поддържат се {string.Join(", ", CodeRunnerTypes.Keys)}).");
+        }
+
+        if (RawText(question.Element("template")).Trim().Length > 0)
+        {
+            return (null, "въпроси със собствен шаблон (template) не се поддържат.");
+        }
+
+        var text = MultilineText(question.Element("questiontext")?.Element("text"));
+        if (text.Length == 0)
+        {
+            return (null, "липсва текст на въпроса.");
+        }
+
+        var tests = new List<CodeTestInput>();
+        foreach (var test in question.Element("testcases")?.Elements("testcase") ?? Enumerable.Empty<XElement>())
+        {
+            // testtype 1 = run only when the student asks for a precheck; such tests do not count for the grade
+            if ((string?)test.Attribute("testtype") == "1")
+            {
+                continue;
+            }
+
+            if (RawText(test.Element("testcode")?.Element("text")).Trim().Length > 0)
+            {
+                return (null, "тестове с код (testcode) не се поддържат, а само вход (stdin) и очакван изход.");
+            }
+
+            var display = CleanText(test.Element("display")?.Element("text")).ToUpperInvariant();
+            var weight = decimal.TryParse((string?)test.Attribute("mark"), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var mark) ? Math.Round(mark, 2, MidpointRounding.AwayFromZero) : 1m;
+            tests.Add(new CodeTestInput(
+                RawText(test.Element("stdin")?.Element("text")),
+                RawText(test.Element("expected")?.Element("text")),
+                IsExample: (string?)test.Attribute("useasexample") == "1",
+                IsHidden: display is "HIDE" or "HIDE_IF_FAIL",
+                Weight: weight));
+        }
+
+        var preload = RawText(question.Element("answerpreload"));
+        var allOrNothing = CleanText(question.Element("allornothing")) != "0";
+        return (QuestionInput.CodeQuestion(text, language, tests, preload.Trim().Length > 0 ? preload : null,
+            allOrNothing, Points(question)), null);
+    }
+
+    // Text as written (inputs, outputs and code): only the line endings unified
+    private static string RawText(XElement? element)
+        => (element?.Value ?? string.Empty).Replace("\r\n", "\n");
+
+    // HTML question text with its line breaks kept: tags removed, entities decoded, spaces collapsed per line
+    private static string MultilineText(XElement? element)
+    {
+        if (element == null)
+        {
+            return string.Empty;
+        }
+
+        var withBreaks = HtmlLineBreak.Replace(element.Value.Replace("\r\n", "\n"), "\n");
+        var decoded = WebUtility.HtmlDecode(HtmlTag.Replace(withBreaks, " "));
+        var lines = decoded.Split('\n')
+            .Select(line => Regex.Replace(line, @"[ \t\u00A0]+", " ").Trim())
+            .ToList();
+        return Regex.Replace(string.Join('\n', lines), @"\n{3,}", "\n\n").Trim();
     }
 
     // The question's points from <defaultgrade> ("1.0000000" in Moodle's own files), rounded and kept within
