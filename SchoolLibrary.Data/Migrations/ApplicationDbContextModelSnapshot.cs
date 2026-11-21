@@ -424,6 +424,47 @@ namespace SchoolLibrary.Data.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.CodeTestCase", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Expected")
+                        .IsRequired()
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)");
+
+                    b.Property<bool>("IsExample")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Stdin")
+                        .IsRequired()
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)");
+
+                    b.Property<decimal>("Weight")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.ToTable("CodeTestCases");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Comment", b =>
                 {
                     b.Property<int>("Id")
@@ -623,8 +664,16 @@ namespace SchoolLibrary.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("AnswerPreload")
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)");
+
                     b.Property<bool>("CaseSensitive")
                         .HasColumnType("boolean");
+
+                    b.Property<string>("CodeLanguage")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
 
                     b.Property<int>("Order")
                         .HasColumnType("integer");
@@ -1209,6 +1258,17 @@ namespace SchoolLibrary.Data.Migrations
                     b.Navigation("Question");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.CodeTestCase", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.Question", "Question")
+                        .WithMany("TestCases")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Comment", b =>
                 {
                     b.HasOne("SchoolLibrary.Data.Models.ApplicationUser", "Author")
@@ -1435,6 +1495,8 @@ namespace SchoolLibrary.Data.Migrations
             modelBuilder.Entity("SchoolLibrary.Data.Models.Question", b =>
                 {
                     b.Navigation("Options");
+
+                    b.Navigation("TestCases");
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Quiz", b =>

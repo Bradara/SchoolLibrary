@@ -190,6 +190,17 @@ namespace SchoolLibrary.Data
                 .Property(o => o.Tolerance)
                 .HasPrecision(18, 6);
 
+            // A code question owns its test cases
+            builder.Entity<CodeTestCase>()
+                .HasOne(t => t.Question)
+                .WithMany(q => q.TestCases)
+                .HasForeignKey(t => t.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<CodeTestCase>()
+                .Property(t => t.Weight)
+                .HasPrecision(7, 2);
+
             // A quiz owns its composition items; a referenced bank question or section is kept (Restrict)
             builder.Entity<QuizItem>()
                 .HasOne(i => i.Quiz)
@@ -356,6 +367,7 @@ namespace SchoolLibrary.Data
         public DbSet<QuizItem> QuizItems { get; set; }
         public DbSet<Question> Questions { get; set; }
         public DbSet<AnswerOption> AnswerOptions { get; set; }
+        public DbSet<CodeTestCase> CodeTestCases { get; set; }
         public DbSet<QuizAttempt> QuizAttempts { get; set; }
         public DbSet<AttemptQuestion> AttemptQuestions { get; set; }
         public DbSet<AttemptAnswer> AttemptAnswers { get; set; }

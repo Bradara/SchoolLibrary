@@ -48,7 +48,13 @@ public enum QuestionType
     /// Not a question: text shown between the questions (instructions, a passage to read). It has no options,
     /// is worth 0 points, takes no number and is never drawn at random from a section.
     /// </summary>
-    Description = 6
+    Description = 6,
+
+    /// <summary>
+    /// The student writes a program in the question's <c>CodeLanguage</c>. It is run on a separate sandbox
+    /// server with the input of every test case and its output is compared with the expected output.
+    /// </summary>
+    Code = 7
 }
 
 /// <summary>How a quiz item pulls questions from the bank. The numbers are stored in the database.</summary>

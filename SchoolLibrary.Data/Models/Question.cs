@@ -21,6 +21,15 @@ namespace SchoolLibrary.Data.Models
         /// <summary>Whether a short answer must match the letter case of an accepted answer.</summary>
         public bool CaseSensitive { get; set; }
 
+        /// <summary>For a code question: the language id the program is written in ("python3", "csharp").</summary>
+        [MaxLength(20)]
+        public string? CodeLanguage { get; set; }
+
+        /// <summary>For a code question: the code the answer box starts with (e.g. an empty Main method).</summary>
+        [MaxLength(10000, ErrorMessage = "Началният код не може да бъде по-дълъг от 10000 символа")]
+        [Display(Name = "Начален код")]
+        public string? AnswerPreload { get; set; }
+
         /// <summary>Display order within the quiz.</summary>
         public int Order { get; set; }
 
@@ -33,5 +42,8 @@ namespace SchoolLibrary.Data.Models
         public Section? Section { get; set; }
 
         public ICollection<AnswerOption> Options { get; set; } = new List<AnswerOption>();
+
+        /// <summary>For a code question: the tests the program is run with. Empty for the other types.</summary>
+        public ICollection<CodeTestCase> TestCases { get; set; } = new List<CodeTestCase>();
     }
 }

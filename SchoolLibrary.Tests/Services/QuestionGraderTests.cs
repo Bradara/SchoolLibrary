@@ -102,10 +102,17 @@ public class QuestionGraderTests
     [Fact]
     public void Graders_EveryQuestionTypeHasAGrader()
     {
-        foreach (var type in Enum.GetValues<QuestionType>())
+        // Code questions are run on the sandbox server, so they are graded asynchronously, not here
+        foreach (var type in Enum.GetValues<QuestionType>().Where(t => t != QuestionType.Code))
         {
             Assert.Equal(type, QuestionGraders.For(type).Type);
         }
+    }
+
+    [Fact]
+    public void Graders_CodeQuestion_HasNoSynchronousGrader()
+    {
+        Assert.Throws<NotSupportedException>(() => QuestionGraders.For(QuestionType.Code));
     }
 
     [Fact]
