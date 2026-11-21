@@ -4,6 +4,23 @@
 @* The answer options of a question for the teacher, with the correct ones marked. A multiple-choice
    question also shows each option's share of the points; a short-answer question lists its accepted
    answers (and their share when it is not the full 100%). *@
+@if (Model.Type == QuestionType.Matching)
+{
+    <ul class="list-unstyled mb-0">
+        @foreach (var option in Model.Options.OrderBy(o => o.Order))
+        {
+            @if (string.IsNullOrWhiteSpace(option.Text))
+            {
+                <li class="text-body-secondary"><i class="bi bi-dash-circle"></i> излишен отговор: @option.MatchText</li>
+            }
+            else
+            {
+                <li><i class="bi bi-arrow-left-right"></i> @option.Text <span class="text-success fw-semibold">→ @option.MatchText</span></li>
+            }
+        }
+    </ul>
+    return;
+}
 @if (Model.Type == QuestionType.Numerical)
 {
     <div class="small text-body-secondary">Приемливи числа:</div>

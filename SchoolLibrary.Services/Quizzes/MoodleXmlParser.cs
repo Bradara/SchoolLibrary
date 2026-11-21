@@ -16,7 +16,8 @@ namespace SchoolLibrary.Services.Quizzes;
 /// <item><c>truefalse</c>, read as true/false with the fixed options "Вярно"/"Невярно";</item>
 /// <item><c>shortanswer</c>: the accepted answers with their <c>fraction</c>, and <c>usecase</c>;</item>
 /// <item><c>numerical</c>: the accepted values (or <c>*</c>) with their <c>fraction</c> and <c>tolerance</c>;
-/// units are ignored.</item>
+/// units are ignored;</item>
+/// <item><c>matching</c>: each <c>subquestion</c> with its answer; one with empty text is an extra wrong answer.</item>
 /// </list>
 /// Other question types (and the <c>category</c> marker) are skipped, each with a reported reason.
 /// </summary>
@@ -62,7 +63,8 @@ public static class MoodleXmlParser
             if (!string.Equals(type, "multichoice", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(type, "truefalse", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(type, "shortanswer", StringComparison.OrdinalIgnoreCase)
-                && !string.Equals(type, "numerical", StringComparison.OrdinalIgnoreCase))
+                && !string.Equals(type, "numerical", StringComparison.OrdinalIgnoreCase)
+                && !string.Equals(type, "matching", StringComparison.OrdinalIgnoreCase))
             {
                 errors.Add($"{label}: типът „{type}“ не се поддържа.");
                 continue;
@@ -109,6 +111,24 @@ public static class MoodleXmlParser
                 var caseSensitive = CleanText(question.Element("usecase")) == "1";
                 questions.Add(new QuestionInput(questionText, accepted.Select(a => a.Text).ToList(), -1, 1,
                     QuestionType.ShortAnswer, accepted.Select(a => a.Fraction).ToList(), caseSensitive));
+                continue;
+            }
+
+            if (string.Equals(type, "matching", StringComparison.OrdinalIgnoreCase))
+            {
+                // Each <subquestion> is an item (its <text>) with its answer (<answer><text>); an item with
+                // empty text is an extra wrong answer, and rows without an answer are dropped
+                var pairs = question.Elements("subquestion")
+                    .Select(s => (Item: CleanText(s.Element("text")), Answer: CleanText(s.Element("answer")?.Element("text"))))
+                    .Where(p => p.Answer.Length > 0)
+                    .ToList();
+                if (pairs.Count(p => p.Item.Length > 0) < 2)
+                {
+                    errors.Add($"{label}: нужни са поне 2 двойки за съпоставяне.");
+                    continue;
+                }
+
+                questions.Add(QuestionInput.Matching(questionText, pairs));
                 continue;
             }
 

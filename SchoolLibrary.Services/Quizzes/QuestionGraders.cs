@@ -12,7 +12,8 @@ public static class QuestionGraders
             new TrueFalseGrader(),
             new MultipleChoiceGrader(),
             new ShortAnswerGrader(),
-            new NumericalGrader()
+            new NumericalGrader(),
+            new MatchingGrader()
         }.ToDictionary(g => g.Type);
 
     /// <summary>The grader for <paramref name="type"/>.</summary>

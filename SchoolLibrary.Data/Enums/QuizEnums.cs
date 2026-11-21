@@ -35,7 +35,14 @@ public enum QuestionType
     /// The student types a number. The options are the accepted values (stored with a decimal point, or
     /// <c>*</c> for any number), each with a tolerance and a share of the points; the best match counts.
     /// </summary>
-    Numerical = 4
+    Numerical = 4,
+
+    /// <summary>
+    /// The student matches each item on the left (an option's text) with an answer on the right (its
+    /// <c>MatchText</c>), picked from a list. An option with empty text is an extra wrong answer on the right.
+    /// The points are shared equally between the items.
+    /// </summary>
+    Matching = 5
 }
 
 /// <summary>How a quiz item pulls questions from the bank. The numbers are stored in the database.</summary>

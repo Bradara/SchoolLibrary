@@ -1,9 +1,12 @@
 @using SchoolLibrary.Data.Enums
+@using SchoolLibrary.Services.Quizzes
 @model SchoolLibrary.Data.Models.Question
 @* The answer fields of one question while solving (practice or exam). One pick is posted as
    answers[questionId] = optionId; ticked options of a multiple-choice question as multi[questionId] = optionId
-   (repeated); a typed short answer or number as text[questionId]. Nothing here reveals which options are
-   correct, and the options of short-answer and numerical questions (the accepted answers) are never rendered. *@
+   (repeated); a typed short answer or number as text[questionId]; the answer picked for a matching item as
+   match[questionId][itemOptionId] = answer text. Nothing here reveals which options are correct: the options
+   of short-answer and numerical questions (the accepted answers) are never rendered, and a matching list
+   offers answer texts in alphabetical order, never option ids. *@
 @switch (Model.Type)
 {
     case QuestionType.ShortAnswer:
@@ -18,6 +21,26 @@
         <label class="visually-hidden" for="@numberId">Вашият отговор (число)</label>
         <input class="form-control" type="text" name="text[@Model.Id]" id="@numberId" maxlength="50" inputmode="decimal"
                autocomplete="off" placeholder="Число, напр. 3,14" style="max-width: 16rem;" />
+        break;
+
+    case QuestionType.Matching:
+        var choices = MatchingAnswers.Choices(Model);
+        @foreach (var item in MatchingAnswers.Items(Model))
+        {
+            var selectId = $"q{Model.Id}m{item.Id}";
+            <div class="row g-2 align-items-center mb-2">
+                <label class="col-sm-6 col-form-label py-0" for="@selectId">@item.Text</label>
+                <div class="col-sm-6">
+                    <select class="form-select" name="match[@Model.Id][@item.Id]" id="@selectId">
+                        <option value="">— изберете —</option>
+                        @foreach (var choice in choices)
+                        {
+                            <option value="@choice">@choice</option>
+                        }
+                    </select>
+                </div>
+            </div>
+        }
         break;
 
     case QuestionType.MultipleChoice:

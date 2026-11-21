@@ -15,10 +15,12 @@ public record QuizInput(string Title, string? Description, QuizMode Mode, int? T
 /// <paramref name="CorrectIndex"/>. For a short-answer question the options are the accepted answers and
 /// <paramref name="CaseSensitive"/> applies; for a numerical question they are the accepted values (or "*")
 /// and <paramref name="Tolerances"/> gives each one's tolerance (null where the typed tolerance is not a number).
+/// For a matching question the options are the items on the left (empty for an extra wrong answer) and
+/// <paramref name="Matches"/> the answers on the right that go with them.
 /// </summary>
 public record QuestionInput(string Text, IReadOnlyList<string> Options, int CorrectIndex, int Points = 1,
     QuestionType Type = QuestionType.SingleChoice, IReadOnlyList<decimal>? Fractions = null, bool CaseSensitive = false,
-    IReadOnlyList<decimal?>? Tolerances = null)
+    IReadOnlyList<decimal?>? Tolerances = null, IReadOnlyList<string>? Matches = null)
 {
     /// <summary>The option texts of a true/false question, in their fixed order.</summary>
     public static readonly IReadOnlyList<string> TrueFalseOptions = new[] { "Вярно", "Невярно" };
@@ -55,6 +57,14 @@ public record QuestionInput(string Text, IReadOnlyList<string> Options, int Corr
     public static QuestionInput Numerical(string text, IReadOnlyList<string> values, IReadOnlyList<decimal?> tolerances, int points = 1)
         => new(text, values, -1, points, QuestionType.Numerical,
             values.Select(_ => AnswerOption.FullCredit).ToList(), Tolerances: tolerances);
+
+    /// <summary>
+    /// A matching question from (item, answer) pairs. A pair with an empty item is an extra wrong answer that
+    /// only appears in the list on the right.
+    /// </summary>
+    public static QuestionInput Matching(string text, IReadOnlyList<(string Item, string Answer)> pairs, int points = 1)
+        => new(text, pairs.Select(p => p.Item).ToList(), -1, points, QuestionType.Matching,
+            Matches: pairs.Select(p => p.Answer).ToList());
 }
 
 /// <summary>A quiz with its question and (submitted) attempt counts, for the management list.</summary>
@@ -74,6 +84,9 @@ public record QuestionResult(Question Question, SubmittedAnswer Answer, decimal 
 
     /// <summary>What the student typed (short answer); null when nothing was typed.</summary>
     public string? TypedText => Answer.Text;
+
+    /// <summary>The answer picked for a matching item; null when none was picked.</summary>
+    public string? PickedMatch(int itemOptionId) => Answer.MatchedPairs.TryGetValue(itemOptionId, out var text) ? text : null;
 
     /// <summary>Whether the student picked or ticked <paramref name="optionId"/>.</summary>
     public bool IsChosen(int optionId) => Answer.OptionId == optionId || Answer.TickedOptionIds.Contains(optionId);

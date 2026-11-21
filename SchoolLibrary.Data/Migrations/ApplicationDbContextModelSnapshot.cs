@@ -200,6 +200,10 @@ namespace SchoolLibrary.Data.Migrations
                         .HasPrecision(5, 2)
                         .HasColumnType("numeric(5,2)");
 
+                    b.Property<string>("MatchText")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<int>("Order")
                         .HasColumnType("integer");
 

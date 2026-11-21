@@ -566,6 +566,16 @@ public class QuizService : IQuizService
                 answer.Choices.Add(new AttemptAnswerChoice { OptionId = optionId });
             }
 
+            // The pairs of a matching question: the item and the (first) option whose answer text was picked
+            foreach (var (itemId, picked) in questionResult.Answer.MatchedPairs)
+            {
+                var matched = MatchingAnswers.OptionFor(questionResult.Question, picked);
+                if (matched != null)
+                {
+                    answer.Choices.Add(new AttemptAnswerChoice { OptionId = itemId, MatchedOptionId = matched.Id });
+                }
+            }
+
             attempt.Answers.Add(answer);
         }
 
@@ -841,7 +851,7 @@ public class QuizService : IQuizService
     {
         // The type comes from the form, so an unknown value is rejected rather than stored
         if (input.Type is not (QuestionType.SingleChoice or QuestionType.TrueFalse or QuestionType.MultipleChoice
-            or QuestionType.ShortAnswer or QuestionType.Numerical))
+            or QuestionType.ShortAnswer or QuestionType.Numerical or QuestionType.Matching))
         {
             return "Неподдържан вид въпрос.";
         }
@@ -866,6 +876,12 @@ public class QuizService : IQuizService
         var options = (input.Options ?? new List<string>())
             .Select(o => (o ?? string.Empty).Trim())
             .ToList();
+
+        // Matching has its own rules: empty items are allowed (extra wrong answers)
+        if (input.Type == QuestionType.Matching)
+        {
+            return ValidateMatching(input, options) ?? ValidatePoints(input.Points);
+        }
 
         // A typed answer needs only one accepted answer; the choice types need something to choose from
         var typed = input.Type is QuestionType.ShortAnswer or QuestionType.Numerical;
@@ -927,9 +943,48 @@ public class QuizService : IQuizService
             return "Посочете кой е верният отговор.";
         }
 
-        if (input.Points < 1 || input.Points > MaxQuestionPoints)
+        return ValidatePoints(input.Points);
+    }
+
+    private static string? ValidatePoints(int points)
+        => points < 1 || points > MaxQuestionPoints
+            ? $"Точките за въпрос трябва да са между 1 и {MaxQuestionPoints}."
+            : null;
+
+    // At least two items, each with an answer; every row (item or extra answer) has an answer on the right
+    private static string? ValidateMatching(QuestionInput input, IReadOnlyList<string> items)
+    {
+        if (input.Fractions != null)
         {
-            return $"Точките за въпрос трябва да са между 1 и {MaxQuestionPoints}.";
+            return "Неподдържан вид въпрос.";
+        }
+
+        var answers = (input.Matches ?? new List<string>()).Select(m => (m ?? string.Empty).Trim()).ToList();
+        if (answers.Count != items.Count || answers.Any(string.IsNullOrEmpty))
+        {
+            return "Всеки ред трябва да има отговор вдясно.";
+        }
+
+        if (items.Count(i => i.Length > 0) < MinOptions)
+        {
+            return $"Добавете поне {MinOptions} двойки за съпоставяне.";
+        }
+
+        if (items.Count > MaxOptions)
+        {
+            return $"Редовете не може да са повече от {MaxOptions}.";
+        }
+
+        if (items.Concat(answers).Any(t => t.Length > OptionMaxLength))
+        {
+            return $"Текстът в ред не може да бъде по-дълъг от {OptionMaxLength} символа.";
+        }
+
+        // The same item twice would make the question ambiguous
+        var named = items.Where(i => i.Length > 0).ToList();
+        if (named.Distinct(StringComparer.OrdinalIgnoreCase).Count() != named.Count)
+        {
+            return "Всеки ляв елемент трябва да е различен.";
         }
 
         return null;

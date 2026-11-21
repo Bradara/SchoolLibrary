@@ -9,6 +9,7 @@
     - True/false: a pick between "Вярно" and "Невярно" (.qt-truefalse); the option rows are hidden (.qt-options).
     - Short answer: the option rows hold the accepted answers (.qt-short); the marker column is hidden (.qt-mark).
     - Numerical: the option rows hold the accepted values, each with a tolerance field (.qt-numeric); no marker.
+    - Matching: each option row is an item with its answer on the right (.qt-matching); no marker.
 *@
 @{
     var rowCount = Math.Min(10, Math.Max(4, Model.Options.Count + 2));
@@ -18,7 +19,8 @@
         (Type: QuestionType.MultipleChoice, Id: "qt-multi", Label: "Няколко верни"),
         (Type: QuestionType.TrueFalse, Id: "qt-truefalse", Label: "Вярно / Невярно"),
         (Type: QuestionType.ShortAnswer, Id: "qt-shortanswer", Label: "Кратък отговор"),
-        (Type: QuestionType.Numerical, Id: "qt-numerical", Label: "Число")
+        (Type: QuestionType.Numerical, Id: "qt-numerical", Label: "Число"),
+        (Type: QuestionType.Matching, Id: "qt-matching", Label: "Съпоставяне")
     };
     var customSharesPanel = Model.Type switch
     {
@@ -57,6 +59,11 @@
         например 3,14 с толеранс 0,01 приема всичко от 3,13 до 3,15. Празен толеранс означава точно това число.
         Може запетая или точка. <code>*</code> приема всяко число. Празните редове се пропускат.
     </p>
+    <p class="form-text mb-1 qt-matching">
+        Попълни поне 2 двойки: вляво елемент, вдясно отговорът към него. Ученикът избира отговора от списък с
+        всички отговори вдясно. Ред само с отговор вдясно (без елемент) добавя грешен отговор в списъка, за да не
+        се налучква. Точките се делят поравно между елементите. Празните редове се пропускат.
+    </p>
     <div class="form-check mb-2 qt-short">
         <input class="form-check-input" type="checkbox" name="CaseSensitive" id="q-case-sensitive" value="true"
                @(Model.CaseSensitive ? "checked" : "") />
@@ -73,6 +80,7 @@
     {
         var text = i < Model.Options.Count ? Model.Options[i] : string.Empty;
         var tolerance = i < Model.Tolerances.Count ? Model.Tolerances[i] : string.Empty;
+        var match = i < Model.Matches.Count ? Model.Matches[i] : string.Empty;
         <div class="input-group mb-2">
             <div class="input-group-text qt-mark">
                 <input class="form-check-input mt-0 qt-single" type="radio" name="CorrectIndex" value="@i"
@@ -81,6 +89,9 @@
                        aria-label="Отговор @(i + 1) е верен" @(Model.CorrectIndexes.Contains(i) ? "checked" : "") />
             </div>
             <input name="Options[@i]" value="@text" class="form-control" maxlength="500" placeholder="Отговор @(i + 1)" />
+            <span class="input-group-text qt-matching" aria-hidden="true">→</span>
+            <input name="Matches[@i]" value="@match" class="form-control qt-matching" maxlength="500"
+                   placeholder="Отговор към него" aria-label="Отговор към ред @(i + 1)" />
             <span class="input-group-text qt-numeric">±</span>
             <input name="Tolerances[@i]" value="@tolerance" class="form-control qt-numeric" maxlength="50" inputmode="decimal"
                    placeholder="толеранс" aria-label="Толеранс на отговор @(i + 1)" style="max-width: 9rem;" />

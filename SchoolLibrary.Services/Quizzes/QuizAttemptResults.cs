@@ -5,14 +5,22 @@ namespace SchoolLibrary.Services.Quizzes;
 /// <summary>Rebuilds what an exam attempt looked like and how it was graded, from what was stored.</summary>
 public static class QuizAttemptResults
 {
-    /// <summary>Regrades the attempt from the options the student picked (stored on the attempt).</summary>
+    /// <summary>Regrades the attempt from the answers the student gave (stored on the attempt).</summary>
     public static QuizResult Build(QuizAttempt attempt)
     {
+        var questions = SnapshotQuestions(attempt);
+
+        // A matching pair is stored as option ids; the answer text is read back from the matched option
+        var matchTexts = questions.SelectMany(q => q.Options).ToDictionary(o => o.Id, o => o.MatchText);
+
         var answers = attempt.Answers.ToDictionary(a => a.QuestionId, a =>
             a.ResponseText != null ? SubmittedAnswer.Typed(a.ResponseText)
+            : a.Choices.Any(c => c.MatchedOptionId != null) ? SubmittedAnswer.Matched(a.Choices
+                .Where(c => c.MatchedOptionId != null)
+                .ToDictionary(c => c.OptionId, c => matchTexts.GetValueOrDefault(c.MatchedOptionId!.Value)))
             : a.Choices.Count > 0 ? SubmittedAnswer.Choices(a.Choices.Select(c => c.OptionId))
             : SubmittedAnswer.Choice(a.SelectedOptionId));
-        return QuizGrading.Grade(attempt.Quiz, SnapshotQuestions(attempt), answers);
+        return QuizGrading.Grade(attempt.Quiz, questions, answers);
     }
 
     /// <summary>

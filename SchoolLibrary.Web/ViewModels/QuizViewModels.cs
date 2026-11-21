@@ -59,6 +59,9 @@ public class QuestionFormViewModel
     /// <summary>The correct value of a true/false question; null when neither is chosen.</summary>
     public bool? TrueFalseAnswer { get; set; }
 
+    /// <summary>The answer on the right of each row of a matching question (the item is in <see cref="Options"/>).</summary>
+    public List<string> Matches { get; set; } = new();
+
     /// <summary>The tolerance typed next to each accepted value of a numerical question; blank means exact.</summary>
     public List<string> Tolerances { get; set; } = new();
 
@@ -105,6 +108,11 @@ public class QuestionFormViewModel
             var equal = QuestionInput.MultipleChoice(question.Text, form.Options, form.CorrectIndexes).Fractions!;
             form.HasCustomShares = !options.Select(o => o.Fraction).SequenceEqual(equal);
         }
+        else if (question.Type == QuestionType.Matching)
+        {
+            form.Options = options.Select(o => o.Text).ToList();
+            form.Matches = options.Select(o => o.MatchText ?? string.Empty).ToList();
+        }
         else if (question.Type == QuestionType.Numerical)
         {
             // Values and tolerances are shown with a decimal comma; every accepted value gets all the points
@@ -138,6 +146,26 @@ public class QuestionFormViewModel
         if (Type == QuestionType.TrueFalse)
         {
             return QuestionInput.TrueFalse(Text ?? string.Empty, TrueFalseAnswer, Points);
+        }
+
+        if (Type == QuestionType.Matching)
+        {
+            // A row with only an answer is an extra wrong answer; a row with only an item is kept so the service
+            // reports the missing answer; fully empty rows are dropped
+            var pairs = new List<(string Item, string Answer)>();
+            var items = Options ?? new List<string>();
+            var answers = Matches ?? new List<string>();
+            for (var i = 0; i < Math.Max(items.Count, answers.Count); i++)
+            {
+                var item = (i < items.Count ? items[i] : null)?.Trim() ?? string.Empty;
+                var answer = (i < answers.Count ? answers[i] : null)?.Trim() ?? string.Empty;
+                if (item.Length > 0 || answer.Length > 0)
+                {
+                    pairs.Add((item, answer));
+                }
+            }
+
+            return QuestionInput.Matching(Text ?? string.Empty, pairs, Points);
         }
 
         var options = new List<string>();

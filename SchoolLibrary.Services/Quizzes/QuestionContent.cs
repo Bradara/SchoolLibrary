@@ -34,11 +34,15 @@ public static class QuestionContent
                 tolerance = input.Tolerances?[i] ?? 0m;
             }
 
+            // The right side of a matching pair
+            var match = input.Type == QuestionType.Matching ? input.Matches?[i].Trim() : null;
+
             question.Options.Add(new AnswerOption
             {
                 Text = text,
                 Fraction = fraction,
                 Tolerance = tolerance,
+                MatchText = match,
                 Order = i + 1
             });
         }

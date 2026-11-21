@@ -32,6 +32,13 @@ namespace SchoolLibrary.Data.Models
         }
 
         /// <summary>
+        /// For a matching question: the answer that goes with this option's <see cref="Text"/> (the right side
+        /// of the pair). Null for the other question types.
+        /// </summary>
+        [MaxLength(500, ErrorMessage = "Отговорът не може да бъде по-дълъг от 500 символа")]
+        public string? MatchText { get; set; }
+
+        /// <summary>
         /// For a numerical question: how far a typed number may be from this option's value and still match
         /// (0 means exactly). Null for the other question types.
         /// </summary>
