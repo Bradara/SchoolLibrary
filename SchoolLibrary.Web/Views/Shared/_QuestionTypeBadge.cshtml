@@ -1,0 +1,12 @@
+@using SchoolLibrary.Data.Enums
+@model SchoolLibrary.Data.Models.Question
+@* A small label for question types other than the default single choice. *@
+@switch (Model.Type)
+{
+    case QuestionType.TrueFalse:
+        <span class="badge text-bg-info ms-1">Вярно/Невярно</span>
+        break;
+    case QuestionType.MultipleChoice:
+        <span class="badge text-bg-info ms-1">Няколко верни</span>
+        break;
+}

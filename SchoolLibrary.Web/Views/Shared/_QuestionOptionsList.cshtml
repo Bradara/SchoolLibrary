@@ -1,0 +1,26 @@
+@using SchoolLibrary.Data.Enums
+@using SchoolLibrary.Services.Quizzes
+@model SchoolLibrary.Data.Models.Question
+@* The answer options of a question for the teacher, with the correct ones marked. A multiple-choice
+   question also shows each option's share of the points. *@
+<ul class="list-unstyled mb-0">
+    @foreach (var option in Model.Options.OrderBy(o => o.Order))
+    {
+        var credits = QuestionResult.Credits(option);
+        <li class="@(credits ? "text-success fw-semibold" : "")">
+            @if (credits)
+            {
+                <i class="bi bi-check-circle-fill"></i>
+            }
+            else
+            {
+                <i class="bi bi-circle"></i>
+            }
+            @option.Text
+            @if (Model.Type == QuestionType.MultipleChoice)
+            {
+                <span class="small text-body-secondary fw-normal">(@QuizPoints.Format(option.Fraction)%)</span>
+            }
+        </li>
+    }
+</ul>

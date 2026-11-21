@@ -53,8 +53,17 @@ public class QuestionFormViewModel
     /// <summary>The position of the correct option; -1 when none is chosen.</summary>
     public int CorrectIndex { get; set; } = -1;
 
+    /// <summary>The positions of the correct options of a multiple-choice question.</summary>
+    public List<int> CorrectIndexes { get; set; } = new();
+
     /// <summary>The correct value of a true/false question; null when neither is chosen.</summary>
     public bool? TrueFalseAnswer { get; set; }
+
+    /// <summary>
+    /// Set when a saved multiple-choice question has shares other than the equal ones the form produces
+    /// (e.g. imported from Moodle), so the editor can warn that saving replaces them.
+    /// </summary>
+    public bool HasCustomShares { get; set; }
 
     [Range(1, 100, ErrorMessage = "Точките са между 1 и 100")]
     [Display(Name = "Точки")]
@@ -77,6 +86,18 @@ public class QuestionFormViewModel
             var correct = options.FindIndex(o => o.IsCorrect);
             form.TrueFalseAnswer = correct < 0 ? null : correct == 0;
         }
+        else if (question.Type == QuestionType.MultipleChoice)
+        {
+            form.Options = options.Select(o => o.Text).ToList();
+            form.CorrectIndexes = options
+                .Select((o, i) => (o, i))
+                .Where(x => x.o.Fraction > 0)
+                .Select(x => x.i)
+                .ToList();
+
+            var equal = QuestionInput.MultipleChoice(question.Text, form.Options, form.CorrectIndexes).Fractions!;
+            form.HasCustomShares = !options.Select(o => o.Fraction).SequenceEqual(equal);
+        }
         else
         {
             form.Options = options.Select(o => o.Text).ToList();
@@ -88,8 +109,8 @@ public class QuestionFormViewModel
 
     /// <summary>
     /// Maps the form to a service input. A true/false question takes its fixed options; for the others,
-    /// empty option rows are dropped and the correct index is remapped. An unknown type is passed on as
-    /// sent, so the service rejects it.
+    /// empty option rows are dropped and the correct index (or, for multiple choice, the correct indexes)
+    /// is remapped. An unknown type is passed on as sent, so the service rejects it.
     /// </summary>
     public QuestionInput ToInput()
     {
@@ -100,6 +121,8 @@ public class QuestionFormViewModel
 
         var options = new List<string>();
         var correctIndex = -1;
+        var correctIndexes = new List<int>();
+        var ticked = (CorrectIndexes ?? new List<int>()).ToHashSet();
         var raw = Options ?? new List<string>();
         for (var i = 0; i < raw.Count; i++)
         {
@@ -114,10 +137,17 @@ public class QuestionFormViewModel
                 correctIndex = options.Count;
             }
 
+            if (ticked.Contains(i))
+            {
+                correctIndexes.Add(options.Count);
+            }
+
             options.Add(text);
         }
 
-        return new QuestionInput(Text ?? string.Empty, options, correctIndex, Points, Type);
+        return Type == QuestionType.MultipleChoice
+            ? QuestionInput.MultipleChoice(Text ?? string.Empty, options, correctIndexes, Points)
+            : new QuestionInput(Text ?? string.Empty, options, correctIndex, Points, Type);
     }
 }
 

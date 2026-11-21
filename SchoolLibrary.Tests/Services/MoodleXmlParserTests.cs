@@ -120,18 +120,55 @@ public class MoodleXmlParserTests
     }
 
     [Fact]
-    public void Parse_ReportsAMultiAnswerMultichoiceAsUnsupported()
+    public void Parse_ReadsAMultiAnswerMultichoiceWithItsShares()
     {
         var xml = Quiz(
             "<question type=\"multichoice\"><single>false</single>" +
             "<questiontext><text>Кои са прости?</text></questiontext>" +
             "<answer fraction=\"50\"><text>2</text></answer>" +
-            "<answer fraction=\"50\"><text>3</text></answer></question>");
+            "<answer fraction=\"50\"><text>3</text></answer>" +
+            "<answer fraction=\"-100\"><text>4</text></answer></question>");
+
+        var result = MoodleXmlParser.Parse(xml);
+
+        Assert.Empty(result.Errors);
+        var q = Assert.Single(result.Questions);
+        Assert.Equal(QuestionType.MultipleChoice, q.Type);
+        Assert.Equal(new[] { "2", "3", "4" }, q.Options);
+        Assert.Equal(new[] { 50m, 50m, -100m }, q.Fractions);
+        Assert.Null(QuizService.ValidateQuestion(q));
+    }
+
+    [Fact]
+    public void Parse_MultiAnswer_RoundsTheSharesToTwoDecimals()
+    {
+        var xml = Quiz(
+            "<question type=\"multichoice\"><single>false</single>" +
+            "<questiontext><text>Кои са четни?</text></questiontext>" +
+            "<answer fraction=\"33.33333\"><text>2</text></answer>" +
+            "<answer fraction=\"33.33333\"><text>4</text></answer>" +
+            "<answer fraction=\"33.33333\"><text>6</text></answer>" +
+            "<answer fraction=\"-50\"><text>7</text></answer>" +
+            "<answer><text>9</text></answer></question>");
+
+        var q = Assert.Single(MoodleXmlParser.Parse(xml).Questions);
+
+        Assert.Equal(new[] { 33.33m, 33.33m, 33.33m, -50m, 0m }, q.Fractions);
+    }
+
+    [Fact]
+    public void Parse_MultiAnswerWithoutACorrectAnswer_IsReported()
+    {
+        var xml = Quiz(
+            "<question type=\"multichoice\"><single>false</single><name><text>М</text></name>" +
+            "<questiontext><text>Кои?</text></questiontext>" +
+            "<answer fraction=\"0\"><text>а</text></answer>" +
+            "<answer fraction=\"-50\"><text>б</text></answer></question>");
 
         var result = MoodleXmlParser.Parse(xml);
 
         Assert.Empty(result.Questions);
-        Assert.Single(result.Errors);
+        Assert.Contains("„М“: няма посочен верен отговор.", result.Errors);
     }
 
     [Fact]

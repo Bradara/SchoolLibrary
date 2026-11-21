@@ -331,8 +331,10 @@ body.sl-maximized-open {
   color: #fff;
 }
 
-/* Question form: show only the answer panel of the picked question type (_QuestionAnswersEditor) */
-.question-form:has(input[name="Type"][value="TrueFalse"]:checked) .question-type-panel:not([data-question-type="TrueFalse"]),
-.question-form:not(:has(input[name="Type"][value="TrueFalse"]:checked)) .question-type-panel[data-question-type="TrueFalse"] {
+/* Question form: show only the fields of the picked question type (_QuestionAnswersEditor) */
+.question-form:has(input[name="Type"][value="TrueFalse"]:checked) .qt-options,
+.question-form:not(:has(input[name="Type"][value="TrueFalse"]:checked)) .qt-truefalse,
+.question-form:not(:has(input[name="Type"][value="SingleChoice"]:checked)) .qt-single,
+.question-form:not(:has(input[name="Type"][value="MultipleChoice"]:checked)) .qt-multi {
   display: none;
 }

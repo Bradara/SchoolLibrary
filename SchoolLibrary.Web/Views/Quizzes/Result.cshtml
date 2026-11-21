@@ -18,53 +18,7 @@
 
 <partial name="_GradeSummary" model="Model" />
 
-@{ var number = 0; }
-@foreach (var result in Model.Questions)
-{
-    number++;
-    <div class="card mb-3 border-@(result.IsCorrect ? "success" : "danger")">
-        <div class="card-body">
-            <h2 class="h6 card-title">
-                @number. @result.Question.Text
-                @if (result.IsCorrect)
-                {
-                    <span class="badge text-bg-success">Вярно</span>
-                }
-                else
-                {
-                    <span class="badge text-bg-danger">Грешно</span>
-                }
-                <span class="badge text-bg-light">@result.Question.Points т.</span>
-            </h2>
-            <ul class="list-unstyled mb-0">
-                @foreach (var option in result.Question.Options)
-                {
-                    var isCorrect = option.Id == result.CorrectOptionId;
-                    var isChosen = option.Id == result.SelectedOptionId;
-                    <li class="@(isCorrect ? "text-success fw-semibold" : isChosen ? "text-danger" : "")">
-                        @if (isCorrect)
-                        {
-                            <i class="bi bi-check-circle-fill"></i>
-                        }
-                        else if (isChosen)
-                        {
-                            <i class="bi bi-x-circle-fill"></i>
-                        }
-                        else
-                        {
-                            <i class="bi bi-circle"></i>
-                        }
-                        @option.Text
-                        @if (isChosen && !isCorrect)
-                        {
-                            <span class="small text-body-secondary">(вашият отговор)</span>
-                        }
-                    </li>
-                }
-            </ul>
-        </div>
-    </div>
-}
+<partial name="_ExamAnswers" model="Model" view-data='new ViewDataDictionary(ViewData) { ["ChosenLabel"] = "вашият отговор" }' />
 
 <a asp-action="Solve" asp-route-id="@Model.Quiz.Id" class="btn btn-primary">Опитай пак</a>
 <a asp-action="Index" class="btn btn-link">← Към упражненията</a>

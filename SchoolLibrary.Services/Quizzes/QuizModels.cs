@@ -10,10 +10,11 @@ public record QuizInput(string Title, string? Description, QuizMode Mode, int? T
 
 /// <summary>
 /// A question with its options, which one is correct (by index in <paramref name="Options"/>), how many
-/// points it is worth and its type.
+/// points it is worth and its type. A multiple-choice question sets <paramref name="Fractions"/> (each
+/// option's share of the points, -100 to 100) instead of <paramref name="CorrectIndex"/>.
 /// </summary>
 public record QuestionInput(string Text, IReadOnlyList<string> Options, int CorrectIndex, int Points = 1,
-    QuestionType Type = QuestionType.SingleChoice)
+    QuestionType Type = QuestionType.SingleChoice, IReadOnlyList<decimal>? Fractions = null)
 {
     /// <summary>The option texts of a true/false question, in their fixed order.</summary>
     public static readonly IReadOnlyList<string> TrueFalseOptions = new[] { "Вярно", "Невярно" };
@@ -24,6 +25,19 @@ public record QuestionInput(string Text, IReadOnlyList<string> Options, int Corr
     /// </summary>
     public static QuestionInput TrueFalse(string text, bool? answer, int points = 1)
         => new(text, TrueFalseOptions, answer switch { true => 0, false => 1, null => -1 }, points, QuestionType.TrueFalse);
+
+    /// <summary>
+    /// A multiple-choice question whose correct options (<paramref name="correctIndexes"/>) share the points
+    /// equally and whose wrong options take away the same share, so ticking everything earns nothing.
+    /// With no correct option every share is 0, which validation rejects.
+    /// </summary>
+    public static QuestionInput MultipleChoice(string text, IReadOnlyList<string> options, IEnumerable<int> correctIndexes, int points = 1)
+    {
+        var correct = correctIndexes.Where(i => i >= 0 && i < options.Count).ToHashSet();
+        var share = correct.Count == 0 ? 0m : Math.Round(AnswerOption.FullCredit / correct.Count, 2, MidpointRounding.AwayFromZero);
+        var fractions = options.Select((_, i) => correct.Contains(i) ? share : -share).ToList();
+        return new QuestionInput(text, options, -1, points, QuestionType.MultipleChoice, fractions);
+    }
 }
 
 /// <summary>A quiz with its question and (submitted) attempt counts, for the management list.</summary>
@@ -37,6 +51,15 @@ public record QuestionResult(Question Question, SubmittedAnswer Answer, decimal 
 
     /// <summary>The option worth full credit, for showing the right answer.</summary>
     public int? CorrectOptionId => Question.Options.FirstOrDefault(o => o.IsCorrect)?.Id;
+
+    /// <summary>Whether the answer earned some, but not all, of the points.</summary>
+    public bool IsPartial => !IsCorrect && AwardedPoints > 0;
+
+    /// <summary>Whether the student picked or ticked <paramref name="optionId"/>.</summary>
+    public bool IsChosen(int optionId) => Answer.OptionId == optionId || Answer.TickedOptionIds.Contains(optionId);
+
+    /// <summary>Whether <paramref name="option"/> earns credit, i.e. is (one of) the right answers.</summary>
+    public static bool Credits(AnswerOption option) => option.Fraction > 0;
 }
 
 /// <summary>The graded outcome of a quiz: the score, grade and the per-question breakdown.</summary>

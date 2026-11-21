@@ -534,7 +534,7 @@ public class QuizService : IQuizService
             .Include(a => a.Questions.OrderBy(x => x.Order))
                 .ThenInclude(aq => aq.Question)
                     .ThenInclude(q => q.Options)
-            .Include(a => a.Answers)
+            .Include(a => a.Answers).ThenInclude(answer => answer.Choices)
             .FirstOrDefaultAsync(a => a.Token == token);
         if (attempt == null)
         {
@@ -551,13 +551,21 @@ public class QuizService : IQuizService
 
         foreach (var questionResult in result.Questions)
         {
-            attempt.Answers.Add(new AttemptAnswer
+            var answer = new AttemptAnswer
             {
                 QuestionId = questionResult.Question.Id,
                 SelectedOptionId = questionResult.SelectedOptionId,
                 IsCorrect = questionResult.IsCorrect,
                 AwardedPoints = questionResult.AwardedPoints
-            });
+            };
+
+            // The ticked options of a multiple-choice question (already limited to this question's options)
+            foreach (var optionId in questionResult.Answer.TickedOptionIds)
+            {
+                answer.Choices.Add(new AttemptAnswerChoice { OptionId = optionId });
+            }
+
+            attempt.Answers.Add(answer);
         }
 
         attempt.Score = result.Score;
@@ -579,7 +587,7 @@ public class QuizService : IQuizService
             .Include(a => a.Questions.OrderBy(x => x.Order))
                 .ThenInclude(aq => aq.Question)
                     .ThenInclude(q => q.Options.OrderBy(o => o.Order))
-            .Include(a => a.Answers)
+            .Include(a => a.Answers).ThenInclude(answer => answer.Choices)
             .FirstOrDefaultAsync(a => a.Token == token);
         if (attempt == null)
         {
@@ -831,7 +839,7 @@ public class QuizService : IQuizService
     public static string? ValidateQuestion(QuestionInput input)
     {
         // The type comes from the form, so an unknown value is rejected rather than stored
-        if (input.Type is not (QuestionType.SingleChoice or QuestionType.TrueFalse))
+        if (input.Type is not (QuestionType.SingleChoice or QuestionType.TrueFalse or QuestionType.MultipleChoice))
         {
             return "Неподдържан вид въпрос.";
         }
@@ -877,7 +885,20 @@ public class QuizService : IQuizService
             return $"Отговорът не може да бъде по-дълъг от {OptionMaxLength} символа.";
         }
 
-        if (input.CorrectIndex < 0 || input.CorrectIndex >= options.Count)
+        if (input.Type == QuestionType.MultipleChoice)
+        {
+            var fractionError = ValidateFractions(input.Fractions, options.Count);
+            if (fractionError != null)
+            {
+                return fractionError;
+            }
+        }
+        else if (input.Fractions != null)
+        {
+            // Only multiple choice carries per-option shares; the others mark one correct option
+            return "Неподдържан вид въпрос.";
+        }
+        else if (input.CorrectIndex < 0 || input.CorrectIndex >= options.Count)
         {
             return "Посочете кой е верният отговор.";
         }
@@ -885,6 +906,27 @@ public class QuizService : IQuizService
         if (input.Points < 1 || input.Points > MaxQuestionPoints)
         {
             return $"Точките за въпрос трябва да са между 1 и {MaxQuestionPoints}.";
+        }
+
+        return null;
+    }
+
+    // A share per option, each from -100 to 100, with at least one correct (positive) option
+    private static string? ValidateFractions(IReadOnlyList<decimal>? fractions, int optionCount)
+    {
+        if (fractions == null || fractions.Count != optionCount)
+        {
+            return "Посочете дела на всеки отговор.";
+        }
+
+        if (fractions.Any(f => f < -AnswerOption.FullCredit || f > AnswerOption.FullCredit))
+        {
+            return "Делът на отговор трябва да е между -100% и 100%.";
+        }
+
+        if (!fractions.Any(f => f > 0))
+        {
+            return "Отбележете поне един верен отговор.";
         }
 
         return null;

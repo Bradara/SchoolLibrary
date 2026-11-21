@@ -17,7 +17,13 @@ public enum QuestionType
     SingleChoice = 0,
 
     /// <summary>A statement to mark true or false: two fixed options, "Вярно" first, never shuffled.</summary>
-    TrueFalse = 1
+    TrueFalse = 1,
+
+    /// <summary>
+    /// Several options may be correct; the student ticks any number of them. Each option carries a share
+    /// of the points (positive for correct, negative for wrong) and the ticked shares are added up.
+    /// </summary>
+    MultipleChoice = 2
 }
 
 /// <summary>How a quiz item pulls questions from the bank. The numbers are stored in the database.</summary>

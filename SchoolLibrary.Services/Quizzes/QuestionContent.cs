@@ -18,10 +18,14 @@ public static class QuestionContent
         question.Options.Clear();
         for (var i = 0; i < input.Options.Count; i++)
         {
+            // Explicit shares (multiple choice) or full credit for the one correct option
+            var fraction = input.Fractions != null
+                ? input.Fractions[i]
+                : i == input.CorrectIndex ? AnswerOption.FullCredit : 0m;
             question.Options.Add(new AnswerOption
             {
                 Text = input.Options[i].Trim(),
-                IsCorrect = i == input.CorrectIndex,
+                Fraction = fraction,
                 Order = i + 1
             });
         }

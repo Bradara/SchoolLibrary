@@ -1,12 +1,14 @@
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using SchoolLibrary.Data.Enums;
 
 namespace SchoolLibrary.Services.Quizzes;
 
 /// <summary>
-/// Parses the Moodle XML quiz format. Supports <c>multichoice</c> (with <c>&lt;single&gt;true&lt;/single&gt;</c>,
-/// read as single-choice) and <c>truefalse</c> (read as true/false with the fixed options "Вярно"/"Невярно");
+/// Parses the Moodle XML quiz format. Supports <c>multichoice</c> (with <c>&lt;single&gt;true&lt;/single&gt;</c>
+/// read as single-choice; with <c>false</c> read as multiple-choice, keeping each answer's <c>fraction</c>)
+/// and <c>truefalse</c> (read as true/false with the fixed options "Вярно"/"Невярно");
 /// the correct option is the answer whose <c>fraction</c> is the highest positive value. Other question types (and the
 /// <c>category</c> marker) are skipped, each with a reported reason.
 /// </summary>
@@ -52,16 +54,12 @@ public static class MoodleXmlParser
             if (!string.Equals(type, "multichoice", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(type, "truefalse", StringComparison.OrdinalIgnoreCase))
             {
-                errors.Add($"{label}: типът „{type}“ не се поддържа (само един верен отговор).");
+                errors.Add($"{label}: типът „{type}“ не се поддържа.");
                 continue;
             }
 
-            if (string.Equals(type, "multichoice", StringComparison.OrdinalIgnoreCase)
-                && string.Equals(CleanText(question.Element("single")), "false", StringComparison.OrdinalIgnoreCase))
-            {
-                errors.Add($"{label}: многоотговорен въпрос не се поддържа.");
-                continue;
-            }
+            var isMultiple = string.Equals(type, "multichoice", StringComparison.OrdinalIgnoreCase)
+                && string.Equals(CleanText(question.Element("single")), "false", StringComparison.OrdinalIgnoreCase);
 
             var questionText = CleanText(question.Element("questiontext")?.Element("text"));
             if (questionText.Length == 0)
@@ -89,6 +87,20 @@ public static class MoodleXmlParser
             if (options.Count(o => o.Length > 0) < 2)
             {
                 errors.Add($"{label}: нужни са поне 2 отговора.");
+                continue;
+            }
+
+            if (isMultiple)
+            {
+                // Keep each answer's share as given in the file; validation checks that one is positive
+                var fractions = answers.Select(Fraction).ToList();
+                if (!fractions.Any(f => f > 0))
+                {
+                    errors.Add($"{label}: няма посочен верен отговор.");
+                    continue;
+                }
+
+                questions.Add(new QuestionInput(questionText, options, -1, 1, QuestionType.MultipleChoice, fractions));
                 continue;
             }
 
@@ -123,6 +135,17 @@ public static class MoodleXmlParser
         }
 
         return best;
+    }
+
+    // An answer's share in percent, rounded to the two decimals that are stored (33.33333 → 33.33);
+    // a missing or unreadable value counts as 0
+    private static decimal Fraction(XElement answer)
+    {
+        var raw = (string?)answer.Attribute("fraction");
+        return decimal.TryParse(raw, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var fraction)
+            ? Math.Round(fraction, 2, MidpointRounding.AwayFromZero)
+            : 0m;
     }
 
     // Moodle writes the two answers as "true" and "false"; the correct value is the one with the best

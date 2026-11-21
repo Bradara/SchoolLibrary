@@ -1,0 +1,27 @@
+@using SchoolLibrary.Data.Enums
+@model SchoolLibrary.Data.Models.Question
+@* The answer fields of one question while solving (practice or exam). One pick is posted as
+   answers[questionId] = optionId; ticked options of a multiple-choice question as multi[questionId] = optionId
+   (repeated). Nothing here reveals which options are correct. *@
+@{
+    var isMultiple = Model.Type == QuestionType.MultipleChoice;
+}
+@if (isMultiple)
+{
+    <p class="form-text mt-0 mb-1">Отбележете всички верни отговори.</p>
+}
+@foreach (var option in Model.Options)
+{
+    var optionId = $"q{Model.Id}o{option.Id}";
+    <div class="form-check">
+        @if (isMultiple)
+        {
+            <input class="form-check-input" type="checkbox" name="multi[@Model.Id]" value="@option.Id" id="@optionId">
+        }
+        else
+        {
+            <input class="form-check-input" type="radio" name="answers[@Model.Id]" value="@option.Id" id="@optionId">
+        }
+        <label class="form-check-label" for="@optionId">@option.Text</label>
+    </div>
+}

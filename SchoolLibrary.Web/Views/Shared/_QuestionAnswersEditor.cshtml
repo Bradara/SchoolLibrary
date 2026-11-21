@@ -2,43 +2,62 @@
 @model SchoolLibrary.ViewModels.QuestionFormViewModel
 @*
     The type picker and the answer fields of a question form. The form must carry the "question-form"
-    class: CSS (site.css) shows only the panel of the picked type, so no script is needed. The hidden
-    panel's fields are still posted, but the view model reads only the fields of the picked type.
+    class: CSS (site.css) shows only the fields of the picked type, so no script is needed. Hidden fields
+    are still posted, but the view model reads only the fields of the picked type.
+    - Single choice: option rows with a radio for the one correct option (.qt-single).
+    - Multiple choice: the same rows with a checkbox per correct option (.qt-multi).
+    - True/false: a pick between "Вярно" and "Невярно" (.qt-truefalse); the option rows are hidden (.qt-options).
 *@
 @{
     var rowCount = Math.Min(10, Math.Max(4, Model.Options.Count + 2));
-    var isTrueFalse = Model.Type == QuestionType.TrueFalse;
+    var types = new[]
+    {
+        (Type: QuestionType.SingleChoice, Id: "qt-single", Label: "Един верен отговор"),
+        (Type: QuestionType.MultipleChoice, Id: "qt-multi", Label: "Няколко верни"),
+        (Type: QuestionType.TrueFalse, Id: "qt-truefalse", Label: "Вярно / Невярно")
+    };
 }
 
 <fieldset class="mb-2">
     <legend class="form-label fs-6 mb-1">Вид на въпроса</legend>
-    <div class="btn-group" role="group">
-        <input type="radio" class="btn-check" name="Type" id="qt-single" value="@QuestionType.SingleChoice"
-               autocomplete="off" @(isTrueFalse ? "" : "checked") />
-        <label class="btn btn-sm btn-outline-secondary" for="qt-single">Един верен отговор</label>
-
-        <input type="radio" class="btn-check" name="Type" id="qt-truefalse" value="@QuestionType.TrueFalse"
-               autocomplete="off" @(isTrueFalse ? "checked" : "") />
-        <label class="btn btn-sm btn-outline-secondary" for="qt-truefalse">Вярно / Невярно</label>
+    <div class="btn-group flex-wrap" role="group">
+        @foreach (var type in types)
+        {
+            <input type="radio" class="btn-check" name="Type" id="@type.Id" value="@type.Type"
+                   autocomplete="off" @(Model.Type == type.Type ? "checked" : "") />
+            <label class="btn btn-sm btn-outline-secondary" for="@type.Id">@type.Label</label>
+        }
     </div>
 </fieldset>
 
-<div class="question-type-panel" data-question-type="@QuestionType.SingleChoice">
-    <p class="form-text mb-1">Попълни поне 2 отговора и посочи верния. Празните редове се пропускат.</p>
+<div class="qt-options">
+    <p class="form-text mb-1 qt-single">Попълни поне 2 отговора и посочи верния. Празните редове се пропускат.</p>
+    <p class="form-text mb-1 qt-multi">
+        Попълни поне 2 отговора и отметни всички верни. Верните си делят точките поравно, а всеки отметнат
+        грешен отговор отнема същия дял (резултатът за въпроса не пада под 0). Празните редове се пропускат.
+    </p>
+    @if (Model.HasCustomShares)
+    {
+        <div class="alert alert-warning py-2 small qt-multi" role="note">
+            Този въпрос има собствени дялове за отговорите (например от Moodle). При запис те ще станат равни части.
+        </div>
+    }
     @for (var i = 0; i < rowCount; i++)
     {
         var text = i < Model.Options.Count ? Model.Options[i] : string.Empty;
         <div class="input-group mb-2">
             <div class="input-group-text">
-                <input class="form-check-input mt-0" type="radio" name="CorrectIndex" value="@i"
+                <input class="form-check-input mt-0 qt-single" type="radio" name="CorrectIndex" value="@i"
                        aria-label="Верен отговор @(i + 1)" @(Model.CorrectIndex == i ? "checked" : "") />
+                <input class="form-check-input mt-0 qt-multi" type="checkbox" name="CorrectIndexes" value="@i"
+                       aria-label="Отговор @(i + 1) е верен" @(Model.CorrectIndexes.Contains(i) ? "checked" : "") />
             </div>
             <input name="Options[@i]" value="@text" class="form-control" maxlength="500" placeholder="Отговор @(i + 1)" />
         </div>
     }
 </div>
 
-<fieldset class="question-type-panel mb-2" data-question-type="@QuestionType.TrueFalse">
+<fieldset class="qt-truefalse mb-2">
     <legend class="form-text fs-6 mb-1">Твърдението е:</legend>
     <div class="form-check form-check-inline">
         <input class="form-check-input" type="radio" name="TrueFalseAnswer" id="tf-true" value="true"

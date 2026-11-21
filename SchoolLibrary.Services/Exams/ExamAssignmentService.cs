@@ -224,7 +224,7 @@ public class ExamAssignmentService : IExamAssignmentService
             .Include(a => a.Questions.OrderBy(x => x.Order))
                 .ThenInclude(aq => aq.Question)
                     .ThenInclude(q => q.Options.OrderBy(o => o.Order))
-            .Include(a => a.Answers)
+            .Include(a => a.Answers).ThenInclude(answer => answer.Choices)
             .FirstOrDefaultAsync(a => a.Id == attemptId);
         if (attempt?.ExamAssignment == null)
         {
@@ -251,7 +251,7 @@ public class ExamAssignmentService : IExamAssignmentService
             .Include(a => a.ExamAssignment!)
                 .ThenInclude(e => e.SchoolClass)
             .Include(a => a.Questions)
-            .Include(a => a.Answers)
+            .Include(a => a.Answers).ThenInclude(answer => answer.Choices)
             .FirstOrDefaultAsync(a => a.Id == attemptId);
         if (attempt?.ExamAssignment == null)
         {
