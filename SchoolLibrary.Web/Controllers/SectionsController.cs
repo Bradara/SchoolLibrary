@@ -123,7 +123,7 @@ namespace SchoolLibrary.Controllers
                 return Forbid();
             }
 
-            ViewBag.ParentChoices = await _sections.GetParentCandidatesAsync(id, section.OwnerId);
+            ViewBag.ParentChoices = SectionPaths.Build(await _sections.GetParentCandidatesAsync(id, section.OwnerId));
             return View(new SectionFormViewModel
             {
                 Name = section.Name,
@@ -169,8 +169,8 @@ namespace SchoolLibrary.Controllers
         {
             var section = await _sections.GetByIdAsync(sectionId);
             ViewBag.ParentChoices = section == null
-                ? new List<Data.Models.Section>()
-                : await _sections.GetParentCandidatesAsync(sectionId, section.OwnerId);
+                ? new List<SectionOption>()
+                : SectionPaths.Build(await _sections.GetParentCandidatesAsync(sectionId, section.OwnerId));
         }
 
         // POST: Sections/Delete/5
@@ -418,7 +418,7 @@ namespace SchoolLibrary.Controllers
                 Subsections = await _sections.GetChildrenAsync(section.Id),
                 Ancestors = await _sections.GetAncestorsAsync(section.Id),
                 Questions = await _questions.GetBySectionAsync(section.Id),
-                TargetSections = siblings.Where(s => s.Id != section.Id).ToList(),
+                TargetSections = SectionPaths.Build(siblings).Where(s => s.Id != section.Id).ToList(),
                 NewQuestion = newQuestion ?? new QuestionFormViewModel()
             };
         }

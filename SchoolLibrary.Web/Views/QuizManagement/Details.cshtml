@@ -131,7 +131,7 @@ else
                         <select name="sectionId" class="form-select" aria-label="Раздел">
                             @foreach (var sec in Model.Sections)
                             {
-                                <option value="@sec.Id">@sec.Name</option>
+                                <option value="@sec.Id">@sec.Path</option>
                             }
                         </select>
                         <input name="pickCount" type="number" min="1" max="100" value="1" class="form-control" style="max-width: 6rem;" aria-label="Брой" />
@@ -152,9 +152,15 @@ else
                     {
                         <div class="input-group">
                             <select name="questionId" class="form-select" aria-label="Въпрос">
-                                @foreach (var group in Model.BankQuestions.GroupBy(q => q.Section!.Name))
+                                @* Grouped by section id (names may repeat under different parents), in tree order *@
+                                @foreach (var sec in Model.Sections)
                                 {
-                                    <optgroup label="@group.Key">
+                                    var group = Model.BankQuestions.Where(q => q.SectionId == sec.Id).ToList();
+                                    if (group.Count == 0)
+                                    {
+                                        continue;
+                                    }
+                                    <optgroup label="@sec.Path">
                                         @foreach (var question in group)
                                         {
                                             <option value="@question.Id">@question.Text</option>

@@ -303,8 +303,8 @@ public class QuizManageViewModel
     /// <summary>The quiz's composition items (pinned questions and random-from-section draws), ordered.</summary>
     public IReadOnlyList<QuizItem> Items { get; set; } = new List<QuizItem>();
 
-    /// <summary>The teacher's sections, for the "draw N random" picker.</summary>
-    public IReadOnlyList<Section> Sections { get; set; } = new List<Section>();
+    /// <summary>The teacher's sections with their full paths, in tree order, for the pickers.</summary>
+    public IReadOnlyList<SectionOption> Sections { get; set; } = new List<SectionOption>();
 
     /// <summary>The teacher's bank questions (with section), for the "pin a question" picker.</summary>
     public IReadOnlyList<Question> BankQuestions { get; set; } = new List<Question>();
@@ -340,8 +340,11 @@ public class SectionManageViewModel
 
     public IReadOnlyList<Question> Questions { get; set; } = new List<Question>();
 
-    /// <summary>The owner's other sections, for the "move selected questions to…" picker (excludes this one).</summary>
-    public IReadOnlyList<Section> TargetSections { get; set; } = new List<Section>();
+    /// <summary>
+    /// The owner's other sections with their full paths, for the "move selected questions to…" picker
+    /// (excludes this one).
+    /// </summary>
+    public IReadOnlyList<SectionOption> TargetSections { get; set; } = new List<SectionOption>();
 
     public QuestionFormViewModel NewQuestion { get; set; } = new();
 }

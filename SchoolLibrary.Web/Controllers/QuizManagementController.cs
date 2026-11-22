@@ -100,7 +100,7 @@ namespace SchoolLibrary.Controllers
                 Quiz = quiz,
                 NewQuestion = newQuestion ?? new QuestionFormViewModel(),
                 Items = await _items.GetItemsAsync(quiz.Id),
-                Sections = await _sections.GetAllForOwnerAsync(ownerScope),
+                Sections = SectionPaths.Build(await _sections.GetAllForOwnerAsync(ownerScope)),
                 BankQuestions = await _bank.GetForOwnerAsync(ownerScope)
             };
         }

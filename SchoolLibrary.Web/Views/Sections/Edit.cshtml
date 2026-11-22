@@ -16,9 +16,9 @@
                 <label asp-for="ParentId" class="form-label">Родителски раздел</label>
                 <select asp-for="ParentId" class="form-select">
                     <option value="">(без родител — коренов)</option>
-                    @foreach (var choice in (IReadOnlyList<SchoolLibrary.Data.Models.Section>)(ViewBag.ParentChoices ?? new List<SchoolLibrary.Data.Models.Section>()))
+                    @foreach (var choice in (IReadOnlyList<SchoolLibrary.Services.Quizzes.SectionOption>)(ViewBag.ParentChoices ?? new List<SchoolLibrary.Services.Quizzes.SectionOption>()))
                     {
-                        <option value="@choice.Id">@choice.Name</option>
+                        <option value="@choice.Id">@choice.Path</option>
                     }
                 </select>
                 <div class="form-text">Преместването в подраздел на самия раздел не е позволено.</div>

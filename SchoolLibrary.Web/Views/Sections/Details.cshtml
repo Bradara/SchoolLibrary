@@ -78,7 +78,7 @@ else
                 <select name="targetSectionId" class="form-select form-select-sm" style="max-width: 20rem;" aria-label="Целеви раздел">
                     @foreach (var target in Model.TargetSections)
                     {
-                        <option value="@target.Id">@target.Name</option>
+                        <option value="@target.Id">@target.Path</option>
                     }
                 </select>
                 <button type="submit" class="btn btn-sm btn-outline-primary">Премести избраните</button>

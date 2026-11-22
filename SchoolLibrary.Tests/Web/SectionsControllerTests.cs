@@ -155,12 +155,20 @@ public class SectionsControllerTests
     public async Task Edit_Get_MapsTheSectionIntoTheForm()
     {
         _sections.Setup(s => s.GetByIdAsync(5)).ReturnsAsync(new Section { Id = 5, OwnerId = "t1", Name = "Старо", Description = "описание" });
+        _sections.Setup(s => s.GetParentCandidatesAsync(5, "t1")).ReturnsAsync(new List<Section>
+        {
+            new() { Id = 1, Name = "Информатика" },
+            new() { Id = 2, Name = "9 клас", ParentId = 1 }
+        });
 
         var result = await Controller("t1", Roles.Teacher).Edit(5);
 
-        var model = Assert.IsType<SectionFormViewModel>(Assert.IsType<ViewResult>(result).Model);
+        var view = Assert.IsType<ViewResult>(result);
+        var model = Assert.IsType<SectionFormViewModel>(view.Model);
         Assert.Equal("Старо", model.Name);
         Assert.Equal("описание", model.Description);
+        var choices = Assert.IsAssignableFrom<IReadOnlyList<SectionOption>>(view.ViewData["ParentChoices"]);
+        Assert.Equal(new[] { "Информатика", "Информатика > 9 клас" }, choices.Select(c => c.Path));
     }
 
     [Fact]
