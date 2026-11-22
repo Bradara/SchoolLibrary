@@ -40,6 +40,33 @@ public static class MoodleXmlParser
         ["csharp_program"] = CodeRunning.CodeLanguages.CSharp,
     };
 
+    /// <summary>
+    /// The language of a CodeRunner type: a known one (<see cref="CodeRunnerTypes"/>), or a teacher's own prototype
+    /// whose name tells the language ("C_sharp_using_python", "csharp_console" → C#; "python3_…" → Python 3).
+    /// Multi-language prototypes are left out (the student picks the language there). Null when not supported.
+    /// </summary>
+    public static string? CodeRunnerLanguage(string? codeRunnerType)
+    {
+        var type = (codeRunnerType ?? string.Empty).Trim();
+        if (type.Length == 0 || type.StartsWith("multilanguage", StringComparison.OrdinalIgnoreCase))
+        {
+            return null;
+        }
+
+        if (CodeRunnerTypes.TryGetValue(type, out var known))
+        {
+            return known;
+        }
+
+        var name = type.ToLowerInvariant();
+        if (name.Contains("csharp") || name.Contains("c_sharp") || name.Contains("c#"))
+        {
+            return CodeRunning.CodeLanguages.CSharp;
+        }
+
+        return name.StartsWith("python3") ? CodeRunning.CodeLanguages.Python : null;
+    }
+
     public static ImportParseResult Parse(string? text)
     {
         var questions = new List<QuestionInput>();
@@ -240,9 +267,10 @@ public static class MoodleXmlParser
         }
 
         var codeRunnerType = CleanText(question.Element("coderunnertype"));
-        if (!CodeRunnerTypes.TryGetValue(codeRunnerType, out var language))
+        var language = CodeRunnerLanguage(codeRunnerType);
+        if (language == null)
         {
-            return (null, $"CodeRunner типът „{codeRunnerType}“ не се поддържа (поддържат се {string.Join(", ", CodeRunnerTypes.Keys)}).");
+            return (null, $"CodeRunner типът „{codeRunnerType}“ не се поддържа (поддържат се {string.Join(", ", CodeRunnerTypes.Keys)} и собствени прототипи за C# или Python 3 с вход и изход).");
         }
 
         if (RawText(question.Element("template")).Trim().Length > 0)

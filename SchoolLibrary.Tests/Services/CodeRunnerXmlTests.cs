@@ -134,6 +134,44 @@ public class CodeRunnerXmlTests
         Assert.Contains(reason, Assert.Single(result.Errors));
     }
 
+    [Theory]
+    [InlineData("python3", "python3")]
+    [InlineData("PYTHON3_W_INPUT", "python3")]
+    [InlineData("python3_my_checker", "python3")]
+    [InlineData("csharp_program", "csharp")]
+    [InlineData("C_sharp_using_python", "csharp")]
+    [InlineData("csharp_console", "csharp")]
+    [InlineData("multilanguage_csharp", null)]
+    [InlineData("multilanguage", null)]
+    [InlineData("python2", null)]
+    [InlineData("java_program", null)]
+    [InlineData("", null)]
+    public void CodeRunnerLanguage_KnowsTheOwnPrototypesByName(string type, string? language)
+    {
+        Assert.Equal(language, MoodleXmlParser.CodeRunnerLanguage(type));
+    }
+
+    [Fact]
+    public void Parse_OwnCSharpPrototype_FromMoodle_IsImported()
+    {
+        // As exported from Moodle: a teacher's own prototype, HTML in <div>s with &nbsp;, the regime "10...100"
+        var xml = CodeRunner(OneTest.Replace("<text>1</text></stdin>", "<text>97</text></stdin>")
+                .Replace("<expected><text>1</text></expected>", "<expected><text>The char of 97 is: a</text></expected>")
+                + "<penaltyregime>10...100</penaltyregime><template></template>", "C_sharp_using_python")
+            .Replace("<name><text>Q</text></name>", "<name><text>Int in char</text></name>")
+            .Replace("<text>Задача</text>", "<text><![CDATA[<p><div>Създайте конзолна програма на C#. <br></div><div>Прочетете цяло число&nbsp; от конзолата.</div></p>]]></text>");
+
+        var result = MoodleXmlParser.Parse(xml);
+
+        Assert.Empty(result.Errors);
+        var input = Assert.Single(result.Questions);
+        Assert.Equal("Int in char", input.Text);
+        Assert.Equal("Създайте конзолна програма на C#.\n\nПрочетете цяло число от конзолата.", input.Code!.Statement);
+        Assert.Equal((CodeLanguages.CSharp, 10), (input.Code.Language, input.Code.CheckPenaltyPercent));
+        Assert.Equal(new CodeTestInput("97", "The char of 97 is: a"), Assert.Single(input.Code.Tests));
+        Assert.Null(QuizService.ValidateQuestion(input));
+    }
+
     [Fact]
     public void Parse_Prototype_IsSkipped()
     {

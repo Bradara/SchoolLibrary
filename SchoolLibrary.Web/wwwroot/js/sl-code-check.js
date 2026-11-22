@@ -113,7 +113,8 @@
         var result = box.querySelector("[data-code-check-result]");
         var counter = box.querySelector("[data-code-check-count]");
         var hidden = box.querySelector("[data-code-check-wrong]");
-        var label = button.textContent;
+        var labelNode = button.querySelector("[data-code-check-label]") || button;
+        var label = labelNode.textContent;
 
         var body = new FormData();
         body.append("questionId", box.dataset.questionId);
@@ -121,7 +122,7 @@
         body.append("__RequestVerificationToken", token(form));
 
         button.disabled = true;
-        button.textContent = "Проверява се…";
+        labelNode.textContent = "Проверява се…";
 
         fetch(box.dataset.url, { method: "POST", body: body, credentials: "same-origin" })
             .then(function (response) {
@@ -146,7 +147,7 @@
                     }
                 }
 
-                button.textContent = label;
+                labelNode.textContent = label;
                 button.disabled = data.ok && data.checksLeft === 0;
             });
     });

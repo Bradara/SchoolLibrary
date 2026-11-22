@@ -51,8 +51,8 @@
     var penaltyPoints = SchoolLibrary.Services.Quizzes.QuizPoints.Format(SchoolLibrary.Services.Quizzes.CodePenalty.For(Model, 1));
     <div class="mt-2" data-code-check data-url="@checkUrl" data-question-id="@Model.Id" data-code-id="@codeId">
         <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
-            <button type="button" class="btn btn-sm btn-outline-primary" data-code-check-button>
-                <i class="bi bi-play-circle" aria-hidden="true"></i> Провери
+            <button type="button" class="btn btn-primary fw-semibold px-3 shadow-sm" data-code-check-button>
+                <i class="bi bi-play-fill" aria-hidden="true"></i> <span data-code-check-label>Провери</span>
             </button>
             <span class="small text-body-secondary" data-code-check-count data-wrong="@wrongSoFar" aria-live="polite">Грешни проверки: @wrongSoFar</span>
         </div>
