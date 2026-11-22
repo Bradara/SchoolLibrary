@@ -1,0 +1,16 @@
+@* The list of highlights and notes in the book. sl-epub-highlights.js fills it. *@
+<div class="dropdown">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="sl-epub-notes-btn"
+            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+        <i class="bi bi-highlighter"></i> Бележки <span class="badge text-bg-secondary d-none" id="sl-epub-notes-count"></span>
+    </button>
+    <div class="dropdown-menu p-2 sl-epub-panel" aria-labelledby="sl-epub-notes-btn">
+        <p class="small text-body-secondary mb-2">Изберете текст в книгата, за да го подчертаете или да добавите бележка.</p>
+        <div class="small text-danger mb-2 d-none" id="sl-epub-notes-error" role="alert"></div>
+        <ul class="list-unstyled mb-0 sl-epub-list" id="sl-epub-notes-list"></ul>
+        <p class="small text-body-secondary mb-0" id="sl-epub-notes-empty">Още няма подчертан текст.</p>
+        <button type="button" class="btn btn-sm btn-outline-secondary w-100 mt-2 d-none" id="sl-epub-notes-export">
+            <i class="bi bi-download"></i> Изтегли бележките (.md)
+        </button>
+    </div>
+</div>

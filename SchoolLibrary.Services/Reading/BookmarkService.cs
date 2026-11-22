@@ -1,4 +1,3 @@
-using System.Text;
 using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
 using SchoolLibrary.Data.Models;
@@ -92,41 +91,7 @@ public class BookmarkService : IBookmarkService
     // The label comes from the page text: one line, no control characters, cut to the column length
     public static string CleanLabel(string? label)
     {
-        if (string.IsNullOrWhiteSpace(label))
-        {
-            return DefaultLabel;
-        }
-
-        var text = new StringBuilder(label.Length);
-        var space = false;
-        foreach (var c in label)
-        {
-            if (char.IsWhiteSpace(c) || char.IsControl(c))
-            {
-                space = text.Length > 0;
-                continue;
-            }
-
-            if (space)
-            {
-                text.Append(' ');
-                space = false;
-            }
-
-            text.Append(c);
-        }
-
-        if (text.Length == 0)
-        {
-            return DefaultLabel;
-        }
-
-        if (text.Length > Bookmark.LabelMaxLength)
-        {
-            text.Length = Bookmark.LabelMaxLength - 1;
-            text.Append('…');
-        }
-
-        return text.ToString();
+        var text = ReaderText.OneLine(label, Bookmark.LabelMaxLength);
+        return text.Length == 0 ? DefaultLabel : text;
     }
 }

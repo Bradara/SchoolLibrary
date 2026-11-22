@@ -31,6 +31,7 @@ public class ResourcesControllerTests
     private readonly Mock<ICommentService> _comments = new();
     private readonly Mock<IReadingPositionService> _reading = new();
     private readonly Mock<IBookmarkService> _bookmarks = new();
+    private readonly Mock<IHighlightService> _highlights = new();
 
     private ResourceFilter? _filter;
 
@@ -50,7 +51,7 @@ public class ResourcesControllerTests
 
     private ResourcesController Controller(string? userId = "u1", params string[] roles) =>
         new ResourcesController(_resources.Object, _uploads.Object, _storage.Object, _markdown.Object,
-            _categories.Object, _gradeLevels.Object, _licenses.Object, _favorites.Object, _comments.Object, _reading.Object, _bookmarks.Object)
+            _categories.Object, _gradeLevels.Object, _licenses.Object, _favorites.Object, _comments.Object, _reading.Object, _bookmarks.Object, _highlights.Object)
             .WithUser(userId, roles);
 
     private static ResourceFormViewModel ValidForm() => new()
@@ -369,6 +370,78 @@ public class ResourcesControllerTests
             .ReturnsAsync(ServiceResult.Failure(ServiceError.NotFound, "Отметката не е намерена."));
 
         Assert.IsType<NotFoundResult>(await Controller().DeleteBookmark(7));
+    }
+
+    // ---------- highlights and notes ----------
+
+    private static readonly HighlightInfo SavedHighlight = new(4, "epubcfi(/6/2,/1:0,/1:5)", "текст", "green", "бележка", 3);
+
+    private static object? Field(object? value, string name) => value!.GetType().GetProperty(name)!.GetValue(value);
+
+    [Fact]
+    public async Task Highlights_ReturnsTheCurrentUsersHighlights()
+    {
+        _highlights.Setup(h => h.GetAsync("u1", 5)).ReturnsAsync(new List<HighlightInfo> { SavedHighlight });
+
+        var result = Assert.IsType<JsonResult>(await Controller().Highlights(5));
+
+        var item = Assert.Single((IEnumerable<object>)result.Value!);
+        Assert.Equal("бележка", Field(item, "note"));
+        Assert.Equal("green", Field(item, "color"));
+    }
+
+    [Fact]
+    public async Task AddHighlight_PassesTheSelectionForTheCurrentUser()
+    {
+        HighlightInput? sent = null;
+        _highlights.Setup(h => h.AddAsync("u1", 5, It.IsAny<HighlightInput>()))
+            .Callback<string, int, HighlightInput>((_, _, input) => sent = input)
+            .ReturnsAsync(ServiceResult<HighlightInfo>.Success(SavedHighlight));
+
+        var result = Assert.IsType<JsonResult>(await Controller().AddHighlight(5, "epubcfi(/6/2,/1:0,/1:5)", "текст", "green", "бележка", 3));
+
+        Assert.Equal(new HighlightInput("epubcfi(/6/2,/1:0,/1:5)", "текст", "green", "бележка", 3), sent);
+        Assert.Equal(4, Field(Field(result.Value, "highlight"), "id"));
+    }
+
+    [Fact]
+    public async Task AddHighlight_UnknownBook_ReturnsNotFound()
+    {
+        _highlights.Setup(h => h.AddAsync("u1", 9, It.IsAny<HighlightInput>()))
+            .ReturnsAsync(ServiceResult<HighlightInfo>.Failure(ServiceError.NotFound, "Книгата не е намерена."));
+
+        Assert.IsType<NotFoundResult>(await Controller().AddHighlight(9, "epubcfi(/6)", "x", null, null, 0));
+    }
+
+    [Fact]
+    public async Task UpdateHighlight_Refused_ReturnsBadRequestWithTheMessage()
+    {
+        _highlights.Setup(h => h.UpdateAsync("u1", 4, "blue", It.IsAny<string?>()))
+            .ReturnsAsync(ServiceResult<HighlightInfo>.Failure(ServiceError.Invalid, "Бележката е твърде дълга."));
+
+        var result = Assert.IsType<BadRequestObjectResult>(await Controller().UpdateHighlight(4, "blue", "много"));
+
+        Assert.Equal("Бележката е твърде дълга.", Field(result.Value, "message"));
+    }
+
+    [Fact]
+    public async Task UpdateHighlight_SomeoneElses_ReturnsNotFound()
+    {
+        _highlights.Setup(h => h.UpdateAsync("u1", 4, It.IsAny<string?>(), It.IsAny<string?>()))
+            .ReturnsAsync(ServiceResult<HighlightInfo>.Failure(ServiceError.NotFound, "Подчертаването не е намерено."));
+
+        Assert.IsType<NotFoundResult>(await Controller().UpdateHighlight(4, "blue", null));
+    }
+
+    [Fact]
+    public async Task DeleteHighlight_RemovesForTheCurrentUser()
+    {
+        _highlights.Setup(h => h.RemoveAsync("u1", 4)).ReturnsAsync(ServiceResult.Success());
+        _highlights.Setup(h => h.RemoveAsync("u1", 8))
+            .ReturnsAsync(ServiceResult.Failure(ServiceError.NotFound, "Подчертаването не е намерено."));
+
+        Assert.IsType<JsonResult>(await Controller().DeleteHighlight(4));
+        Assert.IsType<NotFoundResult>(await Controller().DeleteHighlight(8));
     }
 
     // ---------- adding ----------

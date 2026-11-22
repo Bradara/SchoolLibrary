@@ -1,0 +1,30 @@
+@* Shown over the bottom of the book when text is selected or a highlight is clicked (sl-epub-highlights.js).
+   It lies over the page instead of pushing it, so the book does not have to be laid out again. *@
+<div id="sl-epub-selection" class="sl-epub-selection d-none" role="region" aria-label="Подчертаване и бележка">
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <span class="small text-body-secondary sl-epub-selection-text flex-grow-1" id="sl-epub-selection-text"></span>
+        <div class="btn-group btn-group-sm" role="group" aria-label="Цвят на подчертаването">
+            <button type="button" class="btn btn-outline-secondary sl-epub-color" data-color="yellow" aria-label="Жълто" title="Жълто"><span class="sl-epub-swatch sl-epub-swatch-yellow"></span></button>
+            <button type="button" class="btn btn-outline-secondary sl-epub-color" data-color="green" aria-label="Зелено" title="Зелено"><span class="sl-epub-swatch sl-epub-swatch-green"></span></button>
+            <button type="button" class="btn btn-outline-secondary sl-epub-color" data-color="blue" aria-label="Синьо" title="Синьо"><span class="sl-epub-swatch sl-epub-swatch-blue"></span></button>
+            <button type="button" class="btn btn-outline-secondary sl-epub-color" data-color="pink" aria-label="Розово" title="Розово"><span class="sl-epub-swatch sl-epub-swatch-pink"></span></button>
+        </div>
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-epub-note-toggle" aria-expanded="false" aria-controls="sl-epub-note-editor">
+            <i class="bi bi-pencil"></i> Бележка
+        </button>
+        <button type="button" class="btn btn-sm btn-outline-danger d-none" id="sl-epub-highlight-delete">
+            <i class="bi bi-eraser"></i> Премахни
+        </button>
+        <button type="button" class="btn-close" id="sl-epub-selection-close" aria-label="Затвори"></button>
+    </div>
+    <div class="mt-2 d-none" id="sl-epub-note-editor">
+        <label class="visually-hidden" for="sl-epub-note">Бележка</label>
+        <textarea class="form-control form-control-sm" id="sl-epub-note" rows="3" maxlength="2000"
+                  placeholder="Вашата бележка към избрания текст…"></textarea>
+        <div class="d-flex justify-content-between align-items-center mt-1">
+            <span class="small text-body-secondary" id="sl-epub-note-count">0 / 2000</span>
+            <button type="button" class="btn btn-sm btn-primary" id="sl-epub-note-save">Запази бележката</button>
+        </div>
+    </div>
+    <div class="small text-danger d-none mt-1" id="sl-epub-selection-error" role="alert"></div>
+</div>

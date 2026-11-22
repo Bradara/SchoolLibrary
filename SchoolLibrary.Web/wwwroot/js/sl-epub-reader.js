@@ -241,6 +241,23 @@
         wireBookmarks(book, rendition, sync);
         wireSearch(book, rendition);
 
+        area.dispatchEvent(new CustomEvent("sl-epub-ready", {
+            detail: {
+                book: book,
+                rendition: rendition,
+                percent: function () { return sync.percent(); },
+                helpers: {
+                    el: el,
+                    load: load,
+                    save: save,
+                    createStore: createStore,
+                    closeDropdown: closeDropdown,
+                    chapterTitle: chapterTitle,
+                    positionKey: POSITION_KEY
+                }
+            }
+        }));
+
         // Reflow when the container changes size (e.g. the maximize button)
         var resizeTimer = null;
         window.addEventListener("resize", function () {
@@ -396,20 +413,17 @@
         }
     }
 
-    // --- bookmarks: on the server for a signed-in user, in this browser for a visitor ---
-    var BOOKMARKS_MAX = 50;
-
-    function createBookmarkStore() {
-        var listUrl = area.getAttribute("data-epub-bookmarks-url");
-        var addUrl = area.getAttribute("data-epub-bookmark-add-url");
-        var deleteUrl = area.getAttribute("data-epub-bookmark-delete-url");
-        var localKey = POSITION_KEY + "-bookmarks";
+    // --- a list of the reader's own items (bookmarks, highlights): on the server for a signed-in user,
+    // in this browser for a visitor. The same calls either way, all returning promises. ---
+    function createStore(options) {
+        var urls = options.urls || {};
+        var signedIn = !!(urls.list && urls.add && urls.remove);
 
         function readLocal() {
             try {
-                var list = JSON.parse(load(localKey, "[]"));
-                return Array.isArray(list) ? list.filter(function (b) {
-                    return b && typeof b.cfi === "string" && typeof b.label === "string";
+                var list = JSON.parse(load(options.localKey, "[]"));
+                return Array.isArray(list) ? list.filter(function (item) {
+                    return item && typeof item.cfi === "string" && options.isValid(item);
                 }) : [];
             } catch (e) {
                 return [];
@@ -417,31 +431,41 @@
         }
 
         function writeLocal(list) {
-            save(localKey, JSON.stringify(list));
+            save(options.localKey, JSON.stringify(list));
         }
 
-        if (listUrl && addUrl && deleteUrl) {
+        // The server answers { ok, <resultField> } or { ok: false, message }
+        function answer(response, failure) {
+            return response.json().catch(function () { return {}; }).then(function (data) {
+                if (!response.ok || !data.ok) {
+                    throw new Error(data.message || failure);
+                }
+                return data[options.resultField];
+            });
+        }
+
+        if (signedIn) {
             return {
                 list: function () {
-                    return fetch(listUrl, { credentials: "same-origin" })
-                        .then(function (r) {
-                            if (!r.ok) { throw new Error("Отметките не можаха да се заредят."); }
-                            return r.json();
-                        });
-                },
-                add: function (bookmark) {
-                    return postForm(addUrl, bookmark).then(function (r) {
-                        return r.json().catch(function () { return {}; }).then(function (data) {
-                            if (!r.ok || !data.ok) {
-                                throw new Error(data.message || "Отметката не можа да се запази.");
-                            }
-                            return data.bookmark;
-                        });
+                    return fetch(urls.list, { credentials: "same-origin" }).then(function (r) {
+                        if (!r.ok) { throw new Error(options.messages.load); }
+                        return r.json();
                     });
                 },
-                remove: function (bookmark) {
-                    return postForm(deleteUrl, { bookmarkId: bookmark.id }).then(function (r) {
-                        if (!r.ok) { throw new Error("Отметката не можа да се изтрие."); }
+                add: function (item) {
+                    return postForm(urls.add, item).then(function (r) { return answer(r, options.messages.add); });
+                },
+                update: function (item, changes) {
+                    var fields = {};
+                    fields[options.idField] = item.id;
+                    Object.keys(changes).forEach(function (name) { fields[name] = changes[name]; });
+                    return postForm(urls.update, fields).then(function (r) { return answer(r, options.messages.add); });
+                },
+                remove: function (item) {
+                    var fields = {};
+                    fields[options.idField] = item.id;
+                    return postForm(urls.remove, fields).then(function (r) {
+                        if (!r.ok) { throw new Error(options.messages.remove); }
                     });
                 }
             };
@@ -451,25 +475,61 @@
             list: function () {
                 return Promise.resolve(readLocal());
             },
-            add: function (bookmark) {
+            add: function (item) {
                 var list = readLocal();
-                var existing = list.filter(function (b) { return b.cfi === bookmark.cfi; })[0];
+                var existing = list.filter(function (b) { return b.cfi === item.cfi; })[0];
                 if (existing) {
                     return Promise.resolve(existing);
                 }
-                if (list.length >= BOOKMARKS_MAX) {
-                    return Promise.reject(new Error("Можете да имате най-много " + BOOKMARKS_MAX + " отметки в една книга."));
+                if (list.length >= options.max) {
+                    return Promise.reject(new Error(options.messages.limit));
                 }
-                bookmark.id = Date.now();
-                list.push(bookmark);
+                item.id = Date.now();
+                list.push(item);
                 writeLocal(list);
-                return Promise.resolve(bookmark);
+                return Promise.resolve(item);
             },
-            remove: function (bookmark) {
-                writeLocal(readLocal().filter(function (b) { return b.id !== bookmark.id; }));
+            update: function (item, changes) {
+                var updated = null;
+                var list = readLocal().map(function (b) {
+                    if (b.id === item.id) {
+                        Object.keys(changes).forEach(function (name) { b[name] = changes[name]; });
+                        updated = b;
+                    }
+                    return b;
+                });
+                writeLocal(list);
+                return updated ? Promise.resolve(updated) : Promise.reject(new Error(options.messages.add));
+            },
+            remove: function (item) {
+                writeLocal(readLocal().filter(function (b) { return b.id !== item.id; }));
                 return Promise.resolve();
             }
         };
+    }
+
+    // --- bookmarks ---
+    var BOOKMARKS_MAX = 50;
+
+    function createBookmarkStore() {
+        return createStore({
+            urls: {
+                list: area.getAttribute("data-epub-bookmarks-url"),
+                add: area.getAttribute("data-epub-bookmark-add-url"),
+                remove: area.getAttribute("data-epub-bookmark-delete-url")
+            },
+            localKey: POSITION_KEY + "-bookmarks",
+            idField: "bookmarkId",
+            resultField: "bookmark",
+            max: BOOKMARKS_MAX,
+            isValid: function (b) { return typeof b.label === "string"; },
+            messages: {
+                load: "Отметките не можаха да се заредят.",
+                add: "Отметката не можа да се запази.",
+                remove: "Отметката не можа да се изтрие.",
+                limit: "Можете да имате най-много " + BOOKMARKS_MAX + " отметки в една книга."
+            }
+        });
     }
 
     function byPercent(a, b) {

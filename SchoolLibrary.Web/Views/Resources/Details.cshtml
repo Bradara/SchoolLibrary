@@ -85,6 +85,7 @@
                     </div>
                     <partial name="_EpubReaderSettings" />
                     <partial name="_EpubReaderBookmarks" />
+                    <partial name="_EpubReaderNotes" />
                     <partial name="_EpubReaderSearch" />
                     <span class="small text-body-secondary" id="sl-epub-sync" aria-live="polite"></span>
                     <button type="button" class="btn btn-sm btn-outline-secondary ms-auto sl-viewer-toggle"
@@ -101,7 +102,12 @@
                          data-epub-percent="@Model.ReadingPosition?.Percent"
                          data-epub-bookmarks-url="@(signedIn ? Url.Action("Bookmarks", new { id = Model.Resource.Id }) : null)"
                          data-epub-bookmark-add-url="@(signedIn ? Url.Action("AddBookmark", new { id = Model.Resource.Id }) : null)"
-                         data-epub-bookmark-delete-url="@(signedIn ? Url.Action("DeleteBookmark") : null)"></div>
+                         data-epub-bookmark-delete-url="@(signedIn ? Url.Action("DeleteBookmark") : null)"
+                         data-epub-highlights-url="@(signedIn ? Url.Action("Highlights", new { id = Model.Resource.Id }) : null)"
+                         data-epub-highlight-add-url="@(signedIn ? Url.Action("AddHighlight", new { id = Model.Resource.Id }) : null)"
+                         data-epub-highlight-update-url="@(signedIn ? Url.Action("UpdateHighlight") : null)"
+                         data-epub-highlight-delete-url="@(signedIn ? Url.Action("DeleteHighlight") : null)"></div>
+                    <partial name="_EpubReaderSelection" />
                     @if (signedIn)
                     {
                         <form id="sl-epub-token" class="d-none">@Html.AntiForgeryToken()</form>
@@ -231,5 +237,6 @@ else
         <script src="~/lib/jszip/jszip.min.js"></script>
         <script src="~/lib/epubjs/epub.min.js"></script>
         <script src="~/js/sl-epub-reader.js" asp-append-version="true"></script>
+        <script src="~/js/sl-epub-highlights.js" asp-append-version="true"></script>
     }
 }

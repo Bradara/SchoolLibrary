@@ -83,6 +83,30 @@ namespace SchoolLibrary.Data
             builder.Entity<Bookmark>()
                 .ToTable(t => t.HasCheckConstraint("CK_Bookmarks_Percent", "\"Percent\" BETWEEN 0 AND 100"));
 
+            // Highlights and notes: removed with the book and with the account; one per passage
+            builder.Entity<Highlight>()
+                .HasOne(h => h.User)
+                .WithMany()
+                .HasForeignKey(h => h.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Highlight>()
+                .HasOne(h => h.Resource)
+                .WithMany()
+                .HasForeignKey(h => h.ResourceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Highlight>()
+                .HasIndex(h => new { h.UserId, h.ResourceId, h.Cfi })
+                .IsUnique();
+
+            builder.Entity<Highlight>()
+                .ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_Highlights_Percent", "\"Percent\" BETWEEN 0 AND 100");
+                    t.HasCheckConstraint("CK_Highlights_Color", "\"Color\" IN ('yellow', 'green', 'blue', 'pink')");
+                });
+
             // Comments go away with their resource and with their author's account
             builder.Entity<Comment>()
                 .HasOne(c => c.Resource)
@@ -424,6 +448,7 @@ namespace SchoolLibrary.Data
         public DbSet<Comment> Comments { get; set; }
         public DbSet<ReadingPosition> ReadingPositions { get; set; }
         public DbSet<Bookmark> Bookmarks { get; set; }
+        public DbSet<Highlight> Highlights { get; set; }
         public DbSet<Report> Reports { get; set; }
         public DbSet<Section> Sections { get; set; }
         public DbSet<Quiz> Quizzes { get; set; }
