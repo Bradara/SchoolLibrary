@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using SchoolLibrary.Data.Constants;
 using SchoolLibrary.Services.Comments;
 using SchoolLibrary.Services.Common;
+using SchoolLibrary.Services.Resources;
 using System.Security.Claims;
 
 namespace SchoolLibrary.Controllers
@@ -25,7 +26,7 @@ namespace SchoolLibrary.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Add(int resourceId, string? text)
         {
-            var result = await _comments.AddAsync(resourceId, CurrentUserId, text ?? string.Empty);
+            var result = await _comments.AddAsync(resourceId, ResourceViewer.For(User), text ?? string.Empty);
             if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();

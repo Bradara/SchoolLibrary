@@ -149,6 +149,12 @@ else
                             <a asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-decoration-none">
                                 @item.Title
                             </a>
+                            @if (item.Audience != SchoolLibrary.Data.Enums.ResourceAudience.Everyone)
+                            {
+                                var visibility = "Видимост: " + SchoolLibrary.Services.Resources.ResourceVisibility.Describe(item.Audience);
+                                <i class="bi bi-eye-slash text-body-secondary ms-1" data-sl-tip="@visibility" data-sl-placement="top"
+                                   role="img" aria-label="@visibility"></i>
+                            }
                         </td>
                         <td>@foreach (var c in item.Categories.OrderBy(c => c.Name)) { <span class="badge bg-primary text-primary-emphasis">@c.Name</span> }</td>
                         <td>@foreach (var g in item.GradeLevels.OrderBy(g => g.Number)) { <span class="badge bg-secondary text-secondary-emphasis">@g.Name</span> }</td>

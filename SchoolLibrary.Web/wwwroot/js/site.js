@@ -55,3 +55,15 @@
         });
     }
 })();
+
+// Resource visibility (_AudiencePicker): a preset button ticks exactly its groups
+document.addEventListener('click', function (e) {
+    var btn = e.target.closest('[data-sl-audience-preset]');
+    if (!btn) return;
+
+    var picker = btn.closest('.sl-audience');
+    var chosen = btn.getAttribute('data-sl-audience-preset').split(',').filter(Boolean);
+    picker.querySelectorAll('input[type="checkbox"][name="Audience"]').forEach(function (box) {
+        box.checked = chosen.indexOf(box.value) !== -1;
+    });
+});

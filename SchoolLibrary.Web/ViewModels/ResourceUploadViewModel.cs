@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http;
+using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 
 namespace SchoolLibrary.ViewModels;
@@ -31,6 +32,13 @@ public class ResourceUploadViewModel
     [Required(ErrorMessage = "Изберете лиценз")]
     [Display(Name = "Лиценз")]
     public int? LicenseId { get; set; }
+
+    // The ticked audience groups; see ResourceFormViewModel.Audience for the hidden "None"
+    [Display(Name = "Видимост")]
+    public List<ResourceAudience> Audience { get; set; } = new()
+    {
+        ResourceAudience.Guests, ResourceAudience.Students, ResourceAudience.Parents, ResourceAudience.Teachers
+    };
 
     [Display(Name = "Предмети")]
     public List<int> SelectedCategoryIds { get; set; } = new();

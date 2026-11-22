@@ -410,7 +410,7 @@ public class ResourceServiceTests
         await AddResourceAsync("Две", owner: _ivan);
         await AddResourceAsync("Три", owner: _ivan);
 
-        var owners = await _service.GetOwnersAsync();
+        var owners = await _service.GetOwnersAsync(ResourceViewer.Anonymous);
 
         Assert.Equal(new[] { "Иван Петров", "Мария Георгиева" }, owners.Select(o => o.FullName));
     }
@@ -422,7 +422,7 @@ public class ResourceServiceTests
     {
         var resource = await AddResourceAsync("Дроби", owner: _maria, category: _music, grade: _grade6);
 
-        var result = await _service.GetDetailsAsync(resource.Id);
+        var result = await _service.GetDetailsAsync(resource.Id, TestViewers.Administrator());
 
         Assert.NotNull(result);
         Assert.Equal("Музика", result!.Categories.Single().Name);
@@ -433,7 +433,7 @@ public class ResourceServiceTests
     [Fact]
     public async Task GetDetailsAsync_UnknownId_ReturnsNull()
     {
-        Assert.Null(await _service.GetDetailsAsync(999));
+        Assert.Null(await _service.GetDetailsAsync(999, TestViewers.Administrator()));
     }
 
     // ---------- GetForEditAsync / GetForDeleteAsync ----------
@@ -598,7 +598,7 @@ public class ResourceServiceTests
         var result = await _service.CreateAsync(ValidInput(), _ivan.Id);
 
         Assert.Equal(_license.Id, result.Value!.LicenseId);
-        var details = await _service.GetDetailsAsync(result.Value.Id);
+        var details = await _service.GetDetailsAsync(result.Value.Id, TestViewers.Administrator());
         Assert.Equal("CC BY 4.0", details!.License!.Name);
     }
 

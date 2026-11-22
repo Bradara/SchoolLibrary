@@ -109,6 +109,7 @@ public class ResourceUploadService : IResourceUploadService
                 Url = string.Empty,
                 NormalizedUrl = null,
                 Kind = ResourceKind.Upload,
+                Audience = ResourceVisibility.Clean(input.Audience),
                 CreatedOn = DateTime.UtcNow,
                 OwnerId = ownerId,
                 License = license,

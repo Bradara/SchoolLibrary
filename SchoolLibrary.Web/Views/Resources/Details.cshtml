@@ -167,6 +167,11 @@ else
     <div class="alert alert-warning">Адресът на този ресурс не е валиден.</div>
 }
 
+@{
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var isAdministrator = User.IsInRole(SchoolLibrary.Data.Constants.Roles.Administrator);
+}
+
 <div class="mt-3 d-flex align-items-center gap-2">
     @if (User.Identity?.IsAuthenticated == true)
     {
@@ -204,12 +209,19 @@ else
     </div>
     <div>Публикувал: <strong>@Model.Resource.PublisherName()</strong></div>
     <div>Дата: @Model.Resource.CreatedOn.ToString("dd.MM.yyyy HH:mm")</div>
+    @if (Model.CanChangeAudience || isAdministrator)
+    {
+        <div>
+            Видимост:
+            <strong>@SchoolLibrary.Services.Resources.ResourceVisibility.Describe(Model.Resource.Audience)</strong>
+            @if (Model.Resource.Audience != ResourceAudience.Everyone)
+            {
+                <i class="bi bi-eye-slash" aria-hidden="true"></i>
+            }
+        </div>
+    }
 </div>
 
-@{
-    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-    var isAdministrator = User.IsInRole(SchoolLibrary.Data.Constants.Roles.Administrator);
-}
 @if (User.Identity?.IsAuthenticated == true && SchoolLibrary.Services.Resources.ResourcePermissions.CanEdit(Model.Resource, userId, isAdministrator))
 {
     <div class="mt-4">
@@ -218,7 +230,25 @@ else
             <a asp-action="Edit" asp-route-id="@Model.Resource.Id" class="btn btn-outline-primary">Редактирай</a>
         }
         <a asp-action="Delete" asp-route-id="@Model.Resource.Id" class="btn btn-outline-danger">Изтрий</a>
+        @if (Model.CanChangeAudience)
+        {
+            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="collapse"
+                    data-bs-target="#sl-audience-form" aria-expanded="false" aria-controls="sl-audience-form">
+                <i class="bi bi-eye"></i> Видимост
+            </button>
+        }
     </div>
+
+    @if (Model.CanChangeAudience)
+    {
+        <form asp-action="SetAudience" asp-route-id="@Model.Resource.Id" method="post"
+              class="collapse mt-3 border rounded p-3" id="sl-audience-form" style="max-width: 40rem;">
+            <h2 class="h6">Кой вижда този материал</h2>
+            <partial name="_AudiencePicker"
+                     model="SchoolLibrary.Services.Resources.ResourceVisibility.Groups.Select(g => g.Group).Where(g => Model.Resource.Audience.HasFlag(g)).ToList()" />
+            <button type="submit" class="btn btn-primary btn-sm mt-2">Запази видимостта</button>
+        </form>
+    }
 }
 
 <partial name="_Comments" model="Model" />

@@ -25,9 +25,11 @@ public class PublicReportsControllerTests
         new PublicReportsController(_reports.Object, _resources.Object, _comments.Object).WithUser("u1");
 
     private void ResourceExists() =>
-        _resources.Setup(r => r.GetDetailsAsync(5)).ReturnsAsync(new Resource { Id = 5, Title = "Дроби" });
+        _resources.Setup(r => r.GetDetailsAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(new Resource { Id = 5, Title = "Дроби" });
 
-    private void CommentExists() =>
+    private void CommentExists()
+    {
+        _resources.Setup(r => r.CanViewAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(true);
         _comments.Setup(c => c.GetAsync(7)).ReturnsAsync(new Comment
         {
             Id = 7,
@@ -36,6 +38,7 @@ public class PublicReportsControllerTests
             Resource = new Resource { Id = 5, Title = "Дроби" },
             Author = new ApplicationUser { FirstName = "Мария", LastName = "Георгиева" }
         });
+    }
 
     // ---------- the form ----------
 

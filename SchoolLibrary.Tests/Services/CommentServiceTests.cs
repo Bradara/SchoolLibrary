@@ -43,7 +43,7 @@ public class CommentServiceTests
     {
         var before = DateTime.UtcNow;
 
-        var result = await _service.AddAsync(_resource.Id, "maria", "Много полезно, благодаря!");
+        var result = await _service.AddAsync(_resource.Id, TestViewers.Student("maria"), "Много полезно, благодаря!");
 
         Assert.True(result.Succeeded);
         var saved = Assert.Single(_context.Comments);
@@ -56,7 +56,7 @@ public class CommentServiceTests
     [Fact]
     public async Task AddAsync_TrimsTheText()
     {
-        await _service.AddAsync(_resource.Id, "maria", "  Здравейте  \n");
+        await _service.AddAsync(_resource.Id, TestViewers.Student("maria"), "  Здравейте  \n");
 
         Assert.Equal("Здравейте", _context.Comments.Single().Text);
     }
@@ -67,7 +67,7 @@ public class CommentServiceTests
     [InlineData("\n\r\n\t")]
     public async Task AddAsync_EmptyText_IsInvalidAndSavesNothing(string text)
     {
-        var result = await _service.AddAsync(_resource.Id, "maria", text);
+        var result = await _service.AddAsync(_resource.Id, TestViewers.Student("maria"), text);
 
         Assert.Equal(ServiceError.Invalid, result.Error);
         Assert.Contains("Напишете коментар", result.Message);
@@ -77,7 +77,7 @@ public class CommentServiceTests
     [Fact]
     public async Task AddAsync_NullText_IsInvalid()
     {
-        var result = await _service.AddAsync(_resource.Id, "maria", null!);
+        var result = await _service.AddAsync(_resource.Id, TestViewers.Student("maria"), null!);
 
         Assert.Equal(ServiceError.Invalid, result.Error);
     }
@@ -85,7 +85,7 @@ public class CommentServiceTests
     [Fact]
     public async Task AddAsync_ExactlyMaxLength_IsAccepted()
     {
-        var result = await _service.AddAsync(_resource.Id, "maria", new string('а', CommentService.TextMaxLength));
+        var result = await _service.AddAsync(_resource.Id, TestViewers.Student("maria"), new string('а', CommentService.TextMaxLength));
 
         Assert.True(result.Succeeded);
     }
@@ -93,7 +93,7 @@ public class CommentServiceTests
     [Fact]
     public async Task AddAsync_OneCharacterTooLong_IsInvalid()
     {
-        var result = await _service.AddAsync(_resource.Id, "maria", new string('а', CommentService.TextMaxLength + 1));
+        var result = await _service.AddAsync(_resource.Id, TestViewers.Student("maria"), new string('а', CommentService.TextMaxLength + 1));
 
         Assert.Equal(ServiceError.Invalid, result.Error);
         Assert.Contains("500", result.Message);
@@ -106,7 +106,7 @@ public class CommentServiceTests
         // 249 + CRLF + 250 is 500 characters in the textarea, but 501 once the browser sends CRLF
         var text = new string('а', 249) + "\r\n" + new string('б', 250);
 
-        var result = await _service.AddAsync(_resource.Id, "maria", text);
+        var result = await _service.AddAsync(_resource.Id, TestViewers.Student("maria"), text);
 
         Assert.True(result.Succeeded);
         Assert.Equal(500, _context.Comments.Single().Text.Length);
@@ -116,7 +116,7 @@ public class CommentServiceTests
     [Fact]
     public async Task AddAsync_UnknownResource_ReturnsNotFoundAndSavesNothing()
     {
-        var result = await _service.AddAsync(999, "maria", "Здравейте");
+        var result = await _service.AddAsync(999, TestViewers.Student("maria"), "Здравейте");
 
         Assert.Equal(ServiceError.NotFound, result.Error);
         Assert.Empty(_context.Comments);
@@ -125,7 +125,7 @@ public class CommentServiceTests
     [Fact]
     public async Task AddAsync_HtmlIsStoredAsTyped_EscapingIsLeftToTheView()
     {
-        await _service.AddAsync(_resource.Id, "maria", "<script>alert(1)</script>");
+        await _service.AddAsync(_resource.Id, TestViewers.Student("maria"), "<script>alert(1)</script>");
 
         Assert.Equal("<script>alert(1)</script>", _context.Comments.Single().Text);
     }

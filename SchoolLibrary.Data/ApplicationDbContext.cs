@@ -153,6 +153,10 @@ namespace SchoolLibrary.Data
                 .HasIndex(r => r.NormalizedUrl)
                 .IsUnique();
 
+            // Only the known audience flags (Guests | Students | Parents | Teachers)
+            builder.Entity<Resource>()
+                .ToTable(t => t.HasCheckConstraint("CK_Resources_Audience", "\"Audience\" BETWEEN 0 AND 15"));
+
             // A license in use cannot be deleted
             builder.Entity<Resource>()
                 .HasOne(r => r.License)

@@ -72,6 +72,9 @@ namespace SchoolLibrary.Controllers
 
         private bool IsAdministrator => User.IsInRole(Roles.Administrator);
 
+        // Who is looking: decides which resources are listed and opened
+        private ResourceViewer Viewer => ResourceViewer.For(User);
+
         // GET: Resources
         [AllowAnonymous]
         public async Task<IActionResult> Index(
@@ -95,10 +98,11 @@ namespace SchoolLibrary.Controllers
                 FromDate = fromDate,
                 ToDate = toDate,
                 SortOrder = sortOrder ?? ResourceSortOrder.DateDesc,
-                Page = page
+                Page = page,
+                Viewer = Viewer
             });
 
-            var owners = await _resources.GetOwnersAsync();
+            var owners = await _resources.GetOwnersAsync(Viewer);
 
             // The hearts of the page: only signed-in users have favorites
             var favoriteIds = IsSignedIn
@@ -139,7 +143,8 @@ namespace SchoolLibrary.Controllers
                 return NotFound();
             }
 
-            var resource = await _resources.GetDetailsAsync(id.Value);
+            // A hidden resource looks the same as a missing one, so its existence is not revealed
+            var resource = await _resources.GetDetailsAsync(id.Value, Viewer);
             if (resource == null)
             {
                 return NotFound();
@@ -164,8 +169,24 @@ namespace SchoolLibrary.Controllers
                 CommentTotal = comments.TotalCount,
                 CommentError = TempData["CommentError"] as string,
                 CommentDraft = TempData["CommentDraft"] as string,
-                ReadingPosition = readingPosition
+                ReadingPosition = readingPosition,
+                CanChangeAudience = IsSignedIn && ResourcePermissions.CanEdit(resource, CurrentUserId, IsAdministrator)
             });
+        }
+
+        // POST: Resources/SetAudience/5 — the owner changes who may see the resource (from the details page)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SetAudience(int id, List<ResourceAudience>? audience)
+        {
+            var result = await _resources.SetAudienceAsync(id, ResourceVisibility.Combine(audience), CurrentUserId, IsAdministrator);
+            if (!result.Succeeded)
+            {
+                return ToActionResult(result);
+            }
+
+            TempData["SuccessMessage"] = $"Видимост: {ResourceVisibility.Describe(result.Value!.Audience)}.";
+            return RedirectToAction(nameof(Details), new { id });
         }
 
         // POST: Resources/SaveReadingPosition/5 — the EPUB reader saves where the user is (fetch, JSON)
@@ -269,7 +290,7 @@ namespace SchoolLibrary.Controllers
         [AllowAnonymous]
         public async Task<IActionResult> Download(int id, bool download = false)
         {
-            var file = await _resources.GetFileAsync(id);
+            var file = await _resources.GetFileAsync(id, Viewer);
             if (file == null)
             {
                 return NotFound();
@@ -388,6 +409,7 @@ namespace SchoolLibrary.Controllers
                 Description = resource.Description,
                 Url = resource.Url,
                 Kind = resource.Kind,
+                Audience = ResourceVisibility.Groups.Select(g => g.Group).Where(g => resource.Audience.HasFlag(g)).ToList(),
                 LicenseId = resource.LicenseId,
                 SelectedCategoryIds = resource.Categories.Select(c => c.Id).ToList(),
                 SelectedGradeLevelIds = resource.GradeLevels.Select(g => g.Id).ToList()
@@ -453,7 +475,7 @@ namespace SchoolLibrary.Controllers
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             // Read the file before deleting, so its bytes can be removed from storage afterwards
-            var file = await _resources.GetFileAsync(id);
+            var file = await _resources.GetFileAsync(id, Viewer);
 
             var result = await _resources.DeleteAsync(id, CurrentUserId, IsAdministrator);
             if (!result.Succeeded)
@@ -498,6 +520,7 @@ namespace SchoolLibrary.Controllers
             Description = vm.Description,
             Url = vm.Url,
             Kind = vm.Kind,
+            Audience = ResourceVisibility.Combine(vm.Audience),
             LicenseId = vm.LicenseId,
             CategoryIds = vm.SelectedCategoryIds,
             GradeLevelIds = vm.SelectedGradeLevelIds
@@ -545,6 +568,7 @@ namespace SchoolLibrary.Controllers
             Source = vm.Source,
             Description = vm.Description,
             Kind = ResourceKind.Upload,
+            Audience = ResourceVisibility.Combine(vm.Audience),
             LicenseId = vm.LicenseId,
             CategoryIds = vm.SelectedCategoryIds,
             GradeLevelIds = vm.SelectedGradeLevelIds

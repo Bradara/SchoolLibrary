@@ -40,4 +40,7 @@ public class ResourceDetailsViewModel
 
     /// <summary>Where the signed-in user stopped reading this book (EPUB only); null otherwise.</summary>
     public ReadingPositionInfo? ReadingPosition { get; set; }
+
+    /// <summary>Whether the current user may change who sees the resource (its owner, or an administrator for a resource without one).</summary>
+    public bool CanChangeAudience { get; set; }
 }

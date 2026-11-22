@@ -33,6 +33,10 @@ namespace SchoolLibrary.Data.Models
         [Display(Name = "Вид")]
         public ResourceKind Kind { get; set; } = ResourceKind.Lesson;
 
+        // Who besides the owner and the administrators may see the resource (bit flags)
+        [Display(Name = "Видимост")]
+        public ResourceAudience Audience { get; set; } = ResourceAudience.Everyone;
+
         // Many-to-many: a resource can belong to several subjects and several grades.
         // EF Core creates the join tables (CategoryResource, GradeLevelResource) by convention.
         [Display(Name = "Предмети")]

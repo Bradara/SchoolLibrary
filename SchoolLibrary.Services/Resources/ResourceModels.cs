@@ -44,6 +44,9 @@ public class ResourceFilter
     public int Page { get; set; } = 1;
 
     public int PageSize { get; set; } = DefaultPageSize;
+
+    /// <summary>Who is looking: only the resources this viewer may see are listed.</summary>
+    public ResourceViewer Viewer { get; set; } = ResourceViewer.Anonymous;
 }
 
 /// <summary>The data a user enters when adding or editing a resource.</summary>
@@ -62,6 +65,9 @@ public class ResourceInput
     public int? LicenseId { get; set; }
 
     public ResourceKind Kind { get; set; } = ResourceKind.Lesson;
+
+    /// <summary>Who besides the owner and the administrators may see the resource.</summary>
+    public ResourceAudience Audience { get; set; } = ResourceAudience.Everyone;
 
     public List<int> CategoryIds { get; set; } = new();
 

@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
+using SchoolLibrary.Services.Resources;
 
 namespace SchoolLibrary.Services.Comments;
 
@@ -48,7 +49,7 @@ public class CommentService : ICommentService
             .FirstOrDefaultAsync(c => c.Id == commentId);
     }
 
-    public async Task<ServiceResult<Comment>> AddAsync(int resourceId, string authorId, string text)
+    public async Task<ServiceResult<Comment>> AddAsync(int resourceId, ResourceViewer author, string text)
     {
         // A browser counts a line break as one character but sends two (CRLF), so the length is
         // checked on the text with single line breaks: what the user saw is what is checked
@@ -65,7 +66,8 @@ public class CommentService : ICommentService
                 $"Коментарът не може да бъде по-дълъг от {TextMaxLength} символа.");
         }
 
-        if (!await _context.Resources.AnyAsync(r => r.Id == resourceId))
+        var authorId = author.UserId;
+        if (authorId == null || !await _context.Resources.VisibleTo(author).AnyAsync(r => r.Id == resourceId))
         {
             return ServiceResult<Comment>.Failure(ServiceError.NotFound, "Ресурсът не е намерен.");
         }

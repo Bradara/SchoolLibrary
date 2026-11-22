@@ -28,7 +28,7 @@ public class ResourceService : IResourceService
 
     public async Task<PagedResult<Resource>> SearchAsync(ResourceFilter filter)
     {
-        var query = ApplyFilter(_context.Resources.AsNoTracking(), filter);
+        var query = ApplyFilter(_context.Resources.AsNoTracking().VisibleTo(filter.Viewer), filter);
 
         var totalCount = await query.CountAsync();
 
@@ -49,18 +49,29 @@ public class ResourceService : IResourceService
         return new PagedResult<Resource>(items, totalCount, page, pageSize);
     }
 
-    public async Task<IReadOnlyList<ResourceOwnerOption>> GetOwnersAsync()
+    public async Task<IReadOnlyList<ResourceOwnerOption>> GetOwnersAsync(ResourceViewer viewer)
     {
+        var visible = _context.Resources.VisibleTo(viewer);
+
         return await _context.Users
             .AsNoTracking()
-            .Where(u => _context.Resources.Any(r => r.OwnerId == u.Id))
+            .Where(u => visible.Any(r => r.OwnerId == u.Id))
             .OrderBy(u => u.FirstName)
             .ThenBy(u => u.LastName)
             .Select(u => new ResourceOwnerOption(u.Id, u.FirstName + " " + u.LastName))
             .ToListAsync();
     }
 
-    public async Task<Resource?> GetDetailsAsync(int id)
+    public async Task<Resource?> GetDetailsAsync(int id, ResourceViewer viewer)
+    {
+        var resource = await LoadDetailsAsync(id);
+        return resource != null && ResourceVisibility.CanView(resource, viewer) ? resource : null;
+    }
+
+    public async Task<bool> CanViewAsync(int id, ResourceViewer viewer) =>
+        await _context.Resources.VisibleTo(viewer).AnyAsync(r => r.Id == id);
+
+    private async Task<Resource?> LoadDetailsAsync(int id)
     {
         return await _context.Resources
             .AsNoTracking()
@@ -73,11 +84,13 @@ public class ResourceService : IResourceService
             .FirstOrDefaultAsync(r => r.Id == id);
     }
 
-    public async Task<ResourceFile?> GetFileAsync(int resourceId)
+    public async Task<ResourceFile?> GetFileAsync(int resourceId, ResourceViewer viewer)
     {
+        var visible = _context.Resources.VisibleTo(viewer);
+
         return await _context.ResourceFiles
             .AsNoTracking()
-            .FirstOrDefaultAsync(f => f.ResourceId == resourceId);
+            .FirstOrDefaultAsync(f => f.ResourceId == resourceId && visible.Any(r => r.Id == resourceId));
     }
 
     public async Task<Resource?> FindByUrlAsync(string url)
@@ -96,7 +109,7 @@ public class ResourceService : IResourceService
 
     public async Task<ServiceResult<Resource>> GetForEditAsync(int id, string userId, bool isAdministrator)
     {
-        var resource = await GetDetailsAsync(id);
+        var resource = await LoadDetailsAsync(id);
         if (resource == null)
         {
             return ServiceResult<Resource>.Failure(ServiceError.NotFound, NotFoundMessage);
@@ -113,7 +126,7 @@ public class ResourceService : IResourceService
 
     public async Task<ServiceResult<Resource>> GetForDeleteAsync(int id, string userId, bool isAdministrator)
     {
-        var resource = await GetDetailsAsync(id);
+        var resource = await LoadDetailsAsync(id);
         if (resource == null)
         {
             return ServiceResult<Resource>.Failure(ServiceError.NotFound, NotFoundMessage);
@@ -193,6 +206,26 @@ public class ResourceService : IResourceService
             return ServiceResult<Resource>.Failure(ServiceError.Invalid, error);
         }
 
+        await _context.SaveChangesAsync();
+
+        return ServiceResult<Resource>.Success(resource);
+    }
+
+    public async Task<ServiceResult<Resource>> SetAudienceAsync(int id, ResourceAudience audience, string userId, bool isAdministrator)
+    {
+        var resource = await _context.Resources.FirstOrDefaultAsync(r => r.Id == id);
+        if (resource == null)
+        {
+            return ServiceResult<Resource>.Failure(ServiceError.NotFound, NotFoundMessage);
+        }
+
+        // The same people who may edit the resource; this also works for uploads, which have no edit form
+        if (!ResourcePermissions.CanEdit(resource, userId, isAdministrator))
+        {
+            return ServiceResult<Resource>.Failure(ServiceError.Forbidden, ForbiddenMessage);
+        }
+
+        resource.Audience = ResourceVisibility.Clean(audience);
         await _context.SaveChangesAsync();
 
         return ServiceResult<Resource>.Success(resource);
@@ -390,6 +423,7 @@ public class ResourceService : IResourceService
         resource.NormalizedUrl = UrlNormalizer.Normalize(resource.Url);
         resource.License = license;
         resource.Kind = input.Kind;
+        resource.Audience = ResourceVisibility.Clean(input.Audience);
 
         resource.Categories.Clear();
         foreach (var category in categories)

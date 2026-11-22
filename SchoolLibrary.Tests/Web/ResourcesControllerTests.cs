@@ -41,7 +41,7 @@ public class ResourcesControllerTests
             .Callback<ResourceFilter>(f => _filter = f)
             .ReturnsAsync(new PagedResult<Resource>(
                 new List<Resource> { new() { Id = 1, Title = "А" }, new() { Id = 2, Title = "Б" } }, 2, 1, 10));
-        _resources.Setup(r => r.GetOwnersAsync()).ReturnsAsync(new List<ResourceOwnerOption>());
+        _resources.Setup(r => r.GetOwnersAsync(It.IsAny<ResourceViewer>())).ReturnsAsync(new List<ResourceOwnerOption>());
         _categories.Setup(c => c.GetOptionsAsync()).ReturnsAsync(new List<Category> { new() { Id = 1, Name = "Математика" } });
         _gradeLevels.Setup(g => g.GetAllAsync()).ReturnsAsync(new List<GradeLevel> { new() { Id = 1, Number = 5 } });
         _licenses.Setup(l => l.GetOptionsAsync()).ReturnsAsync(new List<License> { new() { Id = 1, Name = "CC BY 4.0" } });
@@ -78,7 +78,7 @@ public class ResourcesControllerTests
     [Fact]
     public async Task Download_ReturnsTheFile_WhenItExists()
     {
-        _resources.Setup(r => r.GetFileAsync(5)).ReturnsAsync(PdfFile());
+        _resources.Setup(r => r.GetFileAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(PdfFile());
         _storage.Setup(s => s.OpenReadAsync("resources/x.pdf", It.IsAny<CancellationToken>()))
             .ReturnsAsync(new MemoryStream(new byte[] { 1, 2, 3 }));
 
@@ -91,7 +91,7 @@ public class ResourcesControllerTests
     [Fact]
     public async Task Download_ReturnsNotFound_WhenResourceHasNoFile()
     {
-        _resources.Setup(r => r.GetFileAsync(It.IsAny<int>())).ReturnsAsync((ResourceFile?)null);
+        _resources.Setup(r => r.GetFileAsync(It.IsAny<int>(), It.IsAny<ResourceViewer>())).ReturnsAsync((ResourceFile?)null);
 
         Assert.IsType<NotFoundResult>(await Controller().Download(5));
     }
@@ -99,7 +99,7 @@ public class ResourcesControllerTests
     [Fact]
     public async Task Download_ReturnsNotFound_WhenTheBytesAreMissing()
     {
-        _resources.Setup(r => r.GetFileAsync(5)).ReturnsAsync(PdfFile());
+        _resources.Setup(r => r.GetFileAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(PdfFile());
         _storage.Setup(s => s.OpenReadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync((Stream?)null);
 
@@ -192,7 +192,7 @@ public class ResourcesControllerTests
     [Fact]
     public async Task Details_ShowsTheResourceWithItsFavoritesAndCommentsPage()
     {
-        _resources.Setup(r => r.GetDetailsAsync(5)).ReturnsAsync(new Resource { Id = 5, Title = "Дроби" });
+        _resources.Setup(r => r.GetDetailsAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(new Resource { Id = 5, Title = "Дроби" });
         _favorites.Setup(f => f.IsFavoriteAsync("u1", 5)).ReturnsAsync(true);
         _favorites.Setup(f => f.CountAsync(5)).ReturnsAsync(7);
         _comments.Setup(c => c.GetForResourceAsync(5, 3, It.IsAny<int>()))
@@ -213,7 +213,7 @@ public class ResourcesControllerTests
     [Fact]
     public async Task Details_ForAVisitor_IsNotAFavoriteAndNobodyIsAsked()
     {
-        _resources.Setup(r => r.GetDetailsAsync(5)).ReturnsAsync(new Resource { Id = 5, Title = "Дроби" });
+        _resources.Setup(r => r.GetDetailsAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(new Resource { Id = 5, Title = "Дроби" });
 
         var result = await Controller(userId: null).Details(5);
 
@@ -224,7 +224,7 @@ public class ResourcesControllerTests
     [Fact]
     public async Task Details_BringsBackTheRefusedCommentAndItsMessage()
     {
-        _resources.Setup(r => r.GetDetailsAsync(5)).ReturnsAsync(new Resource { Id = 5, Title = "Дроби" });
+        _resources.Setup(r => r.GetDetailsAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(new Resource { Id = 5, Title = "Дроби" });
         var controller = Controller();
         controller.TempData["CommentError"] = "Напишете коментар.";
         controller.TempData["CommentDraft"] = "недовършен текст";
@@ -234,6 +234,124 @@ public class ResourcesControllerTests
         var model = Assert.IsType<ResourceDetailsViewModel>(Assert.IsType<ViewResult>(result).Model);
         Assert.Equal("Напишете коментар.", model.CommentError);
         Assert.Equal("недовършен текст", model.CommentDraft);
+    }
+
+    // ---------- visibility ----------
+
+    [Fact]
+    public async Task Index_ListsWhatTheSignedInUserMaySee()
+    {
+        await Controller("u1", Roles.Teacher).Index(null, null, null, null, null, null, null, null);
+
+        Assert.Equal("u1", _filter!.Viewer.UserId);
+        Assert.Equal(ResourceAudience.Guests | ResourceAudience.Teachers, _filter.Viewer.Audience);
+    }
+
+    [Fact]
+    public async Task Index_ForAVisitor_ListsOnlyPublicResources()
+    {
+        await Controller(userId: null).Index(null, null, null, null, null, null, null, null);
+
+        Assert.Equal(ResourceViewer.Anonymous, _filter!.Viewer);
+    }
+
+    [Fact]
+    public async Task Details_ResourceHiddenFromTheUser_ReturnsNotFound()
+    {
+        _resources.Setup(r => r.GetDetailsAsync(5, It.Is<ResourceViewer>(v => v.Audience.HasFlag(ResourceAudience.Teachers))))
+            .ReturnsAsync(new Resource { Id = 5, Title = "Само за учители" });
+
+        Assert.IsType<NotFoundResult>(await Controller("u1", Roles.Student).Details(5));
+        Assert.IsType<ViewResult>(await Controller("u1", Roles.Teacher).Details(5));
+    }
+
+    [Theory]
+    [InlineData("u1", false, true)]
+    [InlineData("u2", false, false)]
+    [InlineData("u2", true, false)]
+    public async Task Details_OnlyTheOwnerMayChangeTheAudience(string userId, bool admin, bool expected)
+    {
+        _resources.Setup(r => r.GetDetailsAsync(5, It.IsAny<ResourceViewer>()))
+            .ReturnsAsync(new Resource { Id = 5, Title = "Дроби", OwnerId = "u1" });
+
+        var controller = admin ? Controller(userId, Roles.Administrator) : Controller(userId);
+        var model = Assert.IsType<ResourceDetailsViewModel>(Assert.IsType<ViewResult>(await controller.Details(5)).Model);
+
+        Assert.Equal(expected, model.CanChangeAudience);
+    }
+
+    [Fact]
+    public async Task SetAudience_CombinesTheTickedGroups_AndGoesBackToTheDetails()
+    {
+        _resources.Setup(r => r.SetAudienceAsync(5, ResourceAudience.Students | ResourceAudience.Teachers, "u1", false))
+            .ReturnsAsync(ServiceResult<Resource>.Success(new Resource { Id = 5, Audience = ResourceAudience.Students | ResourceAudience.Teachers }));
+        var controller = Controller();
+
+        var result = await controller.SetAudience(5, new List<ResourceAudience>
+        {
+            ResourceAudience.None, ResourceAudience.Students, ResourceAudience.Teachers
+        });
+
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Details", redirect.ActionName);
+        Assert.Equal(5, redirect.RouteValues!["id"]);
+        Assert.Equal("Видимост: Ученици, Учители.", controller.TempDataText("SuccessMessage"));
+    }
+
+    [Fact]
+    public async Task SetAudience_NothingTicked_MakesItPrivate()
+    {
+        _resources.Setup(r => r.SetAudienceAsync(5, ResourceAudience.None, "u1", false))
+            .ReturnsAsync(ServiceResult<Resource>.Success(new Resource { Id = 5, Audience = ResourceAudience.None }));
+        var controller = Controller();
+
+        await controller.SetAudience(5, null);
+
+        Assert.Equal("Видимост: Само аз.", controller.TempDataText("SuccessMessage"));
+    }
+
+    [Theory]
+    [InlineData(ServiceError.Forbidden, typeof(ForbidResult))]
+    [InlineData(ServiceError.NotFound, typeof(NotFoundResult))]
+    public async Task SetAudience_RefusedByTheService_BecomesTheMatchingResponse(ServiceError error, Type expected)
+    {
+        _resources.Setup(r => r.SetAudienceAsync(5, It.IsAny<ResourceAudience>(), "u1", false))
+            .ReturnsAsync(ServiceResult<Resource>.Failure(error, "не"));
+
+        Assert.IsType(expected, await Controller().SetAudience(5, null));
+    }
+
+    [Fact]
+    public async Task Create_Post_SendsTheChosenAudience()
+    {
+        ResourceInput? sent = null;
+        _resources.Setup(r => r.CreateAsync(It.IsAny<ResourceInput>(), "u1"))
+            .Callback<ResourceInput, string?>((i, _) => sent = i)
+            .ReturnsAsync(Saved());
+        var form = ValidForm();
+        form.Audience = new List<ResourceAudience> { ResourceAudience.None, ResourceAudience.Teachers };
+
+        await Controller().Create(form);
+
+        Assert.Equal(ResourceAudience.Teachers, sent!.Audience);
+    }
+
+    [Fact]
+    public void NewForms_StartVisibleToEveryone()
+    {
+        Assert.Equal(ResourceAudience.Everyone, ResourceVisibility.Combine(new ResourceFormViewModel().Audience));
+        Assert.Equal(ResourceAudience.Everyone, ResourceVisibility.Combine(new ResourceUploadViewModel().Audience));
+    }
+
+    [Fact]
+    public async Task Edit_Get_TicksTheSavedAudience()
+    {
+        var resource = new Resource { Id = 5, Title = "Дроби", Audience = ResourceAudience.Parents | ResourceAudience.Teachers };
+        _resources.Setup(r => r.GetForEditAsync(5, "u1", false)).ReturnsAsync(ServiceResult<Resource>.Success(resource));
+
+        var form = Assert.IsType<ResourceFormViewModel>(Assert.IsType<ViewResult>(await Controller().Edit(5)).Model);
+
+        Assert.Equal(new[] { ResourceAudience.Parents, ResourceAudience.Teachers }, form.Audience);
     }
 
     // ---------- the reading position of a book ----------
@@ -249,7 +367,7 @@ public class ResourcesControllerTests
     [Fact]
     public async Task Details_OfABook_BringsTheSavedReadingPosition()
     {
-        _resources.Setup(r => r.GetDetailsAsync(5)).ReturnsAsync(Book());
+        _resources.Setup(r => r.GetDetailsAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(Book());
         var saved = new ReadingPositionInfo("epubcfi(/6/4!/4/2/1:0)", 40, DateTime.UtcNow);
         _reading.Setup(r => r.GetAsync("u1", 5)).ReturnsAsync(saved);
 
@@ -261,7 +379,7 @@ public class ResourcesControllerTests
     [Fact]
     public async Task Details_ForAVisitor_DoesNotLookForAReadingPosition()
     {
-        _resources.Setup(r => r.GetDetailsAsync(5)).ReturnsAsync(Book());
+        _resources.Setup(r => r.GetDetailsAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(Book());
 
         var result = await Controller(userId: null).Details(5);
 
@@ -272,7 +390,7 @@ public class ResourcesControllerTests
     [Fact]
     public async Task Details_OfAResourceThatIsNotABook_DoesNotLookForAReadingPosition()
     {
-        _resources.Setup(r => r.GetDetailsAsync(5)).ReturnsAsync(new Resource { Id = 5, Title = "Дроби" });
+        _resources.Setup(r => r.GetDetailsAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(new Resource { Id = 5, Title = "Дроби" });
 
         await Controller().Details(5);
 
@@ -702,7 +820,7 @@ public class ResourcesControllerTests
     [Fact]
     public async Task DeleteConfirmed_AlsoRemovesTheStoredFile_ForAnUpload()
     {
-        _resources.Setup(r => r.GetFileAsync(5)).ReturnsAsync(PdfFile());
+        _resources.Setup(r => r.GetFileAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(PdfFile());
         _resources.Setup(r => r.DeleteAsync(5, "u1", false)).ReturnsAsync(Saved());
 
         await Controller().DeleteConfirmed(5);
@@ -713,7 +831,7 @@ public class ResourcesControllerTests
     [Fact]
     public async Task DeleteConfirmed_DoesNotTouchStorage_WhenResourceHasNoFile()
     {
-        _resources.Setup(r => r.GetFileAsync(5)).ReturnsAsync((ResourceFile?)null);
+        _resources.Setup(r => r.GetFileAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync((ResourceFile?)null);
         _resources.Setup(r => r.DeleteAsync(5, "u1", false)).ReturnsAsync(Saved());
 
         await Controller().DeleteConfirmed(5);
@@ -724,7 +842,7 @@ public class ResourcesControllerTests
     [Fact]
     public async Task DeleteConfirmed_WhenRefused_DoesNotRemoveTheFile()
     {
-        _resources.Setup(r => r.GetFileAsync(5)).ReturnsAsync(PdfFile());
+        _resources.Setup(r => r.GetFileAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(PdfFile());
         _resources.Setup(r => r.DeleteAsync(5, "u1", false)).ReturnsAsync(Failed(ServiceError.Forbidden));
 
         await Controller().DeleteConfirmed(5);

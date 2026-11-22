@@ -42,7 +42,7 @@ public class FavoriteServiceTests
         var resource = await AddResourceAsync("A");
         var before = DateTime.UtcNow;
 
-        var result = await _service.AddAsync("ivan", resource.Id);
+        var result = await _service.AddAsync(TestViewers.Student("ivan"), resource.Id);
 
         Assert.True(result.Succeeded);
         var saved = Assert.Single(_context.Favorites);
@@ -56,8 +56,8 @@ public class FavoriteServiceTests
     {
         var resource = await AddResourceAsync("A");
 
-        await _service.AddAsync("ivan", resource.Id);
-        var second = await _service.AddAsync("ivan", resource.Id);
+        await _service.AddAsync(TestViewers.Student("ivan"), resource.Id);
+        var second = await _service.AddAsync(TestViewers.Student("ivan"), resource.Id);
 
         Assert.True(second.Succeeded);
         Assert.Single(_context.Favorites);
@@ -68,8 +68,8 @@ public class FavoriteServiceTests
     {
         var resource = await AddResourceAsync("A");
 
-        await _service.AddAsync("ivan", resource.Id);
-        await _service.AddAsync("maria", resource.Id);
+        await _service.AddAsync(TestViewers.Student("ivan"), resource.Id);
+        await _service.AddAsync(TestViewers.Student("maria"), resource.Id);
 
         Assert.Equal(2, _context.Favorites.Count());
     }
@@ -77,7 +77,7 @@ public class FavoriteServiceTests
     [Fact]
     public async Task AddAsync_UnknownResource_ReturnsNotFoundAndSavesNothing()
     {
-        var result = await _service.AddAsync("ivan", 999);
+        var result = await _service.AddAsync(TestViewers.Student("ivan"), 999);
 
         Assert.Equal(ServiceError.NotFound, result.Error);
         Assert.Empty(_context.Favorites);
@@ -166,7 +166,7 @@ public class FavoriteServiceTests
         await SaveFavoriteAsync("ivan", b.Id, new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc));
         await SaveFavoriteAsync("maria", c.Id, new DateTime(2026, 2, 1, 0, 0, 0, DateTimeKind.Utc));
 
-        var result = await _service.GetFavoritesAsync("ivan", 1);
+        var result = await _service.GetFavoritesAsync(TestViewers.Student("ivan"), 1);
 
         Assert.Equal(new[] { "B", "A" }, result.Items.Select(r => r.Title));
         Assert.Equal(2, result.TotalCount);
@@ -182,7 +182,7 @@ public class FavoriteServiceTests
         await _context.SaveChangesAsync();
         await SaveFavoriteAsync("ivan", resource.Id, DateTime.UtcNow);
 
-        var item = (await _service.GetFavoritesAsync("ivan", 1)).Items.Single();
+        var item = (await _service.GetFavoritesAsync(TestViewers.Student("ivan"), 1)).Items.Single();
 
         Assert.Equal("Математика", item.Categories.Single().Name);
         Assert.Equal(5, item.GradeLevels.Single().Number);
@@ -198,7 +198,7 @@ public class FavoriteServiceTests
             await SaveFavoriteAsync("ivan", resource.Id, new DateTime(2026, 1, i, 0, 0, 0, DateTimeKind.Utc));
         }
 
-        var second = await _service.GetFavoritesAsync("ivan", page: 2, pageSize: 2);
+        var second = await _service.GetFavoritesAsync(TestViewers.Student("ivan"), page: 2, pageSize: 2);
 
         Assert.Equal(new[] { "R3", "R2" }, second.Items.Select(r => r.Title));
         Assert.Equal(5, second.TotalCount);
@@ -218,7 +218,7 @@ public class FavoriteServiceTests
             await SaveFavoriteAsync("ivan", resource.Id, DateTime.UtcNow.AddMinutes(i));
         }
 
-        var result = await _service.GetFavoritesAsync("ivan", requested, pageSize: 2);
+        var result = await _service.GetFavoritesAsync(TestViewers.Student("ivan"), requested, pageSize: 2);
 
         Assert.Equal(expected, result.Page);
     }
@@ -226,7 +226,7 @@ public class FavoriteServiceTests
     [Fact]
     public async Task GetFavoritesAsync_NoFavorites_ReturnsEmptyFirstPage()
     {
-        var result = await _service.GetFavoritesAsync("ivan", 1);
+        var result = await _service.GetFavoritesAsync(TestViewers.Student("ivan"), 1);
 
         Assert.Empty(result.Items);
         Assert.Equal(0, result.TotalCount);

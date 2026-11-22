@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
+using SchoolLibrary.Services.Resources;
 
 namespace SchoolLibrary.Services.Favorites;
 
@@ -16,9 +17,10 @@ public class FavoriteService : IFavoriteService
         _context = context;
     }
 
-    public async Task<ServiceResult> AddAsync(string userId, int resourceId)
+    public async Task<ServiceResult> AddAsync(ResourceViewer viewer, int resourceId)
     {
-        if (!await _context.Resources.AnyAsync(r => r.Id == resourceId))
+        var userId = viewer.UserId;
+        if (userId == null || !await _context.Resources.VisibleTo(viewer).AnyAsync(r => r.Id == resourceId))
         {
             return ServiceResult.Failure(ServiceError.NotFound, "Ресурсът не е намерен.");
         }
@@ -75,9 +77,13 @@ public class FavoriteService : IFavoriteService
     public Task<int> CountAsync(int resourceId) =>
         _context.Favorites.CountAsync(f => f.ResourceId == resourceId);
 
-    public async Task<PagedResult<Resource>> GetFavoritesAsync(string userId, int page, int pageSize = 10)
+    public async Task<PagedResult<Resource>> GetFavoritesAsync(ResourceViewer viewer, int page, int pageSize = 10)
     {
-        var mine = _context.Favorites.AsNoTracking().Where(f => f.UserId == userId);
+        var userId = viewer.UserId;
+        var visible = _context.Resources.VisibleTo(viewer);
+        var mine = _context.Favorites
+            .AsNoTracking()
+            .Where(f => userId != null && f.UserId == userId && visible.Any(r => r.Id == f.ResourceId));
 
         var totalCount = await mine.CountAsync();
 

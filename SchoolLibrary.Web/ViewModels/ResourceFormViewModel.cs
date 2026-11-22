@@ -35,6 +35,14 @@ public class ResourceFormViewModel
     [Display(Name = "Вид")]
     public ResourceKind Kind { get; set; } = ResourceKind.Lesson;
 
+    // The ticked audience groups. The form always posts a hidden "None" as well, so an empty selection
+    // ("only me") is told apart from a form that did not send the field at all (which keeps everyone).
+    [Display(Name = "Видимост")]
+    public List<ResourceAudience> Audience { get; set; } = new()
+    {
+        ResourceAudience.Guests, ResourceAudience.Students, ResourceAudience.Parents, ResourceAudience.Teachers
+    };
+
     [Required(ErrorMessage = "Изберете лиценз")]
     [Display(Name = "Лиценз")]
     public int? LicenseId { get; set; }

@@ -6,6 +6,7 @@ using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Comments;
 using SchoolLibrary.Services.Common;
 using SchoolLibrary.Services.Favorites;
+using SchoolLibrary.Services.Resources;
 using SchoolLibrary.ViewModels;
 
 namespace SchoolLibrary.Tests.Web;
@@ -21,7 +22,7 @@ public class FavoritesControllerTests
     public async Task Index_ShowsThePageOfTheSignedInUser()
     {
         var items = new List<Resource> { new() { Id = 1, Title = "А" }, new() { Id = 2, Title = "Б" } };
-        _service.Setup(s => s.GetFavoritesAsync("u1", 2, It.IsAny<int>()))
+        _service.Setup(s => s.GetFavoritesAsync(It.Is<ResourceViewer>(v => v.UserId == "u1"), 2, It.IsAny<int>()))
             .ReturnsAsync(new PagedResult<Resource>(items, totalCount: 12, page: 2, pageSize: 10));
 
         var result = await Controller().Index(page: 2);
@@ -36,13 +37,13 @@ public class FavoritesControllerTests
     [Fact]
     public async Task Add_SavesForTheSignedInUser_AndGoesBackToTheSamePage()
     {
-        _service.Setup(s => s.AddAsync("u1", 5)).ReturnsAsync(ServiceResult.Success());
+        _service.Setup(s => s.AddAsync(It.Is<ResourceViewer>(v => v.UserId == "u1"), 5)).ReturnsAsync(ServiceResult.Success());
 
         var result = await Controller().Add(5, "/Resources?categoryId=3&page=2");
 
         var redirect = Assert.IsType<LocalRedirectResult>(result);
         Assert.Equal("/Resources?categoryId=3&page=2", redirect.Url);
-        _service.Verify(s => s.AddAsync("u1", 5), Times.Once);
+        _service.Verify(s => s.AddAsync(It.Is<ResourceViewer>(v => v.UserId == "u1"), 5), Times.Once);
     }
 
     [Theory]
@@ -54,7 +55,7 @@ public class FavoritesControllerTests
     [InlineData(null)]
     public async Task Add_AnAddressOutsideThisSite_IsNeverFollowed(string? returnUrl)
     {
-        _service.Setup(s => s.AddAsync("u1", 5)).ReturnsAsync(ServiceResult.Success());
+        _service.Setup(s => s.AddAsync(It.Is<ResourceViewer>(v => v.UserId == "u1"), 5)).ReturnsAsync(ServiceResult.Success());
 
         var result = await Controller().Add(5, returnUrl);
 
@@ -65,7 +66,7 @@ public class FavoritesControllerTests
     [Fact]
     public async Task Add_UnknownResource_ReturnsNotFound()
     {
-        _service.Setup(s => s.AddAsync("u1", 99)).ReturnsAsync(ServiceResult.Failure(ServiceError.NotFound, "Ресурсът не е намерен."));
+        _service.Setup(s => s.AddAsync(It.Is<ResourceViewer>(v => v.UserId == "u1"), 99)).ReturnsAsync(ServiceResult.Failure(ServiceError.NotFound, "Ресурсът не е намерен."));
 
         var result = await Controller().Add(99, "/Resources");
 
@@ -108,7 +109,7 @@ public class CommentsControllerTests
     [Fact]
     public async Task Add_Success_ReturnsToTheFirstPageOfCommentsOfTheResource()
     {
-        _service.Setup(s => s.AddAsync(7, "u1", "Здравейте"))
+        _service.Setup(s => s.AddAsync(7, It.Is<ResourceViewer>(v => v.UserId == "u1"), "Здравейте"))
             .ReturnsAsync(ServiceResult<Comment>.Success(Saved(7)));
         var controller = Controller();
 
@@ -126,7 +127,7 @@ public class CommentsControllerTests
     [Fact]
     public async Task Add_Refused_KeepsTheMessageAndTheTypedTextForThePage()
     {
-        _service.Setup(s => s.AddAsync(7, "u1", "   "))
+        _service.Setup(s => s.AddAsync(7, It.Is<ResourceViewer>(v => v.UserId == "u1"), "   "))
             .ReturnsAsync(ServiceResult<Comment>.Failure(ServiceError.Invalid, "Напишете коментар."));
         var controller = Controller();
 
@@ -140,18 +141,18 @@ public class CommentsControllerTests
     [Fact]
     public async Task Add_WithoutText_IsSentToTheServiceAsEmpty()
     {
-        _service.Setup(s => s.AddAsync(7, "u1", string.Empty))
+        _service.Setup(s => s.AddAsync(7, It.Is<ResourceViewer>(v => v.UserId == "u1"), string.Empty))
             .ReturnsAsync(ServiceResult<Comment>.Failure(ServiceError.Invalid, "Напишете коментар."));
 
         await Controller().Add(7, null);
 
-        _service.Verify(s => s.AddAsync(7, "u1", string.Empty), Times.Once);
+        _service.Verify(s => s.AddAsync(7, It.Is<ResourceViewer>(v => v.UserId == "u1"), string.Empty), Times.Once);
     }
 
     [Fact]
     public async Task Add_UnknownResource_ReturnsNotFound()
     {
-        _service.Setup(s => s.AddAsync(99, "u1", "текст"))
+        _service.Setup(s => s.AddAsync(99, It.Is<ResourceViewer>(v => v.UserId == "u1"), "текст"))
             .ReturnsAsync(ServiceResult<Comment>.Failure(ServiceError.NotFound, "Ресурсът не е намерен."));
 
         Assert.IsType<NotFoundResult>(await Controller().Add(99, "текст"));

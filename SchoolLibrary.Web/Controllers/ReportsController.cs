@@ -87,7 +87,7 @@ namespace SchoolLibrary.Controllers
             if (vm.CommentId.HasValue)
             {
                 var comment = await _comments.GetAsync(vm.CommentId.Value);
-                if (comment == null)
+                if (comment == null || !await _resources.CanViewAsync(comment.ResourceId, ResourceViewer.For(User)))
                 {
                     return false;
                 }
@@ -99,7 +99,7 @@ namespace SchoolLibrary.Controllers
                 return true;
             }
 
-            var resource = await _resources.GetDetailsAsync(vm.ResourceId!.Value);
+            var resource = await _resources.GetDetailsAsync(vm.ResourceId!.Value, ResourceViewer.For(User));
             if (resource == null)
             {
                 return false;

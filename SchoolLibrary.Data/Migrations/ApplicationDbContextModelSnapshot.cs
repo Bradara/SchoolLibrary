@@ -1111,6 +1111,9 @@ namespace SchoolLibrary.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<int>("Audience")
+                        .HasColumnType("integer");
+
                     b.Property<string>("Author")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1160,7 +1163,10 @@ namespace SchoolLibrary.Data.Migrations
 
                     b.HasIndex("OwnerId");
 
-                    b.ToTable("Resources");
+                    b.ToTable("Resources", t =>
+                        {
+                            t.HasCheckConstraint("CK_Resources_Audience", "\"Audience\" BETWEEN 0 AND 15");
+                        });
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.ResourceFile", b =>

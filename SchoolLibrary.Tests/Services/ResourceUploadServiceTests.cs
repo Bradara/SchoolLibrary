@@ -83,6 +83,18 @@ public class ResourceUploadServiceTests
     }
 
     [Fact]
+    public async Task UploadAsync_KeepsTheChosenAudience_WithoutUnknownFlags()
+    {
+        var input = Input();
+        input.Audience = ResourceAudience.Teachers | (ResourceAudience)64;
+
+        var result = await UploadAsync("lesson.pdf", Pdf(), input);
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(ResourceAudience.Teachers, _context.Resources.Single().Audience);
+    }
+
+    [Fact]
     public async Task UploadAsync_ValidEpub_IsSavedWithEpubContentType()
     {
         var result = await UploadAsync("book.epub", Epub());

@@ -1,5 +1,6 @@
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
+using SchoolLibrary.Services.Resources;
 
 namespace SchoolLibrary.Services.Comments;
 
@@ -14,9 +15,9 @@ public interface ICommentService
 
     /// <summary>
     /// Adds a comment. Fails when the text is empty or longer than 500 characters,
-    /// or when the resource does not exist.
+    /// or when the resource does not exist or the author may not see it.
     /// </summary>
-    Task<ServiceResult<Comment>> AddAsync(int resourceId, string authorId, string text);
+    Task<ServiceResult<Comment>> AddAsync(int resourceId, ResourceViewer author, string text);
 
     /// <summary>Deletes a comment. Its author or an administrator may delete it.</summary>
     Task<ServiceResult<Comment>> DeleteAsync(int commentId, string userId, bool isAdministrator);

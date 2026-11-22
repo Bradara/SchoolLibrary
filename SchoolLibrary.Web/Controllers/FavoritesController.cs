@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using SchoolLibrary.Services.Common;
 using SchoolLibrary.Services.Favorites;
+using SchoolLibrary.Services.Resources;
 using SchoolLibrary.ViewModels;
 using System.Security.Claims;
 
@@ -23,7 +24,7 @@ namespace SchoolLibrary.Controllers
         // GET: Favorites
         public async Task<IActionResult> Index(int page = 1)
         {
-            var result = await _favorites.GetFavoritesAsync(CurrentUserId, page);
+            var result = await _favorites.GetFavoritesAsync(ResourceViewer.For(User), page);
 
             return View(new FavoritesIndexViewModel
             {
@@ -41,7 +42,7 @@ namespace SchoolLibrary.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Add(int resourceId, string? returnUrl)
         {
-            var result = await _favorites.AddAsync(CurrentUserId, resourceId);
+            var result = await _favorites.AddAsync(ResourceViewer.For(User), resourceId);
             if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();
