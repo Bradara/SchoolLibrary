@@ -1,7 +1,7 @@
 // Renders an uploaded EPUB inside the details page, using epub.js (and JSZip).
 // The file is fetched from the Download endpoint of this site, so nothing leaves the server.
 // Adds: table of contents, font size, text settings (justify, hyphenation, font, line height, two pages),
-// a progress bar and remembering the reading position. A signed-in reader's position is kept on the server,
+// bookmarks, search in the book, a progress bar and remembering the reading position. A signed-in reader's position is kept on the server,
 // so the book continues where it was left on any device; a visitor's position stays in this browser.
 // The reader colors follow the site theme.
 (function () {
@@ -238,6 +238,8 @@
         wireSettings(rendition, restyle, keepPlace);
         buildToc(book, rendition);
         wireProgress(book, rendition, sync);
+        wireBookmarks(book, rendition, sync);
+        wireSearch(book, rendition);
 
         // Reflow when the container changes size (e.g. the maximize button)
         var resizeTimer = null;
@@ -259,7 +261,6 @@
         var serverCfi = area.getAttribute("data-epub-position");
         var lastPercent = parseInt(area.getAttribute("data-epub-percent") || "0", 10) || 0;
         var status = el("sl-epub-sync");
-        var tokenInput = document.querySelector('#sl-epub-token input[name="__RequestVerificationToken"]');
 
         var pending = null;
         var savedCfi = serverCfi;
@@ -281,14 +282,14 @@
 
         function send(keepalive) {
             window.clearTimeout(timer);
-            if (!pending || !saveUrl || !tokenInput || pending.cfi === savedCfi) {
+            if (!pending || !saveUrl || !antiforgeryToken() || pending.cfi === savedCfi) {
                 return;
             }
             var position = pending;
             var body = new FormData();
             body.append("cfi", position.cfi);
             body.append("percent", String(position.percent));
-            body.append("__RequestVerificationToken", tokenInput.value);
+            body.append("__RequestVerificationToken", antiforgeryToken());
 
             fetch(saveUrl, { method: "POST", body: body, credentials: "same-origin", keepalive: !!keepalive })
                 .then(function (response) {
@@ -335,6 +336,399 @@
                 }
             }
         };
+    }
+
+    function antiforgeryToken() {
+        var input = document.querySelector('#sl-epub-token input[name="__RequestVerificationToken"]');
+        return input ? input.value : "";
+    }
+
+    function postForm(url, fields) {
+        var body = new FormData();
+        Object.keys(fields).forEach(function (name) {
+            body.append(name, String(fields[name]));
+        });
+        body.append("__RequestVerificationToken", antiforgeryToken());
+        return fetch(url, { method: "POST", body: body, credentials: "same-origin" });
+    }
+
+    function closeDropdown(buttonId) {
+        var button = el(buttonId);
+        if (button && window.bootstrap && window.bootstrap.Dropdown) {
+            window.bootstrap.Dropdown.getOrCreateInstance(button).hide();
+        }
+    }
+
+    // The title of the chapter that holds the location, from the table of contents
+    function chapterTitle(book, href) {
+        if (!href || !book.navigation) {
+            return "";
+        }
+        var file = href.split("#")[0].split("/").pop();
+        var found = "";
+        function walk(items) {
+            (items || []).forEach(function (item) {
+                if (!found && item.href && item.href.split("#")[0].split("/").pop() === file) {
+                    found = (item.label || "").trim();
+                }
+                walk(item.subitems);
+            });
+        }
+        walk(book.navigation.toc);
+        return found;
+    }
+
+    // The first words of the page on screen
+    function pageText(rendition, location) {
+        try {
+            var start = rendition.getRange(location.start.cfi);
+            var range = start.startContainer.ownerDocument.createRange();
+            range.setStart(start.startContainer, start.startOffset);
+            var end = location.end && location.end.cfi ? rendition.getRange(location.end.cfi) : null;
+            if (end && end.startContainer.ownerDocument === start.startContainer.ownerDocument) {
+                range.setEnd(end.startContainer, end.startOffset);
+            } else {
+                range.setEndAfter(start.startContainer);
+            }
+            return range.toString().replace(/\s+/g, " ").trim().slice(0, 90);
+        } catch (e) {
+            return "";
+        }
+    }
+
+    // --- bookmarks: on the server for a signed-in user, in this browser for a visitor ---
+    var BOOKMARKS_MAX = 50;
+
+    function createBookmarkStore() {
+        var listUrl = area.getAttribute("data-epub-bookmarks-url");
+        var addUrl = area.getAttribute("data-epub-bookmark-add-url");
+        var deleteUrl = area.getAttribute("data-epub-bookmark-delete-url");
+        var localKey = POSITION_KEY + "-bookmarks";
+
+        function readLocal() {
+            try {
+                var list = JSON.parse(load(localKey, "[]"));
+                return Array.isArray(list) ? list.filter(function (b) {
+                    return b && typeof b.cfi === "string" && typeof b.label === "string";
+                }) : [];
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function writeLocal(list) {
+            save(localKey, JSON.stringify(list));
+        }
+
+        if (listUrl && addUrl && deleteUrl) {
+            return {
+                list: function () {
+                    return fetch(listUrl, { credentials: "same-origin" })
+                        .then(function (r) {
+                            if (!r.ok) { throw new Error("Отметките не можаха да се заредят."); }
+                            return r.json();
+                        });
+                },
+                add: function (bookmark) {
+                    return postForm(addUrl, bookmark).then(function (r) {
+                        return r.json().catch(function () { return {}; }).then(function (data) {
+                            if (!r.ok || !data.ok) {
+                                throw new Error(data.message || "Отметката не можа да се запази.");
+                            }
+                            return data.bookmark;
+                        });
+                    });
+                },
+                remove: function (bookmark) {
+                    return postForm(deleteUrl, { bookmarkId: bookmark.id }).then(function (r) {
+                        if (!r.ok) { throw new Error("Отметката не можа да се изтрие."); }
+                    });
+                }
+            };
+        }
+
+        return {
+            list: function () {
+                return Promise.resolve(readLocal());
+            },
+            add: function (bookmark) {
+                var list = readLocal();
+                var existing = list.filter(function (b) { return b.cfi === bookmark.cfi; })[0];
+                if (existing) {
+                    return Promise.resolve(existing);
+                }
+                if (list.length >= BOOKMARKS_MAX) {
+                    return Promise.reject(new Error("Можете да имате най-много " + BOOKMARKS_MAX + " отметки в една книга."));
+                }
+                bookmark.id = Date.now();
+                list.push(bookmark);
+                writeLocal(list);
+                return Promise.resolve(bookmark);
+            },
+            remove: function (bookmark) {
+                writeLocal(readLocal().filter(function (b) { return b.id !== bookmark.id; }));
+                return Promise.resolve();
+            }
+        };
+    }
+
+    function byPercent(a, b) {
+        return (a.percent || 0) - (b.percent || 0);
+    }
+
+    function wireBookmarks(book, rendition, sync) {
+        var list = el("sl-epub-bookmark-list");
+        var addButton = el("sl-epub-bookmark-add");
+        var empty = el("sl-epub-bookmark-empty");
+        var error = el("sl-epub-bookmark-error");
+        var icon = el("sl-epub-bookmark-icon");
+        if (!list || !addButton) {
+            return;
+        }
+
+        var store = createBookmarkStore();
+        var bookmarks = [];
+        var cfiTool = typeof ePub.CFI === "function" ? new ePub.CFI() : null;
+
+        function showError(message) {
+            if (!error) {
+                return;
+            }
+            error.textContent = message || "";
+            error.classList.toggle("d-none", !message);
+        }
+
+        // Whether a bookmark falls on the page that is on screen (fills the icon)
+        function onCurrentPage(bookmark) {
+            var current = rendition.currentLocation();
+            if (!current || !current.start) {
+                return false;
+            }
+            if (bookmark.cfi === current.start.cfi) {
+                return true;
+            }
+            try {
+                return !!cfiTool && !!current.end &&
+                    cfiTool.compare(bookmark.cfi, current.start.cfi) >= 0 &&
+                    cfiTool.compare(bookmark.cfi, current.end.cfi) <= 0;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function updateIcon() {
+            if (icon) {
+                icon.className = bookmarks.some(onCurrentPage) ? "bi bi-bookmark-fill" : "bi bi-bookmark";
+            }
+        }
+
+        function render() {
+            list.textContent = "";
+            bookmarks.forEach(function (bookmark) {
+                var li = document.createElement("li");
+                li.className = "d-flex align-items-start gap-1";
+
+                var go = document.createElement("button");
+                go.type = "button";
+                go.className = "sl-epub-item flex-grow-1";
+                var percent = document.createElement("span");
+                percent.className = "badge text-bg-secondary me-1";
+                percent.textContent = (bookmark.percent || 0) + "%";
+                go.appendChild(percent);
+                go.appendChild(document.createTextNode(bookmark.label));
+                go.addEventListener("click", function () {
+                    rendition.display(bookmark.cfi);
+                    closeDropdown("sl-epub-bookmarks-btn");
+                });
+
+                var remove = document.createElement("button");
+                remove.type = "button";
+                remove.className = "btn btn-sm btn-link text-danger p-1";
+                remove.setAttribute("aria-label", "Изтрий отметката");
+                remove.title = "Изтрий";
+                var trash = document.createElement("i");
+                trash.className = "bi bi-trash";
+                remove.appendChild(trash);
+                remove.addEventListener("click", function () {
+                    showError("");
+                    store.remove(bookmark)
+                        .then(function () {
+                            bookmarks = bookmarks.filter(function (b) { return b !== bookmark; });
+                            render();
+                        })
+                        .catch(function (e) { showError(e.message); });
+                });
+
+                li.appendChild(go);
+                li.appendChild(remove);
+                list.appendChild(li);
+            });
+            if (empty) {
+                empty.classList.toggle("d-none", bookmarks.length > 0);
+            }
+            updateIcon();
+        }
+
+        addButton.addEventListener("click", function () {
+            var current = rendition.currentLocation();
+            if (!current || !current.start) {
+                return;
+            }
+            var chapter = chapterTitle(book, current.start.href);
+            var text = pageText(rendition, current);
+            var quote = text ? "„" + text + "…“" : "";
+            var label = chapter && quote ? chapter + " — " + quote : (chapter || quote || "Отметка");
+
+            showError("");
+            addButton.disabled = true;
+            store.add({ cfi: current.start.cfi, label: label, percent: sync.percent() })
+                .then(function (saved) {
+                    if (!bookmarks.some(function (b) { return b.id === saved.id; })) {
+                        bookmarks.push(saved);
+                        bookmarks.sort(byPercent);
+                    }
+                    render();
+                })
+                .catch(function (e) { showError(e.message); })
+                .then(function () { addButton.disabled = false; });
+        });
+
+        rendition.on("relocated", updateIcon);
+
+        store.list()
+            .then(function (loaded) {
+                bookmarks = (loaded || []).slice().sort(byPercent);
+                render();
+            })
+            .catch(function (e) { showError(e.message); });
+    }
+
+    // --- search in the book: chapter by chapter, in the browser (the text never goes to the server) ---
+    var SEARCH_MIN = 2;
+    var SEARCH_MAX_RESULTS = 200;
+
+    // The excerpt as text with the found words in <mark> (built from text nodes, never as HTML)
+    function excerptNode(excerpt, query) {
+        var span = document.createElement("span");
+        var lower = excerpt.toLowerCase();
+        var needle = query.toLowerCase();
+        var at = 0;
+        var index = lower.indexOf(needle);
+        while (index >= 0) {
+            span.appendChild(document.createTextNode(excerpt.slice(at, index)));
+            var mark = document.createElement("mark");
+            mark.textContent = excerpt.slice(index, index + needle.length);
+            span.appendChild(mark);
+            at = index + needle.length;
+            index = lower.indexOf(needle, at);
+        }
+        span.appendChild(document.createTextNode(excerpt.slice(at)));
+        return span;
+    }
+
+    function wireSearch(book, rendition) {
+        var form = el("sl-epub-search-form");
+        var input = el("sl-epub-search-input");
+        var status = el("sl-epub-search-status");
+        var results = el("sl-epub-search-results");
+        if (!form || !input || !results) {
+            return;
+        }
+
+        var searchId = 0;
+        var highlighted = null;
+
+        function setStatus(text) {
+            if (status) {
+                status.textContent = text;
+            }
+        }
+
+        // Marks the found words on the page; the previous mark is removed
+        function highlight(cfi) {
+            try {
+                if (highlighted) {
+                    rendition.annotations.remove(highlighted, "highlight");
+                }
+                rendition.annotations.highlight(cfi, {}, null, "sl-epub-hit");
+                highlighted = cfi;
+            } catch (e) {
+                highlighted = null;
+            }
+        }
+
+        function addResult(result, query, chapter) {
+            var li = document.createElement("li");
+            var go = document.createElement("button");
+            go.type = "button";
+            go.className = "sl-epub-item";
+            if (chapter) {
+                var title = document.createElement("div");
+                title.className = "fw-semibold small text-body-secondary";
+                title.textContent = chapter;
+                go.appendChild(title);
+            }
+            go.appendChild(excerptNode(result.excerpt || "", query));
+            go.addEventListener("click", function () {
+                rendition.display(result.cfi).then(function () { highlight(result.cfi); });
+                closeDropdown("sl-epub-search-btn");
+            });
+            li.appendChild(go);
+            results.appendChild(li);
+        }
+
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
+            var query = input.value.replace(/\s+/g, " ").trim();
+            results.textContent = "";
+            if (query.length < SEARCH_MIN) {
+                setStatus("Въведете поне " + SEARCH_MIN + " знака.");
+                return;
+            }
+
+            var id = ++searchId;
+            var found = 0;
+            var items = (book.spine && book.spine.spineItems) || [];
+            setStatus("Търсене…");
+
+            // One chapter at a time, so a large book is not loaded all at once; a new search stops this one
+            items.reduce(function (chain, item) {
+                return chain.then(function () {
+                    if (id !== searchId || found >= SEARCH_MAX_RESULTS) {
+                        return null;
+                    }
+                    return item.load(book.load.bind(book))
+                        .then(function () {
+                            if (id !== searchId) {
+                                return;
+                            }
+                            var chapter = chapterTitle(book, item.href);
+                            // search() also finds words split between elements (e.g. a word half in italics)
+                            var hits = typeof item.search === "function" ? item.search(query) : item.find(query);
+                            (hits || []).forEach(function (result) {
+                                if (found < SEARCH_MAX_RESULTS) {
+                                    found++;
+                                    addResult(result, query, chapter);
+                                }
+                            });
+                        })
+                        .catch(function () { /* a chapter that cannot be read is skipped */ })
+                        .then(function () { item.unload(); });
+                });
+            }, Promise.resolve())
+                .then(function () {
+                    if (id !== searchId) {
+                        return;
+                    }
+                    if (found === 0) {
+                        setStatus("Няма намерени резултати.");
+                    } else if (found >= SEARCH_MAX_RESULTS) {
+                        setStatus("Показани са първите " + SEARCH_MAX_RESULTS + " резултата. Уточнете търсенето.");
+                    } else {
+                        setStatus("Намерени: " + found);
+                    }
+                });
+        });
     }
 
     // Re-apply the colors whenever the site theme attribute on <html> changes

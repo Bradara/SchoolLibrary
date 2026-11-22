@@ -247,6 +247,41 @@ body.sl-maximized-open {
   max-width: calc(100vw - 2rem);
 }
 
+/* Bookmarks and search results */
+.sl-epub-panel {
+  width: 22rem;
+  max-width: calc(100vw - 2rem);
+}
+
+.sl-epub-list {
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.sl-epub-list li + li {
+  border-top: 1px solid var(--bs-border-color-translucent);
+}
+
+.sl-epub-list .sl-epub-item {
+  display: block;
+  width: 100%;
+  padding: .35rem .25rem;
+  border: 0;
+  background: transparent;
+  color: var(--bs-body-color);
+  text-align: start;
+  font-size: .875rem;
+}
+
+.sl-epub-list .sl-epub-item:hover,
+.sl-epub-list .sl-epub-item:focus-visible {
+  background: var(--bs-tertiary-bg);
+}
+
+.sl-epub-list mark {
+  padding: 0 .1em;
+}
+
 /* ---------- Rendered Markdown uploads (readable measure, pictures and tables fit) ---------- */
 .sl-markdown {
   max-width: 70ch;

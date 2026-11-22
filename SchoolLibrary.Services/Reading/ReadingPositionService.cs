@@ -10,9 +10,7 @@ public class ReadingPositionService : IReadingPositionService
     /// <summary>How many books per user keep their position.</summary>
     public const int MaxBooksPerUser = 5;
 
-    public const string EpubContentType = "application/epub+zip";
-
-    private const string CfiPrefix = "epubcfi(";
+    public const string EpubContentType = EpubLocation.EpubContentType;
 
     private readonly ApplicationDbContext _context;
 
@@ -33,14 +31,12 @@ public class ReadingPositionService : IReadingPositionService
     public async Task<ServiceResult> SaveAsync(string userId, int resourceId, string? cfi, int percent)
     {
         cfi = cfi?.Trim();
-        if (!IsValidCfi(cfi))
+        if (!EpubLocation.IsValidCfi(cfi))
         {
             return ServiceResult.Failure(ServiceError.Invalid, "Невалидна позиция в книгата.");
         }
 
-        var isBook = await _context.ResourceFiles
-            .AnyAsync(f => f.ResourceId == resourceId && f.ContentType == EpubContentType);
-        if (!isBook)
+        if (!await EpubLocation.IsBookAsync(_context, resourceId))
         {
             return ServiceResult.Failure(ServiceError.NotFound, "Книгата не е намерена.");
         }
@@ -69,12 +65,4 @@ public class ReadingPositionService : IReadingPositionService
         await _context.SaveChangesAsync();
         return ServiceResult.Success();
     }
-
-    // Only the shape is checked: the reader asks epub.js to open it, which ignores a location it cannot find
-    private static bool IsValidCfi(string? cfi) =>
-        !string.IsNullOrEmpty(cfi)
-        && cfi.Length <= ReadingPosition.CfiMaxLength
-        && cfi.StartsWith(CfiPrefix, StringComparison.Ordinal)
-        && cfi.EndsWith(')')
-        && !cfi.Any(char.IsControl);
 }

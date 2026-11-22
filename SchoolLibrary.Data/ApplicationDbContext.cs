@@ -63,6 +63,26 @@ namespace SchoolLibrary.Data
             builder.Entity<ReadingPosition>()
                 .ToTable(t => t.HasCheckConstraint("CK_ReadingPositions_Percent", "\"Percent\" BETWEEN 0 AND 100"));
 
+            // Bookmarks: removed with the book and with the account; one per place in a book
+            builder.Entity<Bookmark>()
+                .HasOne(b => b.User)
+                .WithMany()
+                .HasForeignKey(b => b.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Bookmark>()
+                .HasOne(b => b.Resource)
+                .WithMany()
+                .HasForeignKey(b => b.ResourceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<Bookmark>()
+                .HasIndex(b => new { b.UserId, b.ResourceId, b.Cfi })
+                .IsUnique();
+
+            builder.Entity<Bookmark>()
+                .ToTable(t => t.HasCheckConstraint("CK_Bookmarks_Percent", "\"Percent\" BETWEEN 0 AND 100"));
+
             // Comments go away with their resource and with their author's account
             builder.Entity<Comment>()
                 .HasOne(c => c.Resource)
@@ -403,6 +423,7 @@ namespace SchoolLibrary.Data
         public DbSet<Favorite> Favorites { get; set; }
         public DbSet<Comment> Comments { get; set; }
         public DbSet<ReadingPosition> ReadingPositions { get; set; }
+        public DbSet<Bookmark> Bookmarks { get; set; }
         public DbSet<Report> Reports { get; set; }
         public DbSet<Section> Sections { get; set; }
         public DbSet<Quiz> Quizzes { get; set; }

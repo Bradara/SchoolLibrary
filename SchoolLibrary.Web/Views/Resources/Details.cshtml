@@ -38,6 +38,7 @@
 @if (Model.Resource.Kind == ResourceKind.Upload && Model.Resource.File != null)
 {
     var serveUrl = Url.Action("Download", new { id = Model.Resource.Id });
+    var signedIn = User.Identity?.IsAuthenticated == true;
 
     if (Model.Resource.File.ContentType == "application/pdf")
     {
@@ -83,6 +84,8 @@
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-epub-font-inc" aria-label="По-едър шрифт">A+</button>
                     </div>
                     <partial name="_EpubReaderSettings" />
+                    <partial name="_EpubReaderBookmarks" />
+                    <partial name="_EpubReaderSearch" />
                     <span class="small text-body-secondary" id="sl-epub-sync" aria-live="polite"></span>
                     <button type="button" class="btn btn-sm btn-outline-secondary ms-auto sl-viewer-toggle"
                             aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
@@ -93,10 +96,13 @@
                     @* Signed in: the position is kept on the server (any device); a visitor keeps it in this browser *@
                     <div id="sl-epub" class="border rounded bg-body h-100"
                          data-epub-url="@serveUrl" data-epub-key="epub-pos-@Model.Resource.Id"
-                         data-epub-save-url="@(User.Identity?.IsAuthenticated == true ? Url.Action("SaveReadingPosition", new { id = Model.Resource.Id }) : null)"
+                         data-epub-save-url="@(signedIn ? Url.Action("SaveReadingPosition", new { id = Model.Resource.Id }) : null)"
                          data-epub-position="@Model.ReadingPosition?.Cfi"
-                         data-epub-percent="@Model.ReadingPosition?.Percent"></div>
-                    @if (User.Identity?.IsAuthenticated == true)
+                         data-epub-percent="@Model.ReadingPosition?.Percent"
+                         data-epub-bookmarks-url="@(signedIn ? Url.Action("Bookmarks", new { id = Model.Resource.Id }) : null)"
+                         data-epub-bookmark-add-url="@(signedIn ? Url.Action("AddBookmark", new { id = Model.Resource.Id }) : null)"
+                         data-epub-bookmark-delete-url="@(signedIn ? Url.Action("DeleteBookmark") : null)"></div>
+                    @if (signedIn)
                     {
                         <form id="sl-epub-token" class="d-none">@Html.AntiForgeryToken()</form>
                     }

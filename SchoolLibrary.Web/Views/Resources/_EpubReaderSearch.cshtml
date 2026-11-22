@@ -1,0 +1,16 @@
+@* Search in the EPUB book. It runs in the browser (sl-epub-reader.js): the text never goes to the server. *@
+<div class="dropdown">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="sl-epub-search-btn"
+            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+        <i class="bi bi-search"></i> Търсене
+    </button>
+    <div class="dropdown-menu p-2 sl-epub-panel" aria-labelledby="sl-epub-search-btn">
+        <form id="sl-epub-search-form" class="input-group input-group-sm mb-2" role="search">
+            <input type="search" class="form-control" id="sl-epub-search-input" placeholder="Дума или израз"
+                   minlength="2" maxlength="100" aria-label="Търсене в книгата" autocomplete="off">
+            <button class="btn btn-outline-primary" type="submit" aria-label="Търси"><i class="bi bi-search"></i></button>
+        </form>
+        <div class="small text-body-secondary mb-2" id="sl-epub-search-status" aria-live="polite"></div>
+        <ul class="list-unstyled mb-0 sl-epub-list" id="sl-epub-search-results"></ul>
+    </div>
+</div>

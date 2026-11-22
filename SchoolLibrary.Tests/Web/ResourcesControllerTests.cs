@@ -30,6 +30,7 @@ public class ResourcesControllerTests
     private readonly Mock<IFavoriteService> _favorites = new();
     private readonly Mock<ICommentService> _comments = new();
     private readonly Mock<IReadingPositionService> _reading = new();
+    private readonly Mock<IBookmarkService> _bookmarks = new();
 
     private ResourceFilter? _filter;
 
@@ -49,7 +50,7 @@ public class ResourcesControllerTests
 
     private ResourcesController Controller(string? userId = "u1", params string[] roles) =>
         new ResourcesController(_resources.Object, _uploads.Object, _storage.Object, _markdown.Object,
-            _categories.Object, _gradeLevels.Object, _licenses.Object, _favorites.Object, _comments.Object, _reading.Object)
+            _categories.Object, _gradeLevels.Object, _licenses.Object, _favorites.Object, _comments.Object, _reading.Object, _bookmarks.Object)
             .WithUser(userId, roles);
 
     private static ResourceFormViewModel ValidForm() => new()
@@ -304,6 +305,70 @@ public class ResourcesControllerTests
             .ReturnsAsync(ServiceResult.Failure(ServiceError.Invalid, "Невалидна позиция в книгата."));
 
         Assert.IsType<BadRequestObjectResult>(await Controller().SaveReadingPosition(5, "x", 1));
+    }
+
+    // ---------- bookmarks ----------
+
+    [Fact]
+    public async Task Bookmarks_ReturnsTheCurrentUsersBookmarks()
+    {
+        _bookmarks.Setup(b => b.GetAsync("u1", 5))
+            .ReturnsAsync(new List<BookmarkInfo> { new(7, "epubcfi(/6/2)", "Начало", 3) });
+
+        var result = Assert.IsType<JsonResult>(await Controller().Bookmarks(5));
+
+        var json = System.Text.Json.JsonSerializer.Serialize(result.Value);
+        Assert.Contains("\"id\":7", json);
+        Assert.Contains("epubcfi(/6/2)", json);
+    }
+
+    [Fact]
+    public async Task AddBookmark_AddsForTheCurrentUser()
+    {
+        _bookmarks.Setup(b => b.AddAsync("u1", 5, "epubcfi(/6/2)", "Начало", 3))
+            .ReturnsAsync(ServiceResult<BookmarkInfo>.Success(new BookmarkInfo(7, "epubcfi(/6/2)", "Начало", 3)));
+
+        var result = await Controller().AddBookmark(5, "epubcfi(/6/2)", "Начало", 3);
+
+        Assert.IsType<JsonResult>(result);
+        _bookmarks.Verify(b => b.AddAsync("u1", 5, "epubcfi(/6/2)", "Начало", 3), Times.Once);
+    }
+
+    [Fact]
+    public async Task AddBookmark_UnknownBook_ReturnsNotFound()
+    {
+        _bookmarks.Setup(b => b.AddAsync("u1", 9, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<int>()))
+            .ReturnsAsync(ServiceResult<BookmarkInfo>.Failure(ServiceError.NotFound, "Книгата не е намерена."));
+
+        Assert.IsType<NotFoundResult>(await Controller().AddBookmark(9, "epubcfi(/6)", "x", 1));
+    }
+
+    [Fact]
+    public async Task AddBookmark_OverTheLimit_ReturnsBadRequestWithTheMessage()
+    {
+        _bookmarks.Setup(b => b.AddAsync("u1", 5, It.IsAny<string?>(), It.IsAny<string?>(), It.IsAny<int>()))
+            .ReturnsAsync(ServiceResult<BookmarkInfo>.Failure(ServiceError.Conflict, "Твърде много отметки."));
+
+        var result = Assert.IsType<BadRequestObjectResult>(await Controller().AddBookmark(5, "epubcfi(/6)", "x", 1));
+        Assert.Equal("Твърде много отметки.", result.Value!.GetType().GetProperty("message")!.GetValue(result.Value));
+    }
+
+    [Fact]
+    public async Task DeleteBookmark_RemovesTheCurrentUsersBookmark()
+    {
+        _bookmarks.Setup(b => b.RemoveAsync("u1", 7)).ReturnsAsync(ServiceResult.Success());
+
+        Assert.IsType<JsonResult>(await Controller().DeleteBookmark(7));
+        _bookmarks.Verify(b => b.RemoveAsync("u1", 7), Times.Once);
+    }
+
+    [Fact]
+    public async Task DeleteBookmark_SomeoneElses_ReturnsNotFound()
+    {
+        _bookmarks.Setup(b => b.RemoveAsync("u1", 7))
+            .ReturnsAsync(ServiceResult.Failure(ServiceError.NotFound, "Отметката не е намерена."));
+
+        Assert.IsType<NotFoundResult>(await Controller().DeleteBookmark(7));
     }
 
     // ---------- adding ----------

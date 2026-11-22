@@ -34,6 +34,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IOnlineLibraryService, OnlineLibraryService>();
         services.AddScoped<IQuizService, QuizService>();
         services.AddScoped<IReadingPositionService, ReadingPositionService>();
+        services.AddScoped<IBookmarkService, BookmarkService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<IResourceImportService, ResourceImportService>();

@@ -35,6 +35,7 @@ namespace SchoolLibrary.Controllers
         private readonly IFavoriteService _favorites;
         private readonly ICommentService _comments;
         private readonly IReadingPositionService _reading;
+        private readonly IBookmarkService _bookmarks;
 
         public ResourcesController(
             IResourceService resources,
@@ -46,7 +47,8 @@ namespace SchoolLibrary.Controllers
             ILicenseService licenses,
             IFavoriteService favorites,
             ICommentService comments,
-            IReadingPositionService reading)
+            IReadingPositionService reading,
+            IBookmarkService bookmarks)
         {
             _resources = resources;
             _uploads = uploads;
@@ -58,6 +60,7 @@ namespace SchoolLibrary.Controllers
             _favorites = favorites;
             _comments = comments;
             _reading = reading;
+            _bookmarks = bookmarks;
         }
 
         private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -176,6 +179,43 @@ namespace SchoolLibrary.Controllers
             return result.Succeeded
                 ? Json(new { ok = true })
                 : BadRequest(new { ok = false, message = result.Message });
+        }
+
+        // GET: Resources/Bookmarks/5 — the signed-in user's bookmarks in this book (fetch, JSON)
+        [HttpGet]
+        public async Task<IActionResult> Bookmarks(int id)
+        {
+            var list = await _bookmarks.GetAsync(CurrentUserId, id);
+            return Json(list.Select(b => new { id = b.Id, cfi = b.Cfi, label = b.Label, percent = b.Percent }));
+        }
+
+        // POST: Resources/AddBookmark/5 — marks the page the reader is on (fetch, JSON)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> AddBookmark(int id, string? cfi, string? label, int percent)
+        {
+            var result = await _bookmarks.AddAsync(CurrentUserId, id, cfi, label, percent);
+            if (result.Error == ServiceError.NotFound)
+            {
+                return NotFound();
+            }
+
+            if (!result.Succeeded)
+            {
+                return BadRequest(new { ok = false, message = result.Message });
+            }
+
+            var b = result.Value!;
+            return Json(new { ok = true, bookmark = new { id = b.Id, cfi = b.Cfi, label = b.Label, percent = b.Percent } });
+        }
+
+        // POST: Resources/DeleteBookmark — removes one of the user's own bookmarks (fetch, JSON)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteBookmark(int bookmarkId)
+        {
+            var result = await _bookmarks.RemoveAsync(CurrentUserId, bookmarkId);
+            return result.Succeeded ? Json(new { ok = true }) : NotFound();
         }
 
         // GET: Resources/Download — serves an uploaded file for preview (inline) or download

@@ -1,0 +1,15 @@
+@* Bookmarks of the EPUB reader. sl-epub-reader.js fills the list (signed in: from the server, else this browser). *@
+<div class="dropdown">
+    <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="sl-epub-bookmarks-btn"
+            data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false">
+        <i class="bi bi-bookmark" id="sl-epub-bookmark-icon"></i> Отметки
+    </button>
+    <div class="dropdown-menu p-2 sl-epub-panel" aria-labelledby="sl-epub-bookmarks-btn">
+        <button type="button" class="btn btn-sm btn-primary w-100 mb-2" id="sl-epub-bookmark-add">
+            <i class="bi bi-bookmark-plus"></i> Добави отметка за тази страница
+        </button>
+        <div class="small text-danger mb-2 d-none" id="sl-epub-bookmark-error" role="alert"></div>
+        <ul class="list-unstyled mb-0 sl-epub-list" id="sl-epub-bookmark-list"></ul>
+        <p class="small text-body-secondary mb-0 mt-2" id="sl-epub-bookmark-empty">Още няма отметки в тази книга.</p>
+    </div>
+</div>
