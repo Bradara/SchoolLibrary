@@ -49,16 +49,57 @@ namespace SchoolLibrary.Controllers
         public async Task<IActionResult> Solve(int id, [FromForm] List<int>? questionIds, [FromForm] Dictionary<int, int?>? answers,
             [FromForm] Dictionary<int, List<int>>? multi = null, [FromForm] Dictionary<int, string?>? text = null,
             [FromForm] Dictionary<int, Dictionary<int, string?>>? match = null,
-            [FromForm] Dictionary<int, string?>? code = null)
+            [FromForm] Dictionary<int, string?>? code = null, [FromForm] Dictionary<int, int>? wrongChecks = null)
         {
             var result = await _quizzes.GradePracticeAsync(
-                id, questionIds ?? new List<int>(), SubmittedAnswer.FromForm(answers, multi, text, match, code));
+                id, questionIds ?? new List<int>(), SubmittedAnswer.FromForm(answers, multi, text, match, code), wrongChecks);
             if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();
             }
 
             return View("Result", result.Value);
+        }
+
+        // POST: Quizzes/CheckCode/5 — "Провери" on a code question while practising (fetch); nothing is stored
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CheckCode(int id, int questionId, string? code, [FromServices] ICodeCheckService checks)
+            => CheckResponse(await checks.CheckPracticeAsync(id, questionId, code));
+
+        // POST: Quizzes/CheckExamCode/{token} — "Провери" during an exam (fetch); the check is stored and counted
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CheckExamCode(Guid token, int questionId, string? code, [FromServices] ICodeCheckService checks)
+            => CheckResponse(await checks.CheckExamAsync(token, questionId, code));
+
+        // The check as JSON for the page's script; a refusal carries its message
+        private IActionResult CheckResponse(ServiceResult<CodeCheckResult> result)
+        {
+            if (result.Error == ServiceError.NotFound)
+            {
+                return NotFound();
+            }
+
+            if (!result.Succeeded)
+            {
+                return Json(new { ok = false, message = result.Message });
+            }
+
+            var check = result.Value!;
+            return Json(new
+            {
+                ok = true,
+                status = check.Status.ToString(),
+                check.Message,
+                check.Passed,
+                check.Counted,
+                check.PenaltyPercent,
+                penaltyPoints = QuizPoints.Format(check.PenaltyPointsPerCheck),
+                check.WrongChecks,
+                check.ChecksLeft,
+                tests = check.Tests
+            });
         }
 
         // GET: Quizzes/Exam — step 1: enter the exam code

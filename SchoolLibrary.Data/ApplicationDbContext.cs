@@ -194,6 +194,22 @@ namespace SchoolLibrary.Data
             builder.Entity<AttemptAnswer>()
                 .HasIndex(a => a.CodeCheckPending);
 
+            // The checks belong to the attempt; a checked question cannot be deleted (like an answered one)
+            builder.Entity<CodeCheck>()
+                .HasOne(c => c.Attempt)
+                .WithMany(a => a.CodeChecks)
+                .HasForeignKey(c => c.AttemptId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<CodeCheck>()
+                .HasOne(c => c.Question)
+                .WithMany()
+                .HasForeignKey(c => c.QuestionId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<CodeCheck>()
+                .HasIndex(c => new { c.AttemptId, c.QuestionId });
+
             // A code question owns its test cases
             builder.Entity<CodeTestCase>()
                 .HasOne(t => t.Question)
@@ -372,6 +388,7 @@ namespace SchoolLibrary.Data
         public DbSet<Question> Questions { get; set; }
         public DbSet<AnswerOption> AnswerOptions { get; set; }
         public DbSet<CodeTestCase> CodeTestCases { get; set; }
+        public DbSet<CodeCheck> CodeChecks { get; set; }
         public DbSet<QuizAttempt> QuizAttempts { get; set; }
         public DbSet<AttemptQuestion> AttemptQuestions { get; set; }
         public DbSet<AttemptAnswer> AttemptAnswers { get; set; }

@@ -56,6 +56,16 @@ else
 
         default:
             <p class="small mb-1">Минати тестове: <span class="fw-semibold">@passed от @tests.Count</span></p>
+            @if (results.WrongChecks > 0)
+            {
+                <p class="small mb-1">
+                    Грешни проверки: <span class="fw-semibold">@results.WrongChecks</span>
+                    @if (results.PenaltyPoints > 0)
+                    {
+                        <span class="text-danger">(наказание −@QuizPoints.Format(results.PenaltyPoints) т.)</span>
+                    }
+                </p>
+            }
             <div class="table-responsive">
                 <table class="table table-sm table-bordered align-top mb-0 small">
                     <thead>

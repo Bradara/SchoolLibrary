@@ -36,6 +36,15 @@ public class CodeGradingService : ICodeGradingService
                 .ThenInclude(q => q.TestCases)
             .ToListAsync(cancellationToken);
 
+        // The wrong checks each attempt made on these questions take points off
+        var attemptIds = waiting.Select(a => a.AttemptId).Distinct().ToList();
+        var questionIds = waiting.Select(a => a.QuestionId).Distinct().ToList();
+        var wrongChecks = await _context.CodeChecks
+            .Where(c => c.IsWrong && attemptIds.Contains(c.AttemptId) && questionIds.Contains(c.QuestionId))
+            .GroupBy(c => new { c.AttemptId, c.QuestionId })
+            .Select(g => new { g.Key.AttemptId, g.Key.QuestionId, Count = g.Count() })
+            .ToListAsync(cancellationToken);
+
         // The programs run side by side; the database is only touched afterwards
         var grades = await Task.WhenAll(waiting.Select(answer => answer.Question.Type == QuestionType.Code
             ? _grader.GradeAsync(answer.Question, answer.ResponseText, cancellationToken)
@@ -60,9 +69,11 @@ public class CodeGradingService : ICodeGradingService
                 continue;
             }
 
-            answer.AwardedPoints = grade.AwardedPoints;
-            answer.IsCorrect = grade.IsCorrect;
-            answer.CodeResults = grade.Status == CodeGradeStatus.Unanswered ? null : StoredCodeResults.From(grade).ToJson();
+            var wrong = wrongChecks.FirstOrDefault(w => w.AttemptId == answer.AttemptId && w.QuestionId == answer.QuestionId)?.Count ?? 0;
+            var outcome = CodePenalty.Apply(grade, answer.Question, wrong);
+            answer.AwardedPoints = outcome.AwardedPoints;
+            answer.IsCorrect = outcome.IsCorrect;
+            answer.CodeResults = outcome.Results?.ToJson();
             answer.CodeCheckPending = false;
             graded++;
         }
@@ -70,12 +81,12 @@ public class CodeGradingService : ICodeGradingService
         await _context.SaveChangesAsync(cancellationToken);
 
         // An attempt's score is the sum of its answers' points
-        var attemptIds = waiting.Where(a => !a.CodeCheckPending).Select(a => a.AttemptId).Distinct().ToList();
-        if (attemptIds.Count > 0)
+        var gradedAttemptIds = waiting.Where(a => !a.CodeCheckPending).Select(a => a.AttemptId).Distinct().ToList();
+        if (gradedAttemptIds.Count > 0)
         {
-            var attempts = await _context.QuizAttempts.Where(a => attemptIds.Contains(a.Id)).ToListAsync(cancellationToken);
+            var attempts = await _context.QuizAttempts.Where(a => gradedAttemptIds.Contains(a.Id)).ToListAsync(cancellationToken);
             var scores = await _context.AttemptAnswers
-                .Where(a => attemptIds.Contains(a.AttemptId))
+                .Where(a => gradedAttemptIds.Contains(a.AttemptId))
                 .GroupBy(a => a.AttemptId)
                 .Select(g => new { AttemptId = g.Key, Score = g.Sum(a => a.AwardedPoints) })
                 .ToDictionaryAsync(x => x.AttemptId, x => x.Score, cancellationToken);

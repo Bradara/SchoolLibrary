@@ -292,7 +292,27 @@ public static class MoodleXmlParser
         var preload = RawText(question.Element("answerpreload"));
         var allOrNothing = CleanText(question.Element("allornothing")) != "0";
         return (QuestionInput.CodeQuestion(text, language, tests, preload.Trim().Length > 0 ? preload : null,
-            allOrNothing, Points(question), statement == text ? null : statement), null);
+            allOrNothing, Points(question), statement == text ? null : statement, CheckPenalty(question)), null);
+    }
+
+    // The penalty per wrong check in percent: the first step of CodeRunner's regime ("10, 20, ..." → 10), else the
+    // question's <penalty> as a fraction (0.1 → 10), else CodeRunner's default of 10
+    private static int CheckPenalty(XElement question)
+    {
+        var regime = Regex.Match(CleanText(question.Element("penaltyregime")), @"^\s*(\d+(\.\d+)?)");
+        if (regime.Success && decimal.TryParse(regime.Groups[1].Value, System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var step))
+        {
+            return (int)Math.Clamp(Math.Round(step, MidpointRounding.AwayFromZero), 0m, 100m);
+        }
+
+        if (decimal.TryParse(CleanText(question.Element("penalty")), System.Globalization.NumberStyles.Float,
+                System.Globalization.CultureInfo.InvariantCulture, out var fraction))
+        {
+            return (int)Math.Clamp(Math.Round(fraction * 100m, MidpointRounding.AwayFromZero), 0m, 100m);
+        }
+
+        return 10;
     }
 
     // Text as written (inputs, outputs and code): only the line endings unified

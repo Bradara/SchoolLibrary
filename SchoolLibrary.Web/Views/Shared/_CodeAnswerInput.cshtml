@@ -41,3 +41,31 @@
 <textarea class="form-control font-monospace" name="code[@Model.Id]" id="@codeId" rows="12" maxlength="10000"
           spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off">@Model.AnswerPreload</textarea>
 <p class="form-text mb-0">Програмата чете от стандартния вход и печата на стандартния изход.</p>
+
+@* "Провери" (sl-code-check.js): the including page sets ViewData["CodeCheckUrl"] and ViewData["CodeCheckMode"]
+   ("practice" or "exam"); an exam also passes the wrong checks made so far in ViewData["CodeWrongChecks"]. *@
+@if (ViewData["CodeCheckUrl"] is string checkUrl)
+{
+    var practice = (ViewData["CodeCheckMode"] as string) == "practice";
+    var wrongSoFar = (ViewData["CodeWrongChecks"] as IReadOnlyDictionary<int, int>)?.GetValueOrDefault(Model.Id) ?? 0;
+    var penaltyPoints = SchoolLibrary.Services.Quizzes.QuizPoints.Format(SchoolLibrary.Services.Quizzes.CodePenalty.For(Model, 1));
+    <div class="mt-2" data-code-check data-url="@checkUrl" data-question-id="@Model.Id" data-code-id="@codeId">
+        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+            <button type="button" class="btn btn-sm btn-outline-primary" data-code-check-button>
+                <i class="bi bi-play-circle" aria-hidden="true"></i> Провери
+            </button>
+            <span class="small text-body-secondary" data-code-check-count data-wrong="@wrongSoFar" aria-live="polite">Грешни проверки: @wrongSoFar</span>
+        </div>
+        @if (Model.CheckPenaltyPercent > 0)
+        {
+            <p class="form-text mt-0 mb-2">
+                Всяка грешна проверка отнема @Model.CheckPenaltyPercent% от точките на въпроса (@penaltyPoints т.).
+            </p>
+        }
+        @if (practice)
+        {
+            <input type="hidden" name="wrongChecks[@Model.Id]" value="@wrongSoFar" data-code-check-wrong />
+        }
+        <div data-code-check-result aria-live="polite"></div>
+    </div>
+}

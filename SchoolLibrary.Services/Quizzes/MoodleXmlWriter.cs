@@ -159,7 +159,10 @@ public static class MoodleXmlWriter
             new XElement("coderunnertype", CodeRunnerType(question.CodeLanguage)),
             new XElement("prototypetype", "0"),
             new XElement("allornothing", question.AllOrNothing ? "1" : "0"),
-            new XElement("penaltyregime", "0"),
+            // Every wrong check costs the same share: "10, 20, ..." (CodeRunner carries the last step on)
+            new XElement("penaltyregime", question.CheckPenaltyPercent == 0
+                ? "0"
+                : $"{question.CheckPenaltyPercent}, {Math.Min(100, 2 * question.CheckPenaltyPercent)}, ..."),
             new XElement("precheck", "0"),
             new XElement("hidecheck", "0"),
             new XElement("showsource", "0"),

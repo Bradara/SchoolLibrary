@@ -67,6 +67,7 @@ public static class QuestionContent
         question.Statement = string.IsNullOrWhiteSpace(code?.Statement) ? null : code.Statement.Replace("\r\n", "\n").Trim();
         question.AnswerPreload = string.IsNullOrWhiteSpace(code?.Preload) ? null : code.Preload.TrimEnd();
         question.AllOrNothing = code?.AllOrNothing ?? true;
+        question.CheckPenaltyPercent = code?.CheckPenaltyPercent ?? 10;
         if (code == null)
         {
             return;

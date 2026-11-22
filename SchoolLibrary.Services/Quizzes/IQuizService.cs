@@ -52,7 +52,9 @@ public interface IQuizService
     /// Grades answers to a published practice quiz against the questions the student was shown (carried
     /// back as <paramref name="questionIds"/>). Fails when the quiz is missing, an exam, or unpublished.
     /// </summary>
-    Task<ServiceResult<QuizResult>> GradePracticeAsync(int quizId, IReadOnlyCollection<int> questionIds, IReadOnlyDictionary<int, SubmittedAnswer> answers);
+    /// <param name="wrongChecks">Question id → wrong checks made while practising (sent back by the page).</param>
+    Task<ServiceResult<QuizResult>> GradePracticeAsync(int quizId, IReadOnlyCollection<int> questionIds,
+        IReadOnlyDictionary<int, SubmittedAnswer> answers, IReadOnlyDictionary<int, int>? wrongChecks = null);
 
     /// <summary>
     /// The exam behind a code (a class exam, open or closed, or a published exam-mode quiz), for the

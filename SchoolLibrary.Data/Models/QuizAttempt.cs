@@ -58,6 +58,9 @@ namespace SchoolLibrary.Data.Models
 
         public ICollection<AttemptAnswer> Answers { get; set; } = new List<AttemptAnswer>();
 
+        /// <summary>The checks of code answers made before submitting (each press of "Провери").</summary>
+        public ICollection<CodeCheck> CodeChecks { get; set; } = new List<CodeCheck>();
+
         /// <summary>The time limit in force: the class exam's when there is one, otherwise the quiz's.</summary>
         [NotMapped]
         public int? TimeLimitMinutes => ExamAssignment != null ? ExamAssignment.TimeLimitMinutes : Quiz?.TimeLimitMinutes;

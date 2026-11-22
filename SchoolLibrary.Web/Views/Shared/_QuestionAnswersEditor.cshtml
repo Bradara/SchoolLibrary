@@ -174,6 +174,15 @@
             Без отметката точките се делят според тежестта на минатите тестове.
         </p>
         <div class="mb-3">
+            <label class="form-label" for="q-check-penalty">Наказание за грешна проверка (%)</label>
+            <input class="form-control" type="number" name="CheckPenaltyPercent" id="q-check-penalty" min="0" max="100" step="1"
+                   value="@Model.CheckPenaltyPercent" style="max-width: 8rem;" />
+            <div class="form-text">
+                Ученикът може да провери програмата си преди предаване с бутона „Провери“. Всяка проверка, при която не
+                минават всички тестове, отнема толкова процента от точките на въпроса (не под 0). 0 = без наказание.
+            </div>
+        </div>
+        <div class="mb-3">
             <label class="form-label" for="q-answer-preload">Начален код <span class="text-body-secondary">(по избор)</span></label>
             <textarea class="form-control font-monospace" name="AnswerPreload" id="q-answer-preload" rows="6"
                       maxlength="10000" spellcheck="false">@Model.AnswerPreload</textarea>

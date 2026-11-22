@@ -22,6 +22,12 @@ public record StoredCodeResults(CodeGradeStatus Status, string? Message, IReadOn
     /// <summary>The longest compiler message kept.</summary>
     public const int MaxMessageLength = 4000;
 
+    /// <summary>How many wrong checks were made before submitting.</summary>
+    public int WrongChecks { get; init; }
+
+    /// <summary>The points taken off for the wrong checks (never more than the program earned).</summary>
+    public decimal PenaltyPoints { get; init; }
+
     private static readonly JsonSerializerOptions Json = new()
     {
         Converters = { new JsonStringEnumConverter() },

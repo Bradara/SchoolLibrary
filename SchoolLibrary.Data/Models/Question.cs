@@ -39,6 +39,13 @@ namespace SchoolLibrary.Data.Models
         /// </summary>
         public bool AllOrNothing { get; set; } = true;
 
+        /// <summary>
+        /// For a code question: the share of its points (0–100%) taken off for every wrong check made before
+        /// submitting. The points never go below 0.
+        /// </summary>
+        [Range(0, 100, ErrorMessage = "Наказанието трябва да е между 0 и 100%")]
+        public int CheckPenaltyPercent { get; set; } = 10;
+
         /// <summary>For a code question: the code the answer box starts with (e.g. an empty Main method).</summary>
         [MaxLength(10000, ErrorMessage = "Началният код не може да бъде по-дълъг от 10000 символа")]
         [Display(Name = "Начален код")]

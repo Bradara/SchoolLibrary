@@ -100,6 +100,11 @@ public class QuestionFormViewModel
     [Display(Name = "Точки само ако минат всички тестове")]
     public bool AllOrNothing { get; set; } = true;
 
+    /// <summary>The share of the points taken off a code question for every wrong check (0–100%).</summary>
+    [Range(0, 100, ErrorMessage = "Наказанието е между 0 и 100%")]
+    [Display(Name = "Наказание за грешна проверка (%)")]
+    public int CheckPenaltyPercent { get; set; } = 10;
+
     /// <summary>The test rows of a code question; rows with neither input nor output are dropped.</summary>
     public List<CodeTestFormRow> Tests { get; set; } = new();
 
@@ -126,6 +131,7 @@ public class QuestionFormViewModel
             form.Statement = question.Statement;
             form.AnswerPreload = question.AnswerPreload;
             form.AllOrNothing = question.AllOrNothing;
+            form.CheckPenaltyPercent = question.CheckPenaltyPercent;
             form.Tests = question.TestCases
                 .OrderBy(t => t.Order)
                 .Select(t => new CodeTestFormRow
@@ -210,7 +216,7 @@ public class QuestionFormViewModel
                     string.IsNullOrWhiteSpace(t.Weight) ? 1m : NumericAnswer.Parse(t.Weight) ?? -1m))
                 .ToList();
             return QuestionInput.CodeQuestion(Text ?? string.Empty, CodeLanguage ?? string.Empty, tests, AnswerPreload,
-                AllOrNothing, Points, Statement);
+                AllOrNothing, Points, Statement, CheckPenaltyPercent);
         }
 
         if (Type == QuestionType.Matching)

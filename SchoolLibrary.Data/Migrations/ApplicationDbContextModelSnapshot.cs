@@ -432,6 +432,35 @@ namespace SchoolLibrary.Data.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.CodeCheck", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("AttemptId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CheckedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsWrong")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("QuestionId");
+
+                    b.HasIndex("AttemptId", "QuestionId");
+
+                    b.ToTable("CodeChecks");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.CodeTestCase", b =>
                 {
                     b.Property<int>("Id")
@@ -681,6 +710,9 @@ namespace SchoolLibrary.Data.Migrations
 
                     b.Property<bool>("CaseSensitive")
                         .HasColumnType("boolean");
+
+                    b.Property<int>("CheckPenaltyPercent")
+                        .HasColumnType("integer");
 
                     b.Property<string>("CodeLanguage")
                         .HasMaxLength(20)
@@ -1273,6 +1305,25 @@ namespace SchoolLibrary.Data.Migrations
                     b.Navigation("Question");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.CodeCheck", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.QuizAttempt", "Attempt")
+                        .WithMany("CodeChecks")
+                        .HasForeignKey("AttemptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SchoolLibrary.Data.Models.Question", "Question")
+                        .WithMany()
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Attempt");
+
+                    b.Navigation("Question");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.CodeTestCase", b =>
                 {
                     b.HasOne("SchoolLibrary.Data.Models.Question", "Question")
@@ -1524,6 +1575,8 @@ namespace SchoolLibrary.Data.Migrations
             modelBuilder.Entity("SchoolLibrary.Data.Models.QuizAttempt", b =>
                 {
                     b.Navigation("Answers");
+
+                    b.Navigation("CodeChecks");
 
                     b.Navigation("Questions");
                 });

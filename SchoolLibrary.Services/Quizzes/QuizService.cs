@@ -44,6 +44,14 @@ public class QuizService : IQuizService
         _codeQueue = codeQueue;
     }
 
+    // The wrong checks an exam attempt made, by question (counted on the server, not taken from the form)
+    private async Task<IReadOnlyDictionary<int, int>> WrongChecksAsync(int attemptId)
+        => await _context.CodeChecks
+            .Where(c => c.AttemptId == attemptId && c.IsWrong)
+            .GroupBy(c => c.QuestionId)
+            .Select(g => new { QuestionId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.QuestionId, x => x.Count);
+
     // The programs of a submitted exam, marked to be checked in the background (a blank one is simply unanswered)
     private static IReadOnlyDictionary<int, CodeOutcome> PendingCode(IEnumerable<Question> questions,
         IReadOnlyDictionary<int, SubmittedAnswer> answers)
@@ -60,7 +68,7 @@ public class QuizService : IQuizService
     /// (the server's line limits how many run at once). Without a server they are stored as not checked.
     /// </summary>
     private async Task<IReadOnlyDictionary<int, CodeOutcome>> RunCodeAsync(IEnumerable<Question> questions,
-        IReadOnlyDictionary<int, SubmittedAnswer> answers)
+        IReadOnlyDictionary<int, SubmittedAnswer> answers, IReadOnlyDictionary<int, int>? wrongChecks)
     {
         var outcomes = new Dictionary<int, CodeOutcome>();
         foreach (var question in questions.Where(q => q.Type == QuestionType.Code))
@@ -74,8 +82,7 @@ public class QuizService : IQuizService
             }
 
             var grade = await _codeGrader.GradeAsync(question, program);
-            outcomes[question.Id] = new CodeOutcome(grade.Code, grade.AwardedPoints, grade.IsCorrect,
-                grade.Status == CodeGradeStatus.Unanswered ? null : StoredCodeResults.From(grade));
+            outcomes[question.Id] = CodePenalty.Apply(grade, question, wrongChecks?.GetValueOrDefault(question.Id) ?? 0);
         }
 
         return outcomes;
@@ -434,7 +441,8 @@ public class QuizService : IQuizService
         return ServiceResult<PracticeSet>.Success(new PracticeSet(quiz, questions));
     }
 
-    public async Task<ServiceResult<QuizResult>> GradePracticeAsync(int quizId, IReadOnlyCollection<int> questionIds, IReadOnlyDictionary<int, SubmittedAnswer> answers)
+    public async Task<ServiceResult<QuizResult>> GradePracticeAsync(int quizId, IReadOnlyCollection<int> questionIds,
+        IReadOnlyDictionary<int, SubmittedAnswer> answers, IReadOnlyDictionary<int, int>? wrongChecks = null)
     {
         var quiz = await _context.Quizzes.AsNoTracking()
             .FirstOrDefaultAsync(q => q.Id == quizId && q.Mode == QuizMode.Practice && q.IsPublished);
@@ -455,7 +463,8 @@ public class QuizService : IQuizService
             .Select(q => q!)
             .ToList();
 
-        var result = QuizGrading.Grade(quiz, ordered, answers, await RunCodeAsync(ordered, answers));
+        // A practice is not stored, so the count of wrong checks comes back with the form
+        var result = QuizGrading.Grade(quiz, ordered, answers, await RunCodeAsync(ordered, answers, wrongChecks));
         return ServiceResult<QuizResult>.Success(result);
     }
 
@@ -577,6 +586,7 @@ public class QuizService : IQuizService
             .Include(a => a.Questions)
                 .ThenInclude(aq => aq.Question)
                     .ThenInclude(q => q.TestCases.OrderBy(t => t.Order))
+            .Include(a => a.CodeChecks)
             .FirstOrDefaultAsync(a => a.Token == token);
 
         QuizAttemptResults.ApplyOptionOrder(attempt);
@@ -610,7 +620,9 @@ public class QuizService : IQuizService
 
         var questions = QuizAttemptResults.SnapshotQuestions(attempt);
         var background = _codeGrader != null && _codeQueue != null;
-        var code = background ? PendingCode(questions, answers) : await RunCodeAsync(questions, answers);
+        var code = background
+            ? PendingCode(questions, answers)
+            : await RunCodeAsync(questions, answers, await WrongChecksAsync(attempt.Id));
         var result = QuizGrading.Grade(attempt.Quiz, questions, answers, code);
 
         foreach (var questionResult in result.Questions)
@@ -1051,6 +1063,11 @@ public class QuizService : IQuizService
         if (!CodeRunning.CodeLanguages.IsSupported(code.Language))
         {
             return "Изберете език за програмиране.";
+        }
+
+        if (code.CheckPenaltyPercent is < 0 or > 100)
+        {
+            return "Наказанието за грешна проверка трябва да е между 0 и 100%.";
         }
 
         if (code.Statement?.Length > MaxStatementLength)

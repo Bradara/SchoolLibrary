@@ -5,6 +5,14 @@
     var quiz = Model.Attempt.Quiz;
     var maxLeaves = Model.Attempt.MaxLeaves;
     var proctored = maxLeaves.HasValue;
+
+    // "Провери" on code questions: checks are stored on the server and the wrong ones are counted there
+    ViewData["CodeCheckUrl"] = Url.Action("CheckExamCode", new { token = Model.Attempt.Token });
+    ViewData["CodeCheckMode"] = "exam";
+    ViewData["CodeWrongChecks"] = (IReadOnlyDictionary<int, int>)Model.Attempt.CodeChecks
+        .Where(c => c.IsWrong)
+        .GroupBy(c => c.QuestionId)
+        .ToDictionary(g => g.Key, g => g.Count());
 }
 
 @* The exam runs in fullscreen. The start screen asks for a click, since a browser only enters
@@ -122,4 +130,5 @@
         <script src="~/js/sl-exam-timer.js" asp-append-version="true"></script>
     }
     <script src="~/js/sl-exam-proctor.js" asp-append-version="true"></script>
+    <script src="~/js/sl-code-check.js" asp-append-version="true"></script>
 }

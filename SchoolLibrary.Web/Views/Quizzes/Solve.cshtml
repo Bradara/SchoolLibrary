@@ -4,6 +4,10 @@
 @{
     var quiz = Model.Quiz;
     ViewData["Title"] = quiz.Title;
+
+    // "Провери" on code questions: a practice is not stored, so the page keeps the count of wrong checks
+    ViewData["CodeCheckUrl"] = Url.Action("CheckCode", new { id = quiz.Id });
+    ViewData["CodeCheckMode"] = "practice";
 }
 
 <nav aria-label="breadcrumb">
@@ -48,4 +52,8 @@ else
         <button type="submit" class="btn btn-primary">Провери</button>
         <a asp-action="Index" class="btn btn-link">← Към упражненията</a>
     </form>
+}
+
+@section Scripts {
+    <script src="~/js/sl-code-check.js" asp-append-version="true"></script>
 }
