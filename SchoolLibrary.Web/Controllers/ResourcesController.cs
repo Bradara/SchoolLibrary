@@ -10,6 +10,7 @@ using SchoolLibrary.Services.Favorites;
 using SchoolLibrary.Services.GradeLevels;
 using SchoolLibrary.Services.Licenses;
 using SchoolLibrary.Services.Markdown;
+using SchoolLibrary.Services.Reading;
 using SchoolLibrary.Services.Resources;
 using SchoolLibrary.Services.Storage;
 using SchoolLibrary.ViewModels;
@@ -33,6 +34,7 @@ namespace SchoolLibrary.Controllers
         private readonly ILicenseService _licenses;
         private readonly IFavoriteService _favorites;
         private readonly ICommentService _comments;
+        private readonly IReadingPositionService _reading;
 
         public ResourcesController(
             IResourceService resources,
@@ -43,7 +45,8 @@ namespace SchoolLibrary.Controllers
             IGradeLevelService gradeLevels,
             ILicenseService licenses,
             IFavoriteService favorites,
-            ICommentService comments)
+            ICommentService comments,
+            IReadingPositionService reading)
         {
             _resources = resources;
             _uploads = uploads;
@@ -54,6 +57,7 @@ namespace SchoolLibrary.Controllers
             _licenses = licenses;
             _favorites = favorites;
             _comments = comments;
+            _reading = reading;
         }
 
         private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -137,6 +141,11 @@ namespace SchoolLibrary.Controllers
 
             var comments = await _comments.GetForResourceAsync(resource.Id, commentPage);
 
+            // A signed-in reader continues a book where they stopped, on whichever device they read it
+            var readingPosition = IsSignedIn && resource.File?.ContentType == ReadingPositionService.EpubContentType
+                ? await _reading.GetAsync(CurrentUserId, resource.Id)
+                : null;
+
             return View(new ResourceDetailsViewModel
             {
                 Resource = resource,
@@ -148,8 +157,25 @@ namespace SchoolLibrary.Controllers
                 CommentTotalPages = comments.TotalPages,
                 CommentTotal = comments.TotalCount,
                 CommentError = TempData["CommentError"] as string,
-                CommentDraft = TempData["CommentDraft"] as string
+                CommentDraft = TempData["CommentDraft"] as string,
+                ReadingPosition = readingPosition
             });
+        }
+
+        // POST: Resources/SaveReadingPosition/5 — the EPUB reader saves where the user is (fetch, JSON)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveReadingPosition(int id, string? cfi, int percent)
+        {
+            var result = await _reading.SaveAsync(CurrentUserId, id, cfi, percent);
+            if (result.Error == ServiceError.NotFound)
+            {
+                return NotFound();
+            }
+
+            return result.Succeeded
+                ? Json(new { ok = true })
+                : BadRequest(new { ok = false, message = result.Message });
         }
 
         // GET: Resources/Download — serves an uploaded file for preview (inline) or download

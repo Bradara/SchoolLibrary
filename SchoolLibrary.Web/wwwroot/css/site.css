@@ -242,6 +242,11 @@ body.sl-maximized-open {
   min-width: 15rem;
 }
 
+.sl-epub-settings {
+  width: 17rem;
+  max-width: calc(100vw - 2rem);
+}
+
 /* ---------- Rendered Markdown uploads (readable measure, pictures and tables fit) ---------- */
 .sl-markdown {
   max-width: 70ch;

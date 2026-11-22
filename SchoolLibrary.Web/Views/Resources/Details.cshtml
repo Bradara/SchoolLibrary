@@ -1,4 +1,4 @@
-@using SchoolLibrary.Data.Enums
+﻿@using SchoolLibrary.Data.Enums
 @using SchoolLibrary.Extensions
 @using SchoolLibrary.ViewModels
 @model ResourceDetailsViewModel
@@ -82,14 +82,24 @@
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-epub-font-dec" aria-label="По-дребен шрифт">A−</button>
                         <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-epub-font-inc" aria-label="По-едър шрифт">A+</button>
                     </div>
+                    <partial name="_EpubReaderSettings" />
+                    <span class="small text-body-secondary" id="sl-epub-sync" aria-live="polite"></span>
                     <button type="button" class="btn btn-sm btn-outline-secondary ms-auto sl-viewer-toggle"
                             aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
                 </div>
 
                 <div class="sl-epub-stage position-relative flex-grow-1">
                     <button type="button" class="sl-epub-nav sl-epub-nav-prev" id="sl-epub-prev" aria-label="Предишна страница"><i class="bi bi-chevron-left"></i></button>
+                    @* Signed in: the position is kept on the server (any device); a visitor keeps it in this browser *@
                     <div id="sl-epub" class="border rounded bg-body h-100"
-                         data-epub-url="@serveUrl" data-epub-key="epub-pos-@Model.Resource.Id"></div>
+                         data-epub-url="@serveUrl" data-epub-key="epub-pos-@Model.Resource.Id"
+                         data-epub-save-url="@(User.Identity?.IsAuthenticated == true ? Url.Action("SaveReadingPosition", new { id = Model.Resource.Id }) : null)"
+                         data-epub-position="@Model.ReadingPosition?.Cfi"
+                         data-epub-percent="@Model.ReadingPosition?.Percent"></div>
+                    @if (User.Identity?.IsAuthenticated == true)
+                    {
+                        <form id="sl-epub-token" class="d-none">@Html.AntiForgeryToken()</form>
+                    }
                     <button type="button" class="sl-epub-nav sl-epub-nav-next" id="sl-epub-next" aria-label="Следваща страница"><i class="bi bi-chevron-right"></i></button>
                 </div>
 

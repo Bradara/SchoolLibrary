@@ -912,6 +912,37 @@ namespace SchoolLibrary.Data.Migrations
                     b.ToTable("QuizItems");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.ReadingPosition", b =>
+                {
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("ResourceId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Cfi")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("Percent")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("UserId", "ResourceId");
+
+                    b.HasIndex("ResourceId");
+
+                    b.HasIndex("UserId", "UpdatedOn");
+
+                    b.ToTable("ReadingPositions", t =>
+                        {
+                            t.HasCheckConstraint("CK_ReadingPositions_Percent", "\"Percent\" BETWEEN 0 AND 100");
+                        });
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Report", b =>
                 {
                     b.Property<int>("Id")
@@ -1467,6 +1498,25 @@ namespace SchoolLibrary.Data.Migrations
                     b.Navigation("Quiz");
 
                     b.Navigation("Section");
+                });
+
+            modelBuilder.Entity("SchoolLibrary.Data.Models.ReadingPosition", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.Resource", "Resource")
+                        .WithMany()
+                        .HasForeignKey("ResourceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SchoolLibrary.Data.Models.ApplicationUser", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Resource");
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Report", b =>

@@ -1,4 +1,5 @@
 using SchoolLibrary.Data.Models;
+using SchoolLibrary.Services.Reading;
 
 namespace SchoolLibrary.ViewModels;
 
@@ -36,4 +37,7 @@ public class ResourceDetailsViewModel
     // Shown again after a comment was refused, so the user does not lose the text
     public string? CommentError { get; set; }
     public string? CommentDraft { get; set; }
+
+    /// <summary>Where the signed-in user stopped reading this book (EPUB only); null otherwise.</summary>
+    public ReadingPositionInfo? ReadingPosition { get; set; }
 }

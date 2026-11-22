@@ -40,6 +40,29 @@ namespace SchoolLibrary.Data
                 .HasForeignKey(f => f.ResourceId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // Reading positions: one per user and book, removed with either of them
+            builder.Entity<ReadingPosition>()
+                .HasKey(p => new { p.UserId, p.ResourceId });
+
+            builder.Entity<ReadingPosition>()
+                .HasOne(p => p.User)
+                .WithMany()
+                .HasForeignKey(p => p.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<ReadingPosition>()
+                .HasOne(p => p.Resource)
+                .WithMany()
+                .HasForeignKey(p => p.ResourceId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // The books of one user are read newest first (and the oldest ones are forgotten)
+            builder.Entity<ReadingPosition>()
+                .HasIndex(p => new { p.UserId, p.UpdatedOn });
+
+            builder.Entity<ReadingPosition>()
+                .ToTable(t => t.HasCheckConstraint("CK_ReadingPositions_Percent", "\"Percent\" BETWEEN 0 AND 100"));
+
             // Comments go away with their resource and with their author's account
             builder.Entity<Comment>()
                 .HasOne(c => c.Resource)
@@ -379,6 +402,7 @@ namespace SchoolLibrary.Data
         public DbSet<OnlineLibrary> OnlineLibraries { get; set; }
         public DbSet<Favorite> Favorites { get; set; }
         public DbSet<Comment> Comments { get; set; }
+        public DbSet<ReadingPosition> ReadingPositions { get; set; }
         public DbSet<Report> Reports { get; set; }
         public DbSet<Section> Sections { get; set; }
         public DbSet<Quiz> Quizzes { get; set; }

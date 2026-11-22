@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Moq;
 using SchoolLibrary.Controllers;
 using SchoolLibrary.Data.Constants;
@@ -11,6 +11,7 @@ using SchoolLibrary.Services.Favorites;
 using SchoolLibrary.Services.GradeLevels;
 using SchoolLibrary.Services.Licenses;
 using SchoolLibrary.Services.Markdown;
+using SchoolLibrary.Services.Reading;
 using SchoolLibrary.Services.Resources;
 using SchoolLibrary.Services.Storage;
 using SchoolLibrary.ViewModels;
@@ -28,6 +29,7 @@ public class ResourcesControllerTests
     private readonly Mock<ILicenseService> _licenses = new();
     private readonly Mock<IFavoriteService> _favorites = new();
     private readonly Mock<ICommentService> _comments = new();
+    private readonly Mock<IReadingPositionService> _reading = new();
 
     private ResourceFilter? _filter;
 
@@ -47,7 +49,7 @@ public class ResourcesControllerTests
 
     private ResourcesController Controller(string? userId = "u1", params string[] roles) =>
         new ResourcesController(_resources.Object, _uploads.Object, _storage.Object, _markdown.Object,
-            _categories.Object, _gradeLevels.Object, _licenses.Object, _favorites.Object, _comments.Object)
+            _categories.Object, _gradeLevels.Object, _licenses.Object, _favorites.Object, _comments.Object, _reading.Object)
             .WithUser(userId, roles);
 
     private static ResourceFormViewModel ValidForm() => new()
@@ -230,6 +232,78 @@ public class ResourcesControllerTests
         var model = Assert.IsType<ResourceDetailsViewModel>(Assert.IsType<ViewResult>(result).Model);
         Assert.Equal("Напишете коментар.", model.CommentError);
         Assert.Equal("недовършен текст", model.CommentDraft);
+    }
+
+    // ---------- the reading position of a book ----------
+
+    private static Resource Book() => new()
+    {
+        Id = 5,
+        Title = "Под игото",
+        Kind = ResourceKind.Upload,
+        File = new ResourceFile { ResourceId = 5, ContentType = ReadingPositionService.EpubContentType }
+    };
+
+    [Fact]
+    public async Task Details_OfABook_BringsTheSavedReadingPosition()
+    {
+        _resources.Setup(r => r.GetDetailsAsync(5)).ReturnsAsync(Book());
+        var saved = new ReadingPositionInfo("epubcfi(/6/4!/4/2/1:0)", 40, DateTime.UtcNow);
+        _reading.Setup(r => r.GetAsync("u1", 5)).ReturnsAsync(saved);
+
+        var result = await Controller().Details(5);
+
+        Assert.Same(saved, Assert.IsType<ResourceDetailsViewModel>(Assert.IsType<ViewResult>(result).Model).ReadingPosition);
+    }
+
+    [Fact]
+    public async Task Details_ForAVisitor_DoesNotLookForAReadingPosition()
+    {
+        _resources.Setup(r => r.GetDetailsAsync(5)).ReturnsAsync(Book());
+
+        var result = await Controller(userId: null).Details(5);
+
+        Assert.Null(Assert.IsType<ResourceDetailsViewModel>(Assert.IsType<ViewResult>(result).Model).ReadingPosition);
+        _reading.Verify(r => r.GetAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Details_OfAResourceThatIsNotABook_DoesNotLookForAReadingPosition()
+    {
+        _resources.Setup(r => r.GetDetailsAsync(5)).ReturnsAsync(new Resource { Id = 5, Title = "Дроби" });
+
+        await Controller().Details(5);
+
+        _reading.Verify(r => r.GetAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task SaveReadingPosition_SavesForTheCurrentUser()
+    {
+        _reading.Setup(r => r.SaveAsync("u1", 5, "epubcfi(/6/4!/4/2/1:0)", 40)).ReturnsAsync(ServiceResult.Success());
+
+        var result = await Controller().SaveReadingPosition(5, "epubcfi(/6/4!/4/2/1:0)", 40);
+
+        Assert.IsType<JsonResult>(result);
+        _reading.Verify(r => r.SaveAsync("u1", 5, "epubcfi(/6/4!/4/2/1:0)", 40), Times.Once);
+    }
+
+    [Fact]
+    public async Task SaveReadingPosition_UnknownBook_ReturnsNotFound()
+    {
+        _reading.Setup(r => r.SaveAsync("u1", 9, It.IsAny<string?>(), It.IsAny<int>()))
+            .ReturnsAsync(ServiceResult.Failure(ServiceError.NotFound, "Книгата не е намерена."));
+
+        Assert.IsType<NotFoundResult>(await Controller().SaveReadingPosition(9, "epubcfi(/6)", 1));
+    }
+
+    [Fact]
+    public async Task SaveReadingPosition_InvalidPosition_ReturnsBadRequest()
+    {
+        _reading.Setup(r => r.SaveAsync("u1", 5, It.IsAny<string?>(), It.IsAny<int>()))
+            .ReturnsAsync(ServiceResult.Failure(ServiceError.Invalid, "Невалидна позиция в книгата."));
+
+        Assert.IsType<BadRequestObjectResult>(await Controller().SaveReadingPosition(5, "x", 1));
     }
 
     // ---------- adding ----------
