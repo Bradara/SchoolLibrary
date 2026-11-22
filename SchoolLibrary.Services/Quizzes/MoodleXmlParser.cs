@@ -250,10 +250,18 @@ public static class MoodleXmlParser
             return (null, "въпроси със собствен шаблон (template) не се поддържат.");
         }
 
-        var text = MultilineText(question.Element("questiontext")?.Element("text"));
+        // The question text is the task; the question's name is its short title (or the task's first line)
+        var statement = MultilineText(question.Element("questiontext")?.Element("text"));
+        var name = CleanText(question.Element("name")?.Element("text"));
+        var text = name.Length > 0 ? name : statement.Split('\n')[0];
         if (text.Length == 0)
         {
             return (null, "липсва текст на въпроса.");
+        }
+
+        if (text.Length > QuizService.QuestionMaxLength)
+        {
+            text = text[..QuizService.QuestionMaxLength];
         }
 
         var tests = new List<CodeTestInput>();
@@ -284,7 +292,7 @@ public static class MoodleXmlParser
         var preload = RawText(question.Element("answerpreload"));
         var allOrNothing = CleanText(question.Element("allornothing")) != "0";
         return (QuestionInput.CodeQuestion(text, language, tests, preload.Trim().Length > 0 ? preload : null,
-            allOrNothing, Points(question)), null);
+            allOrNothing, Points(question), statement == text ? null : statement), null);
     }
 
     // Text as written (inputs, outputs and code): only the line endings unified

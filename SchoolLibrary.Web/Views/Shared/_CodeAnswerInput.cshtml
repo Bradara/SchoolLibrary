@@ -8,6 +8,11 @@
     var examples = Model.TestCases.Where(t => t.IsExample).OrderBy(t => t.Order).ToList();
 }
 
+@if (!string.IsNullOrEmpty(Model.Statement))
+{
+    <div class="mb-3" style="white-space: pre-line;">@Model.Statement</div>
+}
+
 @if (examples.Count > 0)
 {
     <div class="table-responsive mb-2">

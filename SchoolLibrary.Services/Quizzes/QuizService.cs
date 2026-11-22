@@ -23,6 +23,7 @@ public class QuizService : IQuizService
     public const int MaxPageSize = 100;
     public const int MaxClassNumber = 99;
     public const int MaxCodeTests = 20;
+    public const int MaxStatementLength = 10000;
 
     private readonly ApplicationDbContext _context;
     private readonly IQuizItemService _items;
@@ -1050,6 +1051,11 @@ public class QuizService : IQuizService
         if (!CodeRunning.CodeLanguages.IsSupported(code.Language))
         {
             return "Изберете език за програмиране.";
+        }
+
+        if (code.Statement?.Length > MaxStatementLength)
+        {
+            return $"Условието не може да бъде по-дълго от {MaxStatementLength} символа.";
         }
 
         if (code.Preload?.Length > CodeGrader.MaxCodeLength)

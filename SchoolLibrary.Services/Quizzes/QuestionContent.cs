@@ -64,6 +64,7 @@ public static class QuestionContent
         question.TestCases.Clear();
         var code = input.Type == QuestionType.Code ? input.Code : null;
         question.CodeLanguage = code?.Language;
+        question.Statement = string.IsNullOrWhiteSpace(code?.Statement) ? null : code.Statement.Replace("\r\n", "\n").Trim();
         question.AnswerPreload = string.IsNullOrWhiteSpace(code?.Preload) ? null : code.Preload.TrimEnd();
         question.AllOrNothing = code?.AllOrNothing ?? true;
         if (code == null)

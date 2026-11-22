@@ -32,10 +32,10 @@ public record QuestionInput(string Text, IReadOnlyList<string> Options, int Corr
     /// <paramref name="preload"/>, checked with <paramref name="tests"/>.
     /// </summary>
     public static QuestionInput CodeQuestion(string text, string language, IReadOnlyList<CodeTestInput> tests,
-        string? preload = null, bool allOrNothing = true, int points = 1)
+        string? preload = null, bool allOrNothing = true, int points = 1, string? statement = null)
         => new(text, Array.Empty<string>(), -1, points, QuestionType.Code)
         {
-            Code = new CodeQuestionInput(language, preload, allOrNothing, tests)
+            Code = new CodeQuestionInput(language, preload, allOrNothing, tests, statement)
         };
 
     /// <summary>The option texts of a true/false question, in their fixed order.</summary>
@@ -95,7 +95,9 @@ public record QuestionInput(string Text, IReadOnlyList<string> Options, int Corr
 public record CodeOutcome(string Code, decimal AwardedPoints, bool IsCorrect, StoredCodeResults? Results, bool Pending = false);
 
 /// <summary>What a teacher sets for a code question: language, starting code, scoring and the tests.</summary>
-public record CodeQuestionInput(string Language, string? Preload, bool AllOrNothing, IReadOnlyList<CodeTestInput> Tests);
+/// <param name="Statement">The full task, several lines long; the question's text is its short title.</param>
+public record CodeQuestionInput(string Language, string? Preload, bool AllOrNothing, IReadOnlyList<CodeTestInput> Tests,
+    string? Statement = null);
 
 /// <summary>One test of a code question as typed in the form.</summary>
 public record CodeTestInput(string Stdin, string Expected, bool IsExample = false, bool IsHidden = false, decimal Weight = 1m);

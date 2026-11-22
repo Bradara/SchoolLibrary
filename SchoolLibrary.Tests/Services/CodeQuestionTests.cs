@@ -331,6 +331,59 @@ public class CodeQuestionTests
             t => Assert.Equal(("b", "B", false, true, "2,5"), (t.Stdin, t.Expected, t.IsExample, t.IsHidden, t.Weight)));
     }
 
+    // ---------- Statement ----------
+
+    [Fact]
+    public async Task Statement_IsStoredWithItsLines_AndClearedForAnotherType()
+    {
+        using var context = TestDbContextFactory.Create();
+        var (service, section) = await BankAsync(context);
+        var input = QuestionInput.CodeQuestion("Сбор", "python3", TwoTests,
+            statement: "  Прочетете две числа.\r\n\r\nОтпечатайте сбора им.  \r\n");
+
+        var question = (await service.CreateAsync(section.Id, input, Owner, false)).Value!;
+
+        Assert.Equal("Прочетете две числа.\n\nОтпечатайте сбора им.", question.Statement);
+        context.ChangeTracker.Clear();
+
+        await service.UpdateAsync(question.Id, new QuestionInput("2 + 2 = ?", new[] { "4", "5" }, 0), Owner, false);
+        context.ChangeTracker.Clear();
+        Assert.Null((await service.GetQuestionAsync(question.Id))!.Statement);
+    }
+
+    [Fact]
+    public async Task Statement_Blank_IsStoredAsNull()
+    {
+        using var context = TestDbContextFactory.Create();
+        var (service, section) = await BankAsync(context);
+
+        var question = (await service.CreateAsync(section.Id,
+            QuestionInput.CodeQuestion("Сбор", "python3", TwoTests, statement: " \n "), Owner, false)).Value!;
+
+        Assert.Null(question.Statement);
+    }
+
+    [Fact]
+    public void Validate_TooLongStatement_IsRejected()
+    {
+        var input = QuestionInput.CodeQuestion("Сбор", "python3", TwoTests, statement: new string('а', QuizService.MaxStatementLength + 1));
+
+        Assert.Equal($"Условието не може да бъде по-дълго от {QuizService.MaxStatementLength} символа.", QuizService.ValidateQuestion(input));
+    }
+
+    [Fact]
+    public void Form_CarriesTheStatement_BothWays()
+    {
+        var form = QuestionFormViewModel.FromQuestion(new Question
+        {
+            Type = QuestionType.Code, Text = "Сбор", CodeLanguage = "csharp", Statement = "Ред 1\nРед 2",
+            TestCases = { new CodeTestCase { Stdin = "1", Expected = "1" } },
+        });
+
+        Assert.Equal("Ред 1\nРед 2", form.Statement);
+        Assert.Equal("Ред 1\nРед 2", form.ToInput().Code!.Statement);
+    }
+
     [Fact]
     public void Form_NewForm_IsAllOrNothing()
     {

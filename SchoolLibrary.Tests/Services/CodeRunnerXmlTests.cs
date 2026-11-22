@@ -84,7 +84,9 @@ public class CodeRunnerXmlTests
         var input = Assert.Single(result.Questions);
         Assert.Equal(QuestionType.Code, input.Type);
         Assert.Equal(3, input.Points);
-        Assert.Equal("Прочетете две числа и отпечатайте сбора им.\nВход: 2 3\nИзход: 5", input.Text);
+        // The name is the title; the question text is the task, with its lines kept
+        Assert.Equal("Сбор", input.Text);
+        Assert.Equal("Прочетете две числа и отпечатайте сбора им.\nВход: 2 3\nИзход: 5", input.Code!.Statement);
         Assert.Equal(CodeLanguages.Python, input.Code!.Language);
         Assert.False(input.Code.AllOrNothing);
         Assert.StartsWith("a, b = map(int, input().split())", input.Code.Preload);
@@ -201,7 +203,8 @@ public class CodeRunnerXmlTests
 
     private static Question CodeQuestion(string language = CodeLanguages.CSharp) => new()
     {
-        Text = "Прочетете две числа.\nОтпечатайте сбора им.",
+        Text = "Сбор на две числа",
+        Statement = "Прочетете две числа.\nОтпечатайте сбора им <a + b>.",
         Type = QuestionType.Code,
         Points = 4,
         CodeLanguage = language,
@@ -226,11 +229,39 @@ public class CodeRunnerXmlTests
         Assert.Equal("4", question.Element("defaultgrade")!.Value);
         Assert.Equal("using System;\n\nclass P\n{\n}", question.Element("answerpreload")!.Value);
         Assert.Equal("", question.Element("template")!.Value);
+        Assert.Equal("Сбор на две числа", question.Element("name")!.Element("text")!.Value);
+        Assert.Equal("<p>Прочетете две числа.<br>Отпечатайте сбора им &lt;a + b&gt;.</p>",
+            question.Element("questiontext")!.Element("text")!.Value);
         var tests = question.Element("testcases")!.Elements("testcase").ToList();
         Assert.Equal(2, tests.Count);
         Assert.Equal(("1", "1", "SHOW"), ((string)tests[0].Attribute("useasexample")!, (string)tests[0].Attribute("mark")!, tests[0].Element("display")!.Value));
         Assert.Equal(("0", "2.5", "HIDE"), ((string)tests[1].Attribute("useasexample")!, (string)tests[1].Attribute("mark")!, tests[1].Element("display")!.Value));
         Assert.Equal("  -10 4\n", tests[1].Element("stdin")!.Value);
+    }
+
+    [Fact]
+    public void Export_WithoutAStatement_ThenImport_KeepsOnlyTheTitle()
+    {
+        var original = CodeQuestion();
+        original.Statement = null;
+
+        var input = Assert.Single(MoodleXmlParser.Parse(MoodleXmlWriter.Write(new[] { original })).Questions);
+
+        Assert.Equal("Сбор на две числа", input.Text);
+        Assert.Null(input.Code!.Statement);
+    }
+
+    [Fact]
+    public void Parse_WithoutAName_TakesTheFirstLineAsTheTitle()
+    {
+        var xml = CodeRunner(OneTest)
+            .Replace("<name><text>Q</text></name>", "<name><text></text></name>")
+            .Replace("<text>Задача</text>", "<text><![CDATA[<p>Сбор</p><p>Прочетете две числа.</p>]]></text>");
+
+        var input = Assert.Single(MoodleXmlParser.Parse(xml).Questions);
+
+        Assert.Equal("Сбор", input.Text);
+        Assert.Equal("Сбор\nПрочетете две числа.", input.Code!.Statement);
     }
 
     [Theory]
@@ -251,6 +282,7 @@ public class CodeRunnerXmlTests
         var input = Assert.Single(MoodleXmlParser.Parse(MoodleXmlWriter.Write(new[] { original })).Questions);
 
         Assert.Equal(original.Text, input.Text);
+        Assert.Equal(original.Statement, input.Code!.Statement);
         Assert.Equal(original.Points, input.Points);
         Assert.Equal((language, original.AnswerPreload, false), (input.Code!.Language, input.Code.Preload, input.Code.AllOrNothing));
         Assert.Equal(

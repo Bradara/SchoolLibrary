@@ -21,6 +21,14 @@ namespace SchoolLibrary.Data.Models
         /// <summary>Whether a short answer must match the letter case of an accepted answer.</summary>
         public bool CaseSensitive { get; set; }
 
+        /// <summary>
+        /// For a code question: the full task (what the program reads and prints), several lines long.
+        /// <see cref="Text"/> is then its short title.
+        /// </summary>
+        [MaxLength(10000, ErrorMessage = "Условието не може да бъде по-дълго от 10000 символа")]
+        [Display(Name = "Условие на задачата")]
+        public string? Statement { get; set; }
+
         /// <summary>For a code question: the language id the program is written in ("python3", "csharp").</summary>
         [MaxLength(20)]
         public string? CodeLanguage { get; set; }

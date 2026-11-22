@@ -698,6 +698,10 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<int?>("SectionId")
                         .HasColumnType("integer");
 
+                    b.Property<string>("Statement")
+                        .HasMaxLength(10000)
+                        .HasColumnType("character varying(10000)");
+
                     b.Property<string>("Text")
                         .IsRequired()
                         .HasMaxLength(1000)

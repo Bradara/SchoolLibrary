@@ -82,6 +82,11 @@ public class QuestionFormViewModel
     [Display(Name = "Точки")]
     public int Points { get; set; } = 1;
 
+    /// <summary>The full task of a code question (the text above is its short title).</summary>
+    [StringLength(10000, ErrorMessage = "Условието е най-много 10000 символа")]
+    [Display(Name = "Условие на задачата")]
+    public string? Statement { get; set; }
+
     /// <summary>The language of a code question (a <c>CodeLanguages</c> id).</summary>
     [Display(Name = "Език")]
     public string? CodeLanguage { get; set; }
@@ -118,6 +123,7 @@ public class QuestionFormViewModel
         else if (question.Type == QuestionType.Code)
         {
             form.CodeLanguage = question.CodeLanguage;
+            form.Statement = question.Statement;
             form.AnswerPreload = question.AnswerPreload;
             form.AllOrNothing = question.AllOrNothing;
             form.Tests = question.TestCases
@@ -204,7 +210,7 @@ public class QuestionFormViewModel
                     string.IsNullOrWhiteSpace(t.Weight) ? 1m : NumericAnswer.Parse(t.Weight) ?? -1m))
                 .ToList();
             return QuestionInput.CodeQuestion(Text ?? string.Empty, CodeLanguage ?? string.Empty, tests, AnswerPreload,
-                AllOrNothing, Points);
+                AllOrNothing, Points, Statement);
         }
 
         if (Type == QuestionType.Matching)

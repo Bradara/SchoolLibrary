@@ -28,6 +28,12 @@ public static class MoodleXmlWriter
 
     private const int MaxNameLength = 60;
 
+    // Moodle keeps up to 255 characters of a question's name
+    private const int MaxCodeNameLength = 255;
+
+    private static string Shorten(string text, int length)
+        => text.Length <= length ? text : text[..(length - 1)].TrimEnd() + "…";
+
     /// <summary>Writes the questions (in the given order) without category markers.</summary>
     public static string Write(IEnumerable<Question> questions)
         => Write(new[] { new Group(null, questions.ToList()) });
@@ -62,9 +68,12 @@ public static class MoodleXmlWriter
     {
         var options = question.Options.OrderBy(o => o.Order).ToList();
         var element = new XElement("question", new XAttribute("type", MoodleType(question.Type)),
-            new XElement("name", new XElement("text", Name(question.Text))),
+            // A code question's text is its title (the name) and its statement is the question text
+            new XElement("name", new XElement("text", question.Type == QuestionType.Code
+                ? Shorten(question.Text, MaxCodeNameLength) : Name(question.Text))),
             new XElement("questiontext", new XAttribute("format", "html"),
-                new XElement("text", new XCData(Html(question.Text)))),
+                new XElement("text", new XCData(Html(question.Type == QuestionType.Code && !string.IsNullOrEmpty(question.Statement)
+                    ? question.Statement : question.Text)))),
             new XElement("generalfeedback", new XAttribute("format", "html"), new XElement("text", string.Empty)),
             new XElement("defaultgrade", Number(QuizGrading.MaxPoints(question))),
             new XElement("penalty", "0"),
