@@ -63,6 +63,7 @@ public class ExamAssignmentServiceTests
         Assert.Equal(20, exam.TimeLimitMinutes);
         Assert.Equal(2, exam.MaxLeaves);
         Assert.True(exam.CodeHints);
+        Assert.True(exam.OneQuestionPerPage);
         Assert.Equal(DateTimeKind.Utc, exam.CreatedOn.Kind);
     }
 
@@ -265,6 +266,19 @@ public class ExamAssignmentServiceTests
 
         await s.Exams.UpdateSettingsAsync(exam.Id, new ExamSettingsInput(20, 2, CodeHints: true), Owner, false);
         Assert.True(s.Context.ExamAssignments.Single().CodeHints);
+    }
+
+    [Fact]
+    public async Task CreateAndUpdate_KeepTheOneQuestionPerPageChoice()
+    {
+        var s = await ArrangeAsync();
+        using var _ = s.Context;
+
+        var exam = (await s.Exams.CreateAsync(new ExamAssignmentInput(s.Quiz.Id, s.SchoolClass.Id, 20, null, OneQuestionPerPage: false), Owner, false)).Value!;
+        Assert.False(s.Context.ExamAssignments.Single().OneQuestionPerPage);
+
+        await s.Exams.UpdateSettingsAsync(exam.Id, new ExamSettingsInput(20, null, OneQuestionPerPage: true), Owner, false);
+        Assert.True(s.Context.ExamAssignments.Single().OneQuestionPerPage);
     }
 
     [Fact]

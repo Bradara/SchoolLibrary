@@ -40,6 +40,20 @@ public class QuizServiceTests
         Assert.Equal(Owner, quiz.OwnerId);
         Assert.NotEqual(default, quiz.CreatedOn);
         Assert.Equal(DateTimeKind.Utc, quiz.CreatedOn.Kind);
+        Assert.True(quiz.OneQuestionPerPage);
+    }
+
+    [Fact]
+    public async Task CreateAndUpdate_KeepTheOneQuestionPerPageChoice()
+    {
+        using var context = TestDbContextFactory.Create();
+        var service = new QuizService(context, new QuizItemService(context));
+
+        var quiz = (await service.CreateAsync(Practice() with { OneQuestionPerPage = false }, Owner)).Value!;
+        Assert.False(context.Quizzes.Single().OneQuestionPerPage);
+
+        await service.UpdateAsync(quiz.Id, Practice() with { OneQuestionPerPage = true }, Owner, false);
+        Assert.True(context.Quizzes.Single().OneQuestionPerPage);
     }
 
     [Fact]

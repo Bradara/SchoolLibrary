@@ -1,0 +1,21 @@
+@model SchoolLibrary.ViewModels.QuizScreen
+@* One screen of a quiz while solving: the descriptions before the question, the question, the descriptions after it. *@
+@foreach (var description in Model.Descriptions)
+{
+    <partial name="_QuestionDescription" model="description" />
+}
+
+@if (Model.Question != null)
+{
+    <fieldset class="card mb-3">
+        <div class="card-body">
+            <legend class="h6 card-title" tabindex="-1">@Model.Number. @Model.Question.Text</legend>
+            <partial name="_QuestionAnswerInput" model="Model.Question" />
+        </div>
+    </fieldset>
+}
+
+@foreach (var description in Model.TrailingDescriptions)
+{
+    <partial name="_QuestionDescription" model="description" />
+}

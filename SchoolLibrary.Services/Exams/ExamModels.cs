@@ -8,10 +8,11 @@ namespace SchoolLibrary.Services.Exams;
 public record SchoolClassListItem(SchoolClass SchoolClass, int ExamCount);
 
 /// <summary>What a teacher types when giving a quiz to a class as an exam. The code is generated.</summary>
-public record ExamAssignmentInput(int QuizId, int SchoolClassId, int? TimeLimitMinutes, int? MaxLeaves, bool CodeHints = true);
+public record ExamAssignmentInput(int QuizId, int SchoolClassId, int? TimeLimitMinutes, int? MaxLeaves, bool CodeHints = true,
+    bool OneQuestionPerPage = true);
 
 /// <summary>The exam settings a teacher can change after assigning (the quiz and the class stay).</summary>
-public record ExamSettingsInput(int? TimeLimitMinutes, int? MaxLeaves, bool CodeHints = true);
+public record ExamSettingsInput(int? TimeLimitMinutes, int? MaxLeaves, bool CodeHints = true, bool OneQuestionPerPage = true);
 
 /// <summary>A class exam (with its quiz and class) and its attempt counts, for the exams panel.</summary>
 public record ExamAssignmentListItem(ExamAssignment Exam, int SubmittedCount, int InProgressCount);

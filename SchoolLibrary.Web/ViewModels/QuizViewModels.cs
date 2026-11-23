@@ -34,6 +34,9 @@ public class QuizFormViewModel
 
     [Display(Name = "Разбъркай отговорите")]
     public bool ShuffleOptions { get; set; } = true;
+
+    [Display(Name = "По един въпрос на екран")]
+    public bool OneQuestionPerPage { get; set; } = true;
 }
 
 /// <summary>The add/edit question form: the type, the text, the answer options and which one is correct.</summary>
@@ -432,4 +435,62 @@ public class ExamResultViewModel
     public string StudentName { get; set; } = string.Empty;
 
     public DateTime? SubmittedOn { get; set; }
+}
+
+/// <summary>
+/// The questions of a practice or an exam attempt as the student solves them (partial _QuizQuestionList):
+/// all on one page, or one per screen with a question navigator.
+/// </summary>
+public class QuizQuestionListViewModel
+{
+    public IReadOnlyList<Question> Questions { get; set; } = new List<Question>();
+
+    public bool OneQuestionPerPage { get; set; }
+
+    /// <summary>The text of the submit buttons, e.g. "Предай изпита".</summary>
+    public string SubmitLabel { get; set; } = "Предай";
+
+    /// <summary>
+    /// The questions grouped into screens: a description goes with the question after it (descriptions at
+    /// the end go with the last question); each screen has its question's number.
+    /// </summary>
+    public IReadOnlyList<QuizScreen> Screens
+    {
+        get
+        {
+            var screens = new List<QuizScreen>();
+            var descriptions = new List<Question>();
+            foreach (var question in Questions)
+            {
+                if (question.Type == QuestionType.Description)
+                {
+                    descriptions.Add(question);
+                    continue;
+                }
+
+                screens.Add(new QuizScreen(screens.Count + 1, descriptions, question));
+                descriptions = new List<Question>();
+            }
+
+            if (descriptions.Count > 0)
+            {
+                if (screens.Count > 0)
+                {
+                    screens[^1] = screens[^1] with { TrailingDescriptions = descriptions };
+                }
+                else
+                {
+                    screens.Add(new QuizScreen(0, descriptions, null));
+                }
+            }
+
+            return screens;
+        }
+    }
+}
+
+/// <summary>One screen of a quiz: the descriptions before the question, the question and the descriptions after it.</summary>
+public record QuizScreen(int Number, IReadOnlyList<Question> Descriptions, Question? Question)
+{
+    public IReadOnlyList<Question> TrailingDescriptions { get; init; } = Array.Empty<Question>();
 }

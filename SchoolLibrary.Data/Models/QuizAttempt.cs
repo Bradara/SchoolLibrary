@@ -73,6 +73,10 @@ namespace SchoolLibrary.Data.Models
         [NotMapped]
         public bool CodeHints => ExamAssignment?.CodeHints ?? true;
 
+        /// <summary>Whether the questions are shown one per screen: the class exam's setting, otherwise the quiz's.</summary>
+        [NotMapped]
+        public bool OneQuestionPerPage => ExamAssignment?.OneQuestionPerPage ?? Quiz?.OneQuestionPerPage ?? false;
+
         /// <summary>Whether the student may see the result: always for a quiz exam, once released for a class exam.</summary>
         [NotMapped]
         public bool ResultVisible => ExamAssignment == null || ExamAssignment.ResultsReleased;

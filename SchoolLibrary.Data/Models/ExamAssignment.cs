@@ -31,6 +31,9 @@ namespace SchoolLibrary.Data.Models
         /// <summary>Whether code questions suggest keywords and common functions while the student types.</summary>
         public bool CodeHints { get; set; } = true;
 
+        /// <summary>Whether the questions are shown one per screen with a question navigator (otherwise all at once).</summary>
+        public bool OneQuestionPerPage { get; set; } = true;
+
         /// <summary>Whether students can start the exam now.</summary>
         public bool IsOpen { get; set; }
 

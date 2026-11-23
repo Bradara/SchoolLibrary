@@ -174,7 +174,7 @@ public class QuizManagementControllerTests
     public async Task Edit_Get_MapsTheQuizIntoTheForm()
     {
         _service.Setup(s => s.GetByIdAsync(5))
-            .ReturnsAsync(new Quiz { Id = 5, OwnerId = "t1", Title = "Старо", Mode = QuizMode.Exam, TimeLimitMinutes = 20 });
+            .ReturnsAsync(new Quiz { Id = 5, OwnerId = "t1", Title = "Старо", Mode = QuizMode.Exam, TimeLimitMinutes = 20, OneQuestionPerPage = false });
 
         var result = await Controller("t1", Roles.Teacher).Edit(5);
 
@@ -182,6 +182,19 @@ public class QuizManagementControllerTests
         Assert.Equal("Старо", model.Title);
         Assert.Equal(QuizMode.Exam, model.Mode);
         Assert.Equal(20, model.TimeLimitMinutes);
+        Assert.False(model.OneQuestionPerPage);
+    }
+
+    [Fact]
+    public async Task Create_Post_PassesTheOneQuestionPerPageChoice()
+    {
+        _service.Setup(s => s.CreateAsync(It.IsAny<QuizInput>(), "t1"))
+            .ReturnsAsync(ServiceResult<Quiz>.Success(new Quiz { Id = 7, Title = "Тест" }));
+
+        Assert.True(new QuizFormViewModel().OneQuestionPerPage);
+        await Controller("t1", Roles.Teacher).Create(new QuizFormViewModel { Title = "Тест", OneQuestionPerPage = false });
+
+        _service.Verify(s => s.CreateAsync(It.Is<QuizInput>(i => !i.OneQuestionPerPage), "t1"), Times.Once);
     }
 
     [Fact]

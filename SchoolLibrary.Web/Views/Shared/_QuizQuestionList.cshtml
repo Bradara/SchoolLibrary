@@ -1,0 +1,74 @@
+@model SchoolLibrary.ViewModels.QuizQuestionListViewModel
+@* The questions while solving a practice or an exam, inside its form. One question per screen: every screen is
+   in the page and sl-quiz-pager.js shows one at a time, with "Предишен/Следващ въпрос" and a numbered navigator;
+   the answers stay in the one form, so the timer, proctoring and "Провери" work as with all questions shown.
+   Without JavaScript all questions are shown with one submit button. *@
+@{
+    var screens = Model.Screens;
+    var count = screens.Count(s => s.Question != null);
+}
+
+@if (!Model.OneQuestionPerPage || count < 2)
+{
+    foreach (var screen in screens)
+    {
+        <partial name="_QuizScreen" model="screen" />
+    }
+
+    <button type="submit" class="btn btn-primary">@Model.SubmitLabel</button>
+}
+else
+{
+    <div class="row g-4" data-quiz-pager>
+        <div class="col-lg-9 order-2 order-lg-1">
+            <p class="small text-body-secondary mb-2" data-pager-position aria-live="polite" hidden></p>
+
+            @foreach (var screen in screens)
+            {
+                <section data-quiz-page aria-label="Въпрос @screen.Number от @count">
+                    <partial name="_QuizScreen" model="screen" />
+                </section>
+            }
+
+            <div data-pager-submit-area>
+                <div class="d-flex flex-wrap justify-content-between gap-2" data-pager-buttons hidden>
+                    <button type="button" class="btn btn-outline-secondary" data-pager-prev>
+                        <i class="bi bi-arrow-left" aria-hidden="true"></i> Предишен въпрос
+                    </button>
+                    <button type="button" class="btn btn-primary ms-auto" data-pager-next>
+                        Следващ въпрос <i class="bi bi-arrow-right" aria-hidden="true"></i>
+                    </button>
+                    <button type="submit" class="btn btn-success ms-auto" data-pager-submit hidden>
+                        <i class="bi bi-send" aria-hidden="true"></i> @Model.SubmitLabel
+                    </button>
+                </div>
+                <div class="alert alert-warning small mt-2 mb-0" data-pager-warning role="alert" hidden></div>
+                @* Without JavaScript all questions are shown and this is the only submit button *@
+                <button type="submit" class="btn btn-primary" data-pager-fallback>@Model.SubmitLabel</button>
+            </div>
+        </div>
+
+        <div class="col-lg-3 order-1 order-lg-2">
+            <aside class="sl-quiz-nav" data-pager-nav aria-label="Въпроси" hidden>
+                <div class="small fw-semibold mb-2">Въпроси</div>
+                <div class="sl-quiz-nav-grid">
+                    @foreach (var screen in screens.Where(s => s.Question != null))
+                    {
+                        <button type="button" class="btn btn-sm sl-quiz-nav-item" data-pager-goto="@(screen.Number - 1)"
+                                aria-label="Въпрос @screen.Number">@screen.Number</button>
+                    }
+                </div>
+                <div class="small text-body-secondary mt-2 d-flex flex-wrap gap-3">
+                    <span><span class="sl-quiz-nav-swatch sl-quiz-nav-answered" aria-hidden="true"></span> с отговор</span>
+                    <span><span class="sl-quiz-nav-swatch" aria-hidden="true"></span> без отговор</span>
+                </div>
+                <div data-pager-submit-area>
+                    <button type="submit" class="btn btn-success w-100 mt-3" data-pager-submit>
+                        <i class="bi bi-send" aria-hidden="true"></i> @Model.SubmitLabel
+                    </button>
+                    <div class="alert alert-warning small mt-2 mb-0" data-pager-warning role="alert" hidden></div>
+                </div>
+            </aside>
+        </div>
+    </div>
+}

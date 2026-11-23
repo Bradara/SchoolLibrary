@@ -227,6 +227,7 @@ public class ExamsControllerTests
         Assert.Equal(20, model.Settings.TimeLimitMinutes);
         Assert.Equal(1, model.Settings.MaxLeaves);
         Assert.True(model.Settings.CodeHints);
+        Assert.True(model.Settings.OneQuestionPerPage);
     }
 
     [Fact]
@@ -237,11 +238,11 @@ public class ExamsControllerTests
         _exams.Setup(s => s.UpdateSettingsAsync(3, It.IsAny<ExamSettingsInput>(), "t1", false))
             .ReturnsAsync(ServiceResult<ExamAssignment>.Success(Exam()));
 
-        await Controller().Create(new ExamAssignFormViewModel { QuizId = 1, SchoolClassId = 2, CodeHints = false });
+        await Controller().Create(new ExamAssignFormViewModel { QuizId = 1, SchoolClassId = 2, CodeHints = false, OneQuestionPerPage = false });
         await Controller().UpdateSettings(3, new ExamSettingsViewModel { TimeLimitMinutes = 30, CodeHints = false });
 
-        _exams.Verify(s => s.CreateAsync(new ExamAssignmentInput(1, 2, null, null, false), "t1", false), Times.Once);
-        _exams.Verify(s => s.UpdateSettingsAsync(3, new ExamSettingsInput(30, null, false), "t1", false), Times.Once);
+        _exams.Verify(s => s.CreateAsync(new ExamAssignmentInput(1, 2, null, null, false, false), "t1", false), Times.Once);
+        _exams.Verify(s => s.UpdateSettingsAsync(3, new ExamSettingsInput(30, null, false, true), "t1", false), Times.Once);
     }
 
     [Theory]

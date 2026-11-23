@@ -37,6 +37,9 @@ public class ExamSettingsViewModel
 
     [Display(Name = "Подсказки при писане на код")]
     public bool CodeHints { get; set; } = true;
+
+    [Display(Name = "По един въпрос на екран")]
+    public bool OneQuestionPerPage { get; set; } = true;
 }
 
 /// <summary>The "give a practice quiz to a class as an exam" form, with the pickers' choices.</summary>

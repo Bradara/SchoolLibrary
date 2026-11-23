@@ -102,25 +102,15 @@
           data-max-leaves="@(maxLeaves?.ToString() ?? "")"
           data-leave-count="@Model.Attempt.LeaveCount"
           data-leave-url="@Url.Action("RecordLeave", new { token = Model.Attempt.Token })">
-        @{ var number = 0; }
-        @foreach (var question in Model.Attempt.Questions.OrderBy(aq => aq.Order).Select(aq => aq.Question))
-        {
-            if (question.Type == SchoolLibrary.Data.Enums.QuestionType.Description)
+        @{
+            var questionList = new SchoolLibrary.ViewModels.QuizQuestionListViewModel
             {
-                <partial name="_QuestionDescription" model="question" />
-                continue;
-            }
-
-            number++;
-            <fieldset class="card mb-3">
-                <div class="card-body">
-                    <legend class="h6 card-title">@number. @question.Text</legend>
-                    <partial name="_QuestionAnswerInput" model="question" />
-                </div>
-            </fieldset>
+                Questions = Model.Attempt.Questions.OrderBy(aq => aq.Order).Select(aq => aq.Question).ToList(),
+                OneQuestionPerPage = Model.Attempt.OneQuestionPerPage,
+                SubmitLabel = "Предай изпита"
+            };
         }
-
-        <button type="submit" class="btn btn-primary">Предай изпита</button>
+        <partial name="_QuizQuestionList" model="questionList" />
     </form>
 </div>
 
@@ -131,4 +121,5 @@
     }
     <script src="~/js/sl-exam-proctor.js" asp-append-version="true"></script>
     <script src="~/js/sl-code-check.js" asp-append-version="true"></script>
+    <script src="~/js/sl-quiz-pager.js" asp-append-version="true"></script>
 }

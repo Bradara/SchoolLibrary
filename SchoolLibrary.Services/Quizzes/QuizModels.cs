@@ -6,7 +6,7 @@ namespace SchoolLibrary.Services.Quizzes;
 
 /// <summary>What a teacher types in the quiz form. The exam code is generated, not entered.</summary>
 public record QuizInput(string Title, string? Description, QuizMode Mode, int? TimeLimitMinutes, int? ResourceId, int? MaxLeaves = null,
-    bool ShuffleQuestions = true, bool ShuffleOptions = true);
+    bool ShuffleQuestions = true, bool ShuffleOptions = true, bool OneQuestionPerPage = true);
 
 /// <summary>
 /// A question with its options, which one is correct (by index in <paramref name="Options"/>), how many

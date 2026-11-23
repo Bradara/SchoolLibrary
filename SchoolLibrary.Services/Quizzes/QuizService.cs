@@ -160,6 +160,7 @@ public class QuizService : IQuizService
             MaxLeaves = input.Mode == QuizMode.Exam ? input.MaxLeaves : null,
             ShuffleQuestions = input.ShuffleQuestions,
             ShuffleOptions = input.ShuffleOptions,
+            OneQuestionPerPage = input.OneQuestionPerPage,
             ResourceId = input.ResourceId,
             OwnerId = ownerId,
             IsPublished = false,
@@ -210,6 +211,7 @@ public class QuizService : IQuizService
         quiz.Mode = input.Mode;
         quiz.ShuffleQuestions = input.ShuffleQuestions;
         quiz.ShuffleOptions = input.ShuffleOptions;
+        quiz.OneQuestionPerPage = input.OneQuestionPerPage;
 
         if (input.Mode == QuizMode.Exam)
         {

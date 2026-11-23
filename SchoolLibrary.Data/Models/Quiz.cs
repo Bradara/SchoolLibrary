@@ -43,6 +43,10 @@ namespace SchoolLibrary.Data.Models
         [Display(Name = "Разбъркай отговорите")]
         public bool ShuffleOptions { get; set; } = true;
 
+        /// <summary>Whether the questions are shown one per screen with a question navigator (otherwise all at once).</summary>
+        [Display(Name = "По един въпрос на екран")]
+        public bool OneQuestionPerPage { get; set; } = true;
+
         /// <summary>Whether students can currently see and take the quiz.</summary>
         public bool IsPublished { get; set; }
 

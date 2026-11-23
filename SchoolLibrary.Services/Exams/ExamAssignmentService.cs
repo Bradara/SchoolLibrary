@@ -111,6 +111,7 @@ public class ExamAssignmentService : IExamAssignmentService
             TimeLimitMinutes = input.TimeLimitMinutes,
             MaxLeaves = input.MaxLeaves,
             CodeHints = input.CodeHints,
+            OneQuestionPerPage = input.OneQuestionPerPage,
             IsOpen = true,
             ResultsReleased = false,
             CreatedOn = DateTime.UtcNow
@@ -139,6 +140,7 @@ public class ExamAssignmentService : IExamAssignmentService
         exam!.TimeLimitMinutes = input.TimeLimitMinutes;
         exam.MaxLeaves = input.MaxLeaves;
         exam.CodeHints = input.CodeHints;
+        exam.OneQuestionPerPage = input.OneQuestionPerPage;
         await _context.SaveChangesAsync();
 
         return ServiceResult<ExamAssignment>.Success(exam);

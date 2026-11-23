@@ -217,7 +217,8 @@ namespace SchoolLibrary.Controllers
                 TimeLimitMinutes = quiz.TimeLimitMinutes,
                 MaxLeaves = quiz.MaxLeaves,
                 ShuffleQuestions = quiz.ShuffleQuestions,
-                ShuffleOptions = quiz.ShuffleOptions
+                ShuffleOptions = quiz.ShuffleOptions,
+                OneQuestionPerPage = quiz.OneQuestionPerPage
             });
         }
 
@@ -394,7 +395,7 @@ namespace SchoolLibrary.Controllers
 
         private static QuizInput ToInput(QuizFormViewModel vm) =>
             new(vm.Title, vm.Description, vm.Mode, vm.TimeLimitMinutes, null, vm.MaxLeaves,
-                vm.ShuffleQuestions, vm.ShuffleOptions);
+                vm.ShuffleQuestions, vm.ShuffleOptions, vm.OneQuestionPerPage);
 
         // Shared handling for adding/deleting a question: map the outcome to a response
         private IActionResult AfterQuestionChange(int quizId, ServiceResult result, string successMessage)

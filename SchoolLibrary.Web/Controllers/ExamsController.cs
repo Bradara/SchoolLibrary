@@ -156,7 +156,7 @@ namespace SchoolLibrary.Controllers
             }
 
             var result = await _exams.CreateAsync(
-                new ExamAssignmentInput(vm.QuizId, vm.SchoolClassId, vm.TimeLimitMinutes, vm.MaxLeaves, vm.CodeHints),
+                new ExamAssignmentInput(vm.QuizId, vm.SchoolClassId, vm.TimeLimitMinutes, vm.MaxLeaves, vm.CodeHints, vm.OneQuestionPerPage),
                 CurrentUserId, IsAdministrator);
 
             if (result.Error == ServiceError.Forbidden)
@@ -196,7 +196,8 @@ namespace SchoolLibrary.Controllers
                 {
                     TimeLimitMinutes = exam.TimeLimitMinutes,
                     MaxLeaves = exam.MaxLeaves,
-                    CodeHints = exam.CodeHints
+                    CodeHints = exam.CodeHints,
+                    OneQuestionPerPage = exam.OneQuestionPerPage
                 }
             });
         }
@@ -214,7 +215,7 @@ namespace SchoolLibrary.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            var result = await _exams.UpdateSettingsAsync(id, new ExamSettingsInput(settings.TimeLimitMinutes, settings.MaxLeaves, settings.CodeHints),
+            var result = await _exams.UpdateSettingsAsync(id, new ExamSettingsInput(settings.TimeLimitMinutes, settings.MaxLeaves, settings.CodeHints, settings.OneQuestionPerPage),
                 CurrentUserId, IsAdministrator);
             return AfterChange(id, result, "Настройките са запазени.");
         }

@@ -603,6 +603,9 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<int?>("MaxLeaves")
                         .HasColumnType("integer");
 
+                    b.Property<bool>("OneQuestionPerPage")
+                        .HasColumnType("boolean");
+
                     b.Property<int>("QuizId")
                         .HasColumnType("integer");
 
@@ -883,6 +886,9 @@ namespace SchoolLibrary.Data.Migrations
 
                     b.Property<int>("Mode")
                         .HasColumnType("integer");
+
+                    b.Property<bool>("OneQuestionPerPage")
+                        .HasColumnType("boolean");
 
                     b.Property<string>("OwnerId")
                         .HasColumnType("text");
