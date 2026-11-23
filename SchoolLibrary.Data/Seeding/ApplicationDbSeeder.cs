@@ -130,7 +130,11 @@ public static class ApplicationDbSeeder
             return;
         }
 
-        db.Categories.AddRange(CategoryNames.Select(name => new Category { Name = name }));
+        db.Categories.AddRange(CategoryNames.Select(name =>
+        {
+            var (icon, color) = SubjectAppearance.ForName(name);
+            return new Category { Name = name, Icon = icon, Color = color };
+        }));
         await db.SaveChangesAsync();
     }
 

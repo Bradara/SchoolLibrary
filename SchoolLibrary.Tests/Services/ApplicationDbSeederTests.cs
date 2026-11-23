@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using SchoolLibrary.Data;
+using SchoolLibrary.Data.Common;
 using SchoolLibrary.Data.Constants;
 using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
@@ -73,6 +74,18 @@ public class ApplicationDbSeederTests : IDisposable
         Assert.Equal(17, _db.Licenses.Count());
         Assert.Contains(_db.Licenses, l => l.Name == "CC BY-NC 4.0");
         Assert.Equal(Roles.All.Length, _db.Roles.Count());
+    }
+
+    [Fact]
+    public async Task SeedDataAsync_EmptyDatabase_GivesEverySubjectItsLook()
+    {
+        await SeedAsync();
+
+        var subjects = _db.Categories.ToList();
+        Assert.All(subjects, c => Assert.Equal(SubjectAppearance.ForName(c.Name), (c.Icon, c.Color)));
+        // Every seeded subject has its own look, only "Друго" keeps the default one
+        Assert.All(subjects.Where(c => c.Name != "Друго"), c => Assert.Contains(c.Name, SubjectAppearance.StandardNames));
+        Assert.Equal(("bi-plus-slash-minus", "#2f6fed"), subjects.Where(c => c.Name == "Математика").Select(c => (c.Icon, c.Color)).Single());
     }
 
     [Fact]

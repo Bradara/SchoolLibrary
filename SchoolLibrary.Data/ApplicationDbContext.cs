@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using SchoolLibrary.Data.Common;
 using SchoolLibrary.Data.Models;
 
 namespace SchoolLibrary.Data
@@ -152,6 +153,15 @@ namespace SchoolLibrary.Data
             builder.Entity<Resource>()
                 .HasIndex(r => r.NormalizedUrl)
                 .IsUnique();
+
+            // The icon and the color go into a class attribute and an inline CSS variable:
+            // the database accepts only their safe shape, the service accepts only the closed lists
+            builder.Entity<Category>()
+                .ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_Categories_Icon", $"\"Icon\" ~ '{SubjectAppearance.IconPattern}'");
+                    t.HasCheckConstraint("CK_Categories_Color", $"\"Color\" ~ '{SubjectAppearance.ColorPattern}'");
+                });
 
             // Only the known audience flags (Guests | Students | Parents | Teachers)
             builder.Entity<Resource>()

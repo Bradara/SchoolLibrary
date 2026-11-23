@@ -466,6 +466,16 @@ namespace SchoolLibrary.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<string>("Color")
+                        .IsRequired()
+                        .HasMaxLength(7)
+                        .HasColumnType("character varying(7)");
+
+                    b.Property<string>("Icon")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -473,7 +483,12 @@ namespace SchoolLibrary.Data.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Categories");
+                    b.ToTable("Categories", t =>
+                        {
+                            t.HasCheckConstraint("CK_Categories_Color", "\"Color\" ~ '^#[0-9a-f]{6}$'");
+
+                            t.HasCheckConstraint("CK_Categories_Icon", "\"Icon\" ~ '^bi-[a-z0-9-]+$'");
+                        });
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.CodeCheck", b =>
