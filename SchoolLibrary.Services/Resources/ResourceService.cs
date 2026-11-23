@@ -41,6 +41,8 @@ public class ResourceService : IResourceService
             .Include(r => r.GradeLevels)
             .Include(r => r.Owner)
             .Include(r => r.License)
+            // The catalog card shows whether an uploaded file is a PDF, a book or a text
+            .Include(r => r.File)
             .AsSplitQuery()
             .Skip((page - 1) * pageSize)
             .Take(pageSize)

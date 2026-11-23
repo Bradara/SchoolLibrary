@@ -118,6 +118,27 @@ public class ResourceServiceTests
     }
 
     [Fact]
+    public async Task SearchAsync_UploadedResource_ComesWithItsFile()
+    {
+        var resource = await AddResourceAsync("Книга", kind: ResourceKind.Upload);
+        _context.ResourceFiles.Add(new ResourceFile
+        {
+            ResourceId = resource.Id,
+            StorageKey = "resources/book.epub",
+            FileName = "book.epub",
+            ContentType = "application/epub+zip",
+            Sha256 = new string('a', ResourceFile.Sha256Length)
+        });
+        await _context.SaveChangesAsync();
+        _context.ChangeTracker.Clear();
+
+        var result = await _service.SearchAsync(new ResourceFilter());
+
+        // The catalog card needs the file to tell a book from a PDF
+        Assert.Equal("application/epub+zip", Assert.Single(result.Items).File?.ContentType);
+    }
+
+    [Fact]
     public async Task SearchAsync_WithNoResources_ReturnsEmptyFirstPage()
     {
         var result = await _service.SearchAsync(new ResourceFilter());

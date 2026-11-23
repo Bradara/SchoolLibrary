@@ -40,7 +40,7 @@ public class SubjectAppearanceTests
     [Fact]
     public void Icons_ExistInTheBundledIconFont()
     {
-        var css = File.ReadAllText(FindIconCss());
+        var css = File.ReadAllText(TestFiles.BootstrapIconsCss());
 
         Assert.All(SubjectAppearance.Icons, i => Assert.Contains("." + i.Class + "::before", css));
     }
@@ -105,20 +105,5 @@ public class SubjectAppearanceTests
         Assert.Equal(
             SubjectAppearance.StandardNames.Where(n => n != "Друго").OrderBy(n => n, StringComparer.Ordinal),
             looks.Select(l => l.Name).OrderBy(n => n, StringComparer.Ordinal));
-    }
-
-    private static string FindIconCss()
-    {
-        var relative = Path.Combine("SchoolLibrary.Web", "wwwroot", "lib", "bootstrap-icons", "bootstrap-icons.min.css");
-        for (var dir = new DirectoryInfo(AppContext.BaseDirectory); dir != null; dir = dir.Parent)
-        {
-            var candidate = Path.Combine(dir.FullName, relative);
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-        }
-
-        throw new FileNotFoundException("The Bootstrap Icons stylesheet was not found.", relative);
     }
 }
