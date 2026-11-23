@@ -51,6 +51,43 @@ public class ResourceService : IResourceService
         return new PagedResult<Resource>(items, totalCount, page, pageSize);
     }
 
+    public async Task<CatalogFacets> GetCatalogFacetsAsync(ResourceFilter filter)
+    {
+        ArgumentNullException.ThrowIfNull(filter);
+
+        var withoutKind = filter.Copy();
+        withoutKind.Kind = null;
+        var byKindRows = await ApplyFilter(_context.Resources.VisibleTo(filter.Viewer), withoutKind)
+            .GroupBy(r => r.Kind)
+            .Select(g => new { Kind = g.Key, Count = g.Count() })
+            .ToListAsync();
+
+        // Every kind is in the result, also with 0, so the switch can show all of them
+        var byKind = Enum.GetValues<ResourceKind>().ToDictionary(k => k, _ => 0);
+        foreach (var row in byKindRows)
+        {
+            byKind[row.Kind] = row.Count;
+        }
+
+        var withoutSubject = filter.Copy();
+        withoutSubject.CategoryId = null;
+        // A resource is linked to a subject only once, so counting the links counts the resources
+        var subjectRows = await ApplyFilter(_context.Resources.VisibleTo(filter.Viewer), withoutSubject)
+            .SelectMany(r => r.Categories)
+            .GroupBy(c => new { c.Id, c.Name, c.Icon, c.Color })
+            .Select(g => new { g.Key.Id, g.Key.Name, g.Key.Icon, g.Key.Color, Count = g.Count() })
+            .ToListAsync();
+
+        // Ordered here, so that the order follows Bulgarian rules whatever the database collation is
+        var bulgarian = StringComparer.Create(System.Globalization.CultureInfo.GetCultureInfo("bg-BG"), ignoreCase: true);
+        var subjects = subjectRows
+            .Select(s => new SubjectFacet(s.Id, s.Name, s.Icon, s.Color, s.Count))
+            .OrderBy(s => s.Name, bulgarian)
+            .ToList();
+
+        return new CatalogFacets(byKind, subjects);
+    }
+
     public async Task<IReadOnlyList<ResourceOwnerOption>> GetOwnersAsync(ResourceViewer viewer)
     {
         var visible = _context.Resources.VisibleTo(viewer);

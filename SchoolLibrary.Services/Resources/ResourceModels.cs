@@ -47,6 +47,24 @@ public class ResourceFilter
 
     /// <summary>Who is looking: only the resources this viewer may see are listed.</summary>
     public ResourceViewer Viewer { get; set; } = ResourceViewer.Anonymous;
+
+    /// <summary>A copy of the filter, for counting with one of the filters left out.</summary>
+    public ResourceFilter Copy() => (ResourceFilter)MemberwiseClone();
+}
+
+/// <summary>A subject on the catalog tiles: its look and how many resources the viewer would find in it.</summary>
+public record SubjectFacet(int CategoryId, string Name, string Icon, string Color, int Count);
+
+/// <summary>
+/// The numbers on the catalog: how many resources each kind would show (the kind switch) and each subject
+/// would show (the tiles). Every number keeps the other filters and counts only what the viewer may see.
+/// </summary>
+public record CatalogFacets(IReadOnlyDictionary<ResourceKind, int> ByKind, IReadOnlyList<SubjectFacet> Subjects)
+{
+    /// <summary>All resources of every kind, for "Всички" on the kind switch.</summary>
+    public int Total => ByKind.Values.Sum();
+
+    public int CountOf(ResourceKind kind) => ByKind.TryGetValue(kind, out var count) ? count : 0;
 }
 
 /// <summary>The data a user enters when adding or editing a resource.</summary>

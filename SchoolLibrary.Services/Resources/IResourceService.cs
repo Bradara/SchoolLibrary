@@ -10,6 +10,13 @@ public interface IResourceService
     /// <summary>One page of resources matching the filter, in the requested order.</summary>
     Task<PagedResult<Resource>> SearchAsync(ResourceFilter filter);
 
+    /// <summary>
+    /// The counts for the kind switch and the subject tiles. The kind counts ignore the chosen kind, the subject
+    /// counts ignore the chosen subject; all other filters apply. Subjects without resources are left out.
+    /// Paging and sorting are ignored.
+    /// </summary>
+    Task<CatalogFacets> GetCatalogFacetsAsync(ResourceFilter filter);
+
     /// <summary>Users who published at least one resource, ordered by name.</summary>
     Task<IReadOnlyList<ResourceOwnerOption>> GetOwnersAsync(ResourceViewer viewer);
 
