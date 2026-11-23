@@ -719,7 +719,8 @@ a.subject-tile:focus-visible {
 
 .kind-switch a.active {
   background: var(--bs-body-bg);
-  color: var(--sl-primary);
+  /* The link color of the theme is chosen for contrast; the brand blue is too dark on the dark background */
+  color: var(--bs-link-color);
   font-weight: 600;
   box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
 }
@@ -727,7 +728,7 @@ a.subject-tile:focus-visible {
 .kind-switch .count {
   margin-left: .25rem;
   font-size: .75rem;
-  color: var(--bs-secondary-color);
+  color: var(--bs-body-color);
 }
 
 .search-box {
@@ -756,7 +757,22 @@ a.subject-tile:focus-visible {
   gap: .4rem;
   overflow-x: auto;
   scrollbar-width: none;
-  padding-bottom: .15rem;
+  /* Room for the focus outline, which the scrolling row would clip */
+  padding: .2rem;
+  margin: -.2rem;
+}
+
+/* A clear keyboard focus in every theme (the browser's thin ring is hard to see on the dark backgrounds) */
+.kind-switch a:focus-visible,
+.chip:focus-visible,
+.filter-pill .remove:focus-visible {
+  outline: 2px solid var(--bs-link-color);
+  outline-offset: 1px;
+}
+
+a.subject-tile:focus-visible {
+  outline: 2px solid var(--bs-link-color);
+  outline-offset: 2px;
 }
 
 .chip-row .label {
@@ -782,7 +798,7 @@ a.subject-tile:focus-visible {
 
 .chip:hover {
   border-color: var(--sl-primary);
-  color: var(--sl-primary);
+  color: var(--bs-link-color);
 }
 
 .chip.active {
@@ -884,7 +900,7 @@ a.subject-tile:focus-visible {
 
 /* The title link covers the whole card (::after); the keyboard focus is shown on the card */
 .res-card:has(.title:focus-visible) {
-  outline: 2px solid var(--sl-primary);
+  outline: 2px solid var(--bs-link-color);
   outline-offset: 2px;
 }
 
@@ -908,8 +924,11 @@ a.subject-tile:focus-visible {
 }
 
 /* The media and the kind on the left, never wrapped; the visibility icon and the license on the right,
-   above the card link, so their tooltips show */
+   above the card link, so their tooltips show. A license that does not fit goes to its own line instead of
+   being cut to a few letters */
 .res-card .top {
+  flex-wrap: wrap;
+  row-gap: .25rem;
   min-width: 0;
 }
 
@@ -924,6 +943,7 @@ a.subject-tile:focus-visible {
   align-items: center;
   gap: .35rem;
   min-width: 0;
+  max-width: 100%;
   margin-left: auto;
 }
 
@@ -992,7 +1012,8 @@ a.subject-tile:focus-visible {
 .subj-tag {
   max-width: 100%;
   white-space: normal;
-  color: color-mix(in srgb, var(--subj) 80%, var(--bs-body-color));
+  /* Half the text color of the theme keeps every subject color readable on light and dark backgrounds */
+  color: color-mix(in srgb, var(--subj) 50%, var(--bs-body-color));
   background: color-mix(in srgb, var(--subj) 13%, var(--bs-body-bg));
 }
 
