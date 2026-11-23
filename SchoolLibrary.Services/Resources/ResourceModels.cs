@@ -17,7 +17,10 @@ public enum ResourceSortOrder
 /// <summary>Search, filter, sort and paging options for the resource list. Every filter is optional.</summary>
 public class ResourceFilter
 {
-    public const int DefaultPageSize = 10;
+    /// <summary>
+    /// 12 fills every row of the cards: the catalog shows 4, 3, 2 or 1 of them in a row, depending on the width.
+    /// </summary>
+    public const int DefaultPageSize = 12;
     public const int MaxPageSize = 100;
 
     /// <summary>Text looked for in the title and the author, ignoring case.</summary>

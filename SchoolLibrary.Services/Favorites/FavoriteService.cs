@@ -77,7 +77,7 @@ public class FavoriteService : IFavoriteService
     public Task<int> CountAsync(int resourceId) =>
         _context.Favorites.CountAsync(f => f.ResourceId == resourceId);
 
-    public async Task<PagedResult<Resource>> GetFavoritesAsync(ResourceViewer viewer, int page, int pageSize = 10)
+    public async Task<PagedResult<Resource>> GetFavoritesAsync(ResourceViewer viewer, int page, int pageSize = ResourceFilter.DefaultPageSize)
     {
         var userId = viewer.UserId;
         var visible = _context.Resources.VisibleTo(viewer);

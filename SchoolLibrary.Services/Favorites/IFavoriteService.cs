@@ -29,5 +29,5 @@ public interface IFavoriteService
     /// One page of the signed-in viewer's favorites, most recently saved first. Resources the owner has
     /// hidden from the viewer since they were saved are left out.
     /// </summary>
-    Task<PagedResult<Resource>> GetFavoritesAsync(ResourceViewer viewer, int page, int pageSize = 10);
+    Task<PagedResult<Resource>> GetFavoritesAsync(ResourceViewer viewer, int page, int pageSize = ResourceFilter.DefaultPageSize);
 }

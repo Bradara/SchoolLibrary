@@ -6,7 +6,8 @@ namespace SchoolLibrary.ViewModels;
 /// <summary>The start page: the newest resources the visitor may see.</summary>
 public class HomeIndexViewModel
 {
-    public const int NewestCount = 6;
+    /// <summary>Two full rows of 4 cards.</summary>
+    public const int NewestCount = 8;
 
     public IReadOnlyList<Resource> Newest { get; set; } = new List<Resource>();
 

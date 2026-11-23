@@ -213,6 +213,21 @@ public class FavoriteServiceTests
     }
 
     [Fact]
+    public async Task GetFavoritesAsync_ByDefault_ShowsAsManyAsTheCatalog()
+    {
+        for (var i = 1; i <= 13; i++)
+        {
+            var resource = await AddResourceAsync("R" + i);
+            await SaveFavoriteAsync("ivan", resource.Id, new DateTime(2026, 1, i, 0, 0, 0, DateTimeKind.Utc));
+        }
+
+        var first = await _service.GetFavoritesAsync(TestViewers.Student("ivan"), page: 1);
+
+        Assert.Equal(SchoolLibrary.Services.Resources.ResourceFilter.DefaultPageSize, first.Items.Count);
+        Assert.Equal(2, first.TotalPages);
+    }
+
+    [Fact]
     public async Task GetFavoritesAsync_PagesTheResults()
     {
         for (var i = 1; i <= 5; i++)

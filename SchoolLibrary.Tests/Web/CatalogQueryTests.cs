@@ -179,6 +179,23 @@ public class CatalogQueryTests
         Assert.Equal(new CatalogQuery { Kind = ResourceKind.External, GradeLevelId = 10, CategoryId = 2 }, tile.Link);
     }
 
+    [Theory]
+    [InlineData(4)]
+    [InlineData(3)]
+    [InlineData(2)]
+    public void PageSizes_FillEveryRowOfCards(int columns)
+    {
+        // The catalog shows 4, 3, 2 or 1 card in a row, depending on the width
+        Assert.Equal(0, ResourceFilter.DefaultPageSize % columns);
+    }
+
+    [Fact]
+    public void NewestSections_AreTwoFullRowsOfFour()
+    {
+        Assert.Equal(8, ResourceIndexViewModel.NewestOnTiles);
+        Assert.Equal(8, HomeIndexViewModel.NewestCount);
+    }
+
     [Fact]
     public void IndexViewModel_Query_CarriesEveryChoice()
     {
