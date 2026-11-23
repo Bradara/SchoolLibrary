@@ -1,5 +1,6 @@
-using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
+using SchoolLibrary.Data.Common;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
 
@@ -44,9 +45,10 @@ public class CategoryService : ICategoryService
             .FirstOrDefaultAsync(c => c.Id == id);
     }
 
-    public async Task<ServiceResult<Category>> CreateAsync(string name)
+    public async Task<ServiceResult<Category>> CreateAsync(CategoryInput input)
     {
-        var validation = ValidateName(name);
+        var name = input.Name;
+        var validation = ValidateName(name) ?? ValidateLook(input);
         if (validation != null)
         {
             return ServiceResult<Category>.Failure(ServiceError.Invalid, validation);
@@ -58,22 +60,30 @@ public class CategoryService : ICategoryService
             return ServiceResult<Category>.Failure(ServiceError.Conflict, $"Предмет с име {name} вече съществува.");
         }
 
-        var category = new Category { Name = name };
+        // Without a chosen look a standard subject gets its own, any other the default one
+        var (icon, color) = SubjectAppearance.ForName(name);
+        var category = new Category
+        {
+            Name = name,
+            Icon = Chosen(input.Icon) ?? icon,
+            Color = Chosen(input.Color) ?? color
+        };
         _context.Categories.Add(category);
         await _context.SaveChangesAsync();
 
         return ServiceResult<Category>.Success(category);
     }
 
-    public async Task<ServiceResult<Category>> UpdateAsync(int id, string name)
+    public async Task<ServiceResult<Category>> UpdateAsync(int id, CategoryInput input)
     {
+        var name = input.Name;
         var category = await _context.Categories.FirstOrDefaultAsync(c => c.Id == id);
         if (category == null)
         {
             return ServiceResult<Category>.Failure(ServiceError.NotFound, "Предметът не е намерен.");
         }
 
-        var validation = ValidateName(name);
+        var validation = ValidateName(name) ?? ValidateLook(input);
         if (validation != null)
         {
             return ServiceResult<Category>.Failure(ServiceError.Invalid, validation);
@@ -85,7 +95,10 @@ public class CategoryService : ICategoryService
             return ServiceResult<Category>.Failure(ServiceError.Conflict, $"Предмет с име {name} вече съществува.");
         }
 
+        // Without a chosen look the subject keeps the one it has
         category.Name = name;
+        category.Icon = Chosen(input.Icon) ?? category.Icon;
+        category.Color = Chosen(input.Color) ?? category.Color;
         await _context.SaveChangesAsync();
 
         return ServiceResult<Category>.Success(category);
@@ -126,6 +139,24 @@ public class CategoryService : ICategoryService
 
         return null;
     }
+
+    // Only values from the closed lists: they end up in a class attribute and in an inline CSS variable
+    private static string? ValidateLook(CategoryInput input)
+    {
+        if (Chosen(input.Icon) is { } icon && !SubjectAppearance.IsValidIcon(icon))
+        {
+            return "Изберете иконка от списъка.";
+        }
+
+        if (Chosen(input.Color) is { } color && !SubjectAppearance.IsValidColor(color))
+        {
+            return "Изберете цвят от списъка.";
+        }
+
+        return null;
+    }
+
+    private static string? Chosen(string? value) => string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 
     // Names are compared ignoring case, so two spellings of the same subject count as one
     private Task<bool> NameExistsAsync(string name, int? excludeId)

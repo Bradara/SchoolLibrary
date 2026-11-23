@@ -4,7 +4,7 @@
     ViewData["Title"] = "Детайли на предмет";
 }
 
-<h1>@Model.Name</h1>
+<h1 class="d-flex align-items-center gap-2"><partial name="_SubjectIcon" model="Model" /> @Model.Name</h1>
 
 <div class="mb-3">
     <a asp-action="Index" class="btn btn-secondary">Обратно към списъка</a>

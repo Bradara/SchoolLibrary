@@ -1,4 +1,4 @@
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using Moq;
 using SchoolLibrary.Areas.Admin.Controllers;
 using SchoolLibrary.Areas.Admin.Models;
@@ -68,10 +68,10 @@ public class AdminCategoriesControllerTests
     [Fact]
     public async Task Create_Post_Success_SaysSo_AndGoesToTheList()
     {
-        _service.Setup(s => s.CreateAsync("Музика")).ReturnsAsync(Ok());
+        _service.Setup(s => s.CreateAsync(new CategoryInput("Музика", null, null))).ReturnsAsync(Ok());
         var controller = Controller();
 
-        var result = await controller.Create(new Category { Name = "Музика" });
+        var result = await controller.Create(new CategoryFormViewModel { Name = "Музика" });
 
         Assert.Equal("Index", Assert.IsType<RedirectToActionResult>(result).ActionName);
         Assert.Contains("Музика", controller.TempDataText("SuccessMessage"));
@@ -83,19 +83,19 @@ public class AdminCategoriesControllerTests
         var controller = Controller();
         controller.ModelState.AddModelError("Name", "Името е задължително");
 
-        var result = await controller.Create(new Category());
+        var result = await controller.Create(new CategoryFormViewModel());
 
         Assert.IsType<ViewResult>(result);
-        _service.Verify(s => s.CreateAsync(It.IsAny<string>()), Times.Never);
+        _service.Verify(s => s.CreateAsync(It.IsAny<CategoryInput>()), Times.Never);
     }
 
     [Fact]
     public async Task Create_Post_ANameThatIsTaken_ShowsTheMessageOnTheNameField()
     {
-        _service.Setup(s => s.CreateAsync("Музика")).ReturnsAsync(Fail(ServiceError.Conflict, "Предмет с име Музика вече съществува."));
+        _service.Setup(s => s.CreateAsync(new CategoryInput("Музика", null, null))).ReturnsAsync(Fail(ServiceError.Conflict, "Предмет с име Музика вече съществува."));
         var controller = Controller();
 
-        var result = await controller.Create(new Category { Name = "Музика" });
+        var result = await controller.Create(new CategoryFormViewModel { Name = "Музика" });
 
         Assert.IsType<ViewResult>(result);
         Assert.Contains(controller.ModelState["Name"]!.Errors, e => e.ErrorMessage.Contains("вече съществува"));
@@ -113,18 +113,61 @@ public class AdminCategoriesControllerTests
     }
 
     [Fact]
+    public async Task Edit_Get_FillsTheFormWithTheNameAndTheLook()
+    {
+        _service.Setup(s => s.GetByIdAsync(3)).ReturnsAsync(new Category { Id = 3, Name = "Музика", Icon = "bi-music-note-beamed", Color = "#d6336c" });
+
+        var model = Assert.IsType<CategoryFormViewModel>(Assert.IsType<ViewResult>(await Controller().Edit(3)).Model);
+
+        Assert.Equal((3, "Музика", "bi-music-note-beamed", "#d6336c"), (model.Id, model.Name, model.Icon, model.Color));
+    }
+
+    [Fact]
+    public void Create_Get_LeavesTheLookUnchosen()
+    {
+        var model = Assert.IsType<CategoryFormViewModel>(Assert.IsType<ViewResult>(Controller().Create()).Model);
+
+        Assert.Null(model.Icon);
+        Assert.Null(model.Color);
+    }
+
+    [Fact]
+    public async Task Create_Post_PassesTheChosenLookToTheService()
+    {
+        var input = new CategoryInput("Музика", "bi-palette", "#9c36b5");
+        _service.Setup(s => s.CreateAsync(input)).ReturnsAsync(Ok());
+
+        var result = await Controller().Create(new CategoryFormViewModel { Name = "Музика", Icon = "bi-palette", Color = "#9c36b5" });
+
+        Assert.IsType<RedirectToActionResult>(result);
+        _service.Verify(s => s.CreateAsync(input), Times.Once);
+    }
+
+    [Fact]
+    public async Task Edit_Post_PassesTheChosenLookToTheService()
+    {
+        var input = new CategoryInput("Музика", "bi-palette", "#9c36b5");
+        _service.Setup(s => s.UpdateAsync(3, input)).ReturnsAsync(Ok());
+
+        var result = await Controller().Edit(3, new CategoryFormViewModel { Id = 3, Name = "Музика", Icon = "bi-palette", Color = "#9c36b5" });
+
+        Assert.IsType<RedirectToActionResult>(result);
+        _service.Verify(s => s.UpdateAsync(3, input), Times.Once);
+    }
+
+    [Fact]
     public async Task Edit_Post_AnotherId_ReturnsNotFound()
     {
-        Assert.IsType<NotFoundResult>(await Controller().Edit(3, new Category { Id = 4, Name = "Музика" }));
+        Assert.IsType<NotFoundResult>(await Controller().Edit(3, new CategoryFormViewModel { Id = 4, Name = "Музика" }));
     }
 
     [Fact]
     public async Task Edit_Post_Success_SaysSo_AndGoesToTheList()
     {
-        _service.Setup(s => s.UpdateAsync(3, "Музика")).ReturnsAsync(Ok());
+        _service.Setup(s => s.UpdateAsync(3, new CategoryInput("Музика", null, null))).ReturnsAsync(Ok());
         var controller = Controller();
 
-        var result = await controller.Edit(3, new Category { Id = 3, Name = "Музика" });
+        var result = await controller.Edit(3, new CategoryFormViewModel { Id = 3, Name = "Музика" });
 
         Assert.Equal("Index", Assert.IsType<RedirectToActionResult>(result).ActionName);
         Assert.Contains("променен", controller.TempDataText("SuccessMessage"));
@@ -136,25 +179,25 @@ public class AdminCategoriesControllerTests
         var controller = Controller();
         controller.ModelState.AddModelError("Name", "Името е задължително");
 
-        Assert.IsType<ViewResult>(await controller.Edit(3, new Category { Id = 3 }));
-        _service.Verify(s => s.UpdateAsync(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+        Assert.IsType<ViewResult>(await controller.Edit(3, new CategoryFormViewModel { Id = 3 }));
+        _service.Verify(s => s.UpdateAsync(It.IsAny<int>(), It.IsAny<CategoryInput>()), Times.Never);
     }
 
     [Fact]
     public async Task Edit_Post_UnknownSubject_ReturnsNotFound()
     {
-        _service.Setup(s => s.UpdateAsync(3, "Музика")).ReturnsAsync(Fail(ServiceError.NotFound));
+        _service.Setup(s => s.UpdateAsync(3, new CategoryInput("Музика", null, null))).ReturnsAsync(Fail(ServiceError.NotFound));
 
-        Assert.IsType<NotFoundResult>(await Controller().Edit(3, new Category { Id = 3, Name = "Музика" }));
+        Assert.IsType<NotFoundResult>(await Controller().Edit(3, new CategoryFormViewModel { Id = 3, Name = "Музика" }));
     }
 
     [Fact]
     public async Task Edit_Post_ANameThatIsTaken_ShowsTheMessageOnTheNameField()
     {
-        _service.Setup(s => s.UpdateAsync(3, "Музика")).ReturnsAsync(Fail(ServiceError.Conflict, "вече съществува"));
+        _service.Setup(s => s.UpdateAsync(3, new CategoryInput("Музика", null, null))).ReturnsAsync(Fail(ServiceError.Conflict, "вече съществува"));
         var controller = Controller();
 
-        var result = await controller.Edit(3, new Category { Id = 3, Name = "Музика" });
+        var result = await controller.Edit(3, new CategoryFormViewModel { Id = 3, Name = "Музика" });
 
         Assert.IsType<ViewResult>(result);
         Assert.True(controller.ModelState["Name"]!.Errors.Count > 0);

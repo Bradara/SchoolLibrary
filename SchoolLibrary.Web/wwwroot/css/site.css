@@ -570,3 +570,110 @@ mark.sl-diff {
   background: var(--bs-success-bg-subtle);
   border-color: var(--bs-success-border-subtle);
 }
+
+/* ---------- Subjects: icon, tile and the admin picker ---------- */
+/* --subj is the subject color (#rrggbb from a closed list); the tints are mixed with the page background,
+   so they work in every theme */
+.subject-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  border-radius: .5rem;
+  font-size: 1rem;
+  color: var(--subj);
+  background: color-mix(in srgb, var(--subj) 14%, var(--bs-body-bg));
+}
+
+.subject-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: .55rem;
+  padding: 1rem;
+  border-radius: .9rem;
+  text-decoration: none;
+  color: var(--bs-body-color);
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  transition: transform .12s ease, box-shadow .12s ease, border-color .12s ease;
+}
+
+a.subject-tile:hover,
+a.subject-tile:focus-visible {
+  transform: translateY(-2px);
+  border-color: var(--subj);
+  box-shadow: 0 6px 18px -8px color-mix(in srgb, var(--subj) 60%, transparent);
+}
+
+.subject-tile .icon {
+  width: 2.6rem;
+  height: 2.6rem;
+  border-radius: .7rem;
+  display: grid;
+  place-items: center;
+  font-size: 1.3rem;
+  color: var(--subj);
+  background: color-mix(in srgb, var(--subj) 14%, var(--bs-body-bg));
+}
+
+.subject-tile .name {
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.subject-tile .count {
+  font-size: .8rem;
+  color: var(--bs-secondary-color);
+}
+
+.subject-tile-preview {
+  max-width: 12rem;
+}
+
+.subject-icon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(2.75rem, 1fr));
+  gap: .35rem;
+}
+
+.subject-icon-option {
+  display: grid;
+  place-items: center;
+  height: 2.75rem;
+  padding: 0;
+  font-size: 1.2rem;
+}
+
+.subject-color-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.subject-color-option {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 50%;
+  cursor: pointer;
+  background: var(--subj);
+  border: 2px solid var(--bs-body-bg);
+  box-shadow: 0 0 0 1px var(--bs-border-color);
+}
+
+.subject-color-auto {
+  display: grid;
+  place-items: center;
+  background: var(--bs-tertiary-bg);
+  color: var(--bs-secondary-color);
+}
+
+.btn-check:checked + .subject-color-option {
+  box-shadow: 0 0 0 2px var(--bs-emphasis-color);
+}
+
+.btn-check:focus-visible + .subject-color-option {
+  outline: 2px solid var(--sl-primary);
+  outline-offset: 2px;
+}

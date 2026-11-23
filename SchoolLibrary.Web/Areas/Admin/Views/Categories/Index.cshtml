@@ -35,7 +35,10 @@ else
                 {
                     <tr>
                         <td>
-                            <a asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-decoration-none">@item.Name</a>
+                            <div class="d-flex align-items-center gap-2">
+                                <partial name="_SubjectIcon" model="item" />
+                                <a asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-decoration-none">@item.Name</a>
+                            </div>
                         </td>
                         <td>
                             @(item.Resources?.Count ?? 0)

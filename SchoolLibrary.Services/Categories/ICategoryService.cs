@@ -1,4 +1,4 @@
-using SchoolLibrary.Data.Models;
+﻿using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
 
 namespace SchoolLibrary.Services.Categories;
@@ -18,11 +18,17 @@ public interface ICategoryService
     /// <summary>A subject with its resources loaded, or null when it does not exist.</summary>
     Task<Category?> GetWithResourcesAsync(int id);
 
-    /// <summary>Creates a subject. Fails when the name is empty, too long or already used.</summary>
-    Task<ServiceResult<Category>> CreateAsync(string name);
+    /// <summary>
+    /// Creates a subject. Fails when the name is empty, too long or already used, or the icon or the color
+    /// is not from the lists. Without a chosen icon or color the subject gets the look for its name.
+    /// </summary>
+    Task<ServiceResult<Category>> CreateAsync(CategoryInput input);
 
-    /// <summary>Renames a subject. Fails when it does not exist or the new name is invalid or used.</summary>
-    Task<ServiceResult<Category>> UpdateAsync(int id, string name);
+    /// <summary>
+    /// Changes the name and the look of a subject. Fails when it does not exist, the new name is invalid or used,
+    /// or the icon or the color is not from the lists. Without a chosen icon or color it keeps the current one.
+    /// </summary>
+    Task<ServiceResult<Category>> UpdateAsync(int id, CategoryInput input);
 
     /// <summary>Deletes a subject. Fails when it does not exist or still has resources.</summary>
     Task<ServiceResult<Category>> DeleteAsync(int id);

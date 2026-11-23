@@ -1,4 +1,5 @@
-using SchoolLibrary.Data;
+﻿using SchoolLibrary.Data;
+using SchoolLibrary.Data.Common;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Categories;
 using SchoolLibrary.Services.Common;
@@ -111,7 +112,7 @@ public class CategoryServiceTests
     [Fact]
     public async Task CreateAsync_ValidName_SavesTrimmedCategory()
     {
-        var result = await _service.CreateAsync("  Биология  ");
+        var result = await _service.CreateAsync(new CategoryInput("  Биология  ", null, null));
 
         Assert.True(result.Succeeded);
         Assert.Equal("Биология", result.Value!.Name);
@@ -125,7 +126,7 @@ public class CategoryServiceTests
     [InlineData(null)]
     public async Task CreateAsync_EmptyName_ReturnsInvalid(string? name)
     {
-        var result = await _service.CreateAsync(name!);
+        var result = await _service.CreateAsync(new CategoryInput(name!, null, null));
 
         Assert.False(result.Succeeded);
         Assert.Equal(ServiceError.Invalid, result.Error);
@@ -137,7 +138,7 @@ public class CategoryServiceTests
     {
         var name = new string('а', CategoryService.MaxNameLength + 1);
 
-        var result = await _service.CreateAsync(name);
+        var result = await _service.CreateAsync(new CategoryInput(name, null, null));
 
         Assert.Equal(ServiceError.Invalid, result.Error);
         Assert.Empty(_context.Categories);
@@ -146,7 +147,7 @@ public class CategoryServiceTests
     [Fact]
     public async Task CreateAsync_NameOfMaxLength_Succeeds()
     {
-        var result = await _service.CreateAsync(new string('а', CategoryService.MaxNameLength));
+        var result = await _service.CreateAsync(new CategoryInput(new string('а', CategoryService.MaxNameLength), null, null));
 
         Assert.True(result.Succeeded);
     }
@@ -160,7 +161,7 @@ public class CategoryServiceTests
     {
         await AddCategoryAsync("Музика");
 
-        var result = await _service.CreateAsync(name);
+        var result = await _service.CreateAsync(new CategoryInput(name, null, null));
 
         Assert.Equal(ServiceError.Conflict, result.Error);
         Assert.Contains("вече съществува", result.Message);
@@ -174,7 +175,7 @@ public class CategoryServiceTests
     {
         var category = await AddCategoryAsync("Стар");
 
-        var result = await _service.UpdateAsync(category.Id, "Нов");
+        var result = await _service.UpdateAsync(category.Id, new CategoryInput("Нов", null, null));
 
         Assert.True(result.Succeeded);
         Assert.Equal("Нов", _context.Categories.Single().Name);
@@ -183,7 +184,7 @@ public class CategoryServiceTests
     [Fact]
     public async Task UpdateAsync_UnknownId_ReturnsNotFound()
     {
-        var result = await _service.UpdateAsync(999, "Нов");
+        var result = await _service.UpdateAsync(999, new CategoryInput("Нов", null, null));
 
         Assert.Equal(ServiceError.NotFound, result.Error);
     }
@@ -194,7 +195,7 @@ public class CategoryServiceTests
         await AddCategoryAsync("Музика");
         var other = await AddCategoryAsync("Танци");
 
-        var result = await _service.UpdateAsync(other.Id, "музика");
+        var result = await _service.UpdateAsync(other.Id, new CategoryInput("музика", null, null));
 
         Assert.Equal(ServiceError.Conflict, result.Error);
         Assert.Equal("Танци", _context.Categories.Single(c => c.Id == other.Id).Name);
@@ -205,7 +206,7 @@ public class CategoryServiceTests
     {
         var category = await AddCategoryAsync("музика");
 
-        var result = await _service.UpdateAsync(category.Id, "Музика");
+        var result = await _service.UpdateAsync(category.Id, new CategoryInput("Музика", null, null));
 
         Assert.True(result.Succeeded);
         Assert.Equal("Музика", _context.Categories.Single().Name);
@@ -216,10 +217,107 @@ public class CategoryServiceTests
     {
         var category = await AddCategoryAsync("Музика");
 
-        var result = await _service.UpdateAsync(category.Id, " ");
+        var result = await _service.UpdateAsync(category.Id, new CategoryInput(" ", null, null));
 
         Assert.Equal(ServiceError.Invalid, result.Error);
         Assert.Equal("Музика", _context.Categories.Single().Name);
+    }
+
+    // ---- Icon and color ----
+
+    [Fact]
+    public async Task CreateAsync_WithoutALook_StandardSubjectGetsItsOwn()
+    {
+        var result = await _service.CreateAsync(new CategoryInput("Математика", null, " "));
+
+        Assert.True(result.Succeeded);
+        var saved = _context.Categories.Single();
+        Assert.Equal(("bi-plus-slash-minus", "#2f6fed"), (saved.Icon, saved.Color));
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithoutALook_OtherSubjectGetsTheDefault()
+    {
+        await _service.CreateAsync(new CategoryInput("Астрономия", "", null));
+
+        var saved = _context.Categories.Single();
+        Assert.Equal((SubjectAppearance.DefaultIcon, SubjectAppearance.DefaultColor), (saved.Icon, saved.Color));
+    }
+
+    [Fact]
+    public async Task CreateAsync_ChosenLook_IsSaved_AndWinsOverTheStandardOne()
+    {
+        var result = await _service.CreateAsync(new CategoryInput("Математика", " bi-calculator ", "#e03131"));
+
+        Assert.True(result.Succeeded);
+        var saved = _context.Categories.Single();
+        Assert.Equal(("bi-calculator", "#e03131"), (saved.Icon, saved.Color));
+    }
+
+    [Fact]
+    public async Task CreateAsync_OnlyTheColorChosen_TakesTheStandardIcon()
+    {
+        await _service.CreateAsync(new CategoryInput("Музика", null, "#2f6fed"));
+
+        var saved = _context.Categories.Single();
+        Assert.Equal(("bi-music-note-beamed", "#2f6fed"), (saved.Icon, saved.Color));
+    }
+
+    [Theory]
+    [InlineData("bi-does-not-exist", null, "иконка")]
+    [InlineData("bi-book\" onmouseover=\"alert(1)", null, "иконка")]
+    [InlineData(null, "red", "цвят")]
+    [InlineData(null, "#2f6fed;background:url(x)", "цвят")]
+    [InlineData(null, "#123456", "цвят")]
+    public async Task CreateAsync_LookOutsideTheLists_ReturnsInvalid(string? icon, string? color, string message)
+    {
+        var result = await _service.CreateAsync(new CategoryInput("Музика", icon, color));
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        Assert.Contains(message, result.Message);
+        Assert.Empty(_context.Categories);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_WithoutALook_KeepsTheCurrentOne()
+    {
+        var category = await AddCategoryAsync("Стар");
+        category.Icon = "bi-palette";
+        category.Color = "#d6336c";
+        await _context.SaveChangesAsync();
+
+        // Even a standard name does not bring the standard look back: the administrator chose this one
+        var result = await _service.UpdateAsync(category.Id, new CategoryInput("Математика", null, ""));
+
+        Assert.True(result.Succeeded);
+        var saved = _context.Categories.Single();
+        Assert.Equal(("Математика", "bi-palette", "#d6336c"), (saved.Name, saved.Icon, saved.Color));
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ChosenLook_ChangesIt()
+    {
+        var category = await AddCategoryAsync("Музика");
+
+        var result = await _service.UpdateAsync(category.Id, new CategoryInput("Музика", "bi-music-note-beamed", "#9c36b5"));
+
+        Assert.True(result.Succeeded);
+        var saved = _context.Categories.Single();
+        Assert.Equal(("bi-music-note-beamed", "#9c36b5"), (saved.Icon, saved.Color));
+    }
+
+    [Theory]
+    [InlineData("bi-x", "#9c36b5")]
+    [InlineData("bi-book", "#FFFFFF")]
+    public async Task UpdateAsync_LookOutsideTheLists_ReturnsInvalid_AndChangesNothing(string icon, string color)
+    {
+        var category = await AddCategoryAsync("Музика");
+
+        var result = await _service.UpdateAsync(category.Id, new CategoryInput("Нова музика", icon, color));
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        var saved = _context.Categories.Single();
+        Assert.Equal(("Музика", SubjectAppearance.DefaultIcon, SubjectAppearance.DefaultColor), (saved.Name, saved.Icon, saved.Color));
     }
 
     // ---- DeleteAsync ----

@@ -1,0 +1,8 @@
+@* The icon of a subject in its color. The values are checked again here: they go into a class attribute and a CSS variable *@
+@model SchoolLibrary.Data.Models.Category
+@using SchoolLibrary.Data.Common
+@{
+    var icon = SubjectAppearance.IsValidIcon(Model.Icon) ? Model.Icon : SubjectAppearance.DefaultIcon;
+    var color = SubjectAppearance.IsValidColor(Model.Color) ? Model.Color : SubjectAppearance.DefaultColor;
+}
+<span class="subject-icon" style="--subj:@color" aria-hidden="true"><i class="bi @icon"></i></span>

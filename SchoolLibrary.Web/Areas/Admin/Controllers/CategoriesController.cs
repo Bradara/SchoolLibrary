@@ -1,5 +1,6 @@
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using SchoolLibrary.Areas.Admin.Models;
 using SchoolLibrary.Data.Constants;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Categories;
@@ -36,21 +37,21 @@ namespace SchoolLibrary.Areas.Admin.Controllers
         // GET: Categories/Create
         public IActionResult Create()
         {
-            return View();
+            return View(new CategoryFormViewModel());
         }
 
         // POST: Categories/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Name")] Category category)
+        public async Task<IActionResult> Create(CategoryFormViewModel model)
         {
-            if (!ModelState.IsValid) return View(category);
+            if (!ModelState.IsValid) return View(model);
 
-            var result = await _categories.CreateAsync(category.Name);
+            var result = await _categories.CreateAsync(model.ToInput());
             if (!result.Succeeded)
             {
-                ModelState.AddModelError(nameof(Category.Name), result.Message!);
-                return View(category);
+                ModelState.AddModelError(nameof(CategoryFormViewModel.Name), result.Message!);
+                return View(model);
             }
 
             TempData["SuccessMessage"] = $"Създаден е предмет {result.Value!.Name}.";
@@ -65,23 +66,23 @@ namespace SchoolLibrary.Areas.Admin.Controllers
             var category = await _categories.GetByIdAsync(id.Value);
             if (category == null) return NotFound();
 
-            return View(category);
+            return View(CategoryFormViewModel.From(category));
         }
 
         // POST: Categories/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Name")] Category category)
+        public async Task<IActionResult> Edit(int id, CategoryFormViewModel model)
         {
-            if (id != category.Id) return NotFound();
-            if (!ModelState.IsValid) return View(category);
+            if (id != model.Id) return NotFound();
+            if (!ModelState.IsValid) return View(model);
 
-            var result = await _categories.UpdateAsync(id, category.Name);
+            var result = await _categories.UpdateAsync(id, model.ToInput());
             if (result.Error == ServiceError.NotFound) return NotFound();
             if (!result.Succeeded)
             {
-                ModelState.AddModelError(nameof(Category.Name), result.Message!);
-                return View(category);
+                ModelState.AddModelError(nameof(CategoryFormViewModel.Name), result.Message!);
+                return View(model);
             }
 
             TempData["SuccessMessage"] = $"Предмет {result.Value!.Name} е променен.";

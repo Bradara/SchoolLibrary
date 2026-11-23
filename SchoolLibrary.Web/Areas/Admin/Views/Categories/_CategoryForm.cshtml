@@ -1,0 +1,80 @@
+@model SchoolLibrary.Areas.Admin.Models.CategoryFormViewModel
+@using SchoolLibrary.Data.Common
+@{
+    var isNew = Model.Id == 0;
+    // The look of a new subject before anything is chosen: the one for its name (the same rule as the service)
+    var (autoIcon, autoColor) = SubjectAppearance.ForName(Model.Name);
+    var previewIcon = string.IsNullOrWhiteSpace(Model.Icon) ? autoIcon : Model.Icon;
+    var previewColor = string.IsNullOrWhiteSpace(Model.Color) ? autoColor : Model.Color;
+    if (!SubjectAppearance.IsValidIcon(previewIcon)) previewIcon = SubjectAppearance.DefaultIcon;
+    if (!SubjectAppearance.IsValidColor(previewColor)) previewColor = SubjectAppearance.DefaultColor;
+    var standardLooks = System.Text.Json.JsonSerializer.Serialize(
+        SubjectAppearance.StandardNames.ToDictionary(n => n, n => { var l = SubjectAppearance.ForName(n); return new[] { l.Icon, l.Color }; }));
+}
+
+<div class="subject-form row g-4" data-subject-picker data-auto="@(isNew ? "on" : "off")" data-standard-looks="@standardLooks"
+     data-default-icon="@SubjectAppearance.DefaultIcon" data-default-color="@SubjectAppearance.DefaultColor">
+    <div class="col-lg-8">
+        <div class="mb-3">
+            <label asp-for="Name" class="form-label"></label>
+            <input asp-for="Name" class="form-control" data-subject-name />
+            <span asp-validation-for="Name" class="text-danger"></span>
+        </div>
+
+        <fieldset class="mb-3">
+            <legend class="form-label fs-6">Иконка</legend>
+            @if (isNew)
+            {
+                <p class="form-text mt-0">Ако не изберете, иконката и цветът се подбират по името на предмета.</p>
+            }
+            <div class="subject-icon-grid" role="radiogroup">
+                @if (isNew)
+                {
+                    <input type="radio" class="btn-check" name="Icon" id="icon-auto" value="" checked="@string.IsNullOrWhiteSpace(Model.Icon)" />
+                    <label class="btn btn-outline-secondary subject-icon-option" for="icon-auto" data-sl-tip="Автоматично" aria-label="Автоматично">
+                        <i class="bi bi-magic"></i>
+                    </label>
+                }
+                @foreach (var icon in SubjectAppearance.Icons)
+                {
+                    var id = "icon-" + icon.Class;
+                    <input type="radio" class="btn-check" name="Icon" id="@id" value="@icon.Class" checked="@(Model.Icon == icon.Class)" />
+                    <label class="btn btn-outline-secondary subject-icon-option" for="@id" data-sl-tip="@icon.Label" aria-label="@icon.Label">
+                        <i class="bi @icon.Class"></i>
+                    </label>
+                }
+            </div>
+            <span asp-validation-for="Icon" class="text-danger"></span>
+        </fieldset>
+
+        <fieldset class="mb-3">
+            <legend class="form-label fs-6">Цвят</legend>
+            <div class="subject-color-row" role="radiogroup">
+                @if (isNew)
+                {
+                    <input type="radio" class="btn-check" name="Color" id="color-auto" value="" checked="@string.IsNullOrWhiteSpace(Model.Color)" />
+                    <label class="subject-color-option subject-color-auto" for="color-auto" data-sl-tip="Автоматично" aria-label="Автоматично">
+                        <i class="bi bi-magic"></i>
+                    </label>
+                }
+                @foreach (var color in SubjectAppearance.Colors)
+                {
+                    var id = "color-" + color.Hex.TrimStart('#');
+                    <input type="radio" class="btn-check" name="Color" id="@id" value="@color.Hex" checked="@(Model.Color == color.Hex)" />
+                    <label class="subject-color-option" for="@id" style="--subj:@color.Hex" data-sl-tip="@color.Label" aria-label="@color.Label"></label>
+                }
+            </div>
+            <span asp-validation-for="Color" class="text-danger"></span>
+        </fieldset>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="form-label">Преглед</div>
+        <div class="subject-tile subject-tile-preview" style="--subj:@previewColor" data-subject-preview>
+            <span class="icon"><i class="bi @previewIcon" data-subject-preview-icon></i></span>
+            <span class="name" data-subject-preview-name>@(string.IsNullOrWhiteSpace(Model.Name) ? "Име на предмет" : Model.Name)</span>
+            <span class="count">12 ресурса</span>
+        </div>
+        <p class="form-text">Така изглежда карето в каталога. Броят ресурси е примерен.</p>
+    </div>
+</div>
