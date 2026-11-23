@@ -69,6 +69,10 @@ namespace SchoolLibrary.Data.Models
         [NotMapped]
         public int? MaxLeaves => ExamAssignment != null ? ExamAssignment.MaxLeaves : Quiz?.MaxLeaves;
 
+        /// <summary>Whether code questions offer completion hints: the class exam's setting, always for a quiz exam.</summary>
+        [NotMapped]
+        public bool CodeHints => ExamAssignment?.CodeHints ?? true;
+
         /// <summary>Whether the student may see the result: always for a quiz exam, once released for a class exam.</summary>
         [NotMapped]
         public bool ResultVisible => ExamAssignment == null || ExamAssignment.ResultsReleased;

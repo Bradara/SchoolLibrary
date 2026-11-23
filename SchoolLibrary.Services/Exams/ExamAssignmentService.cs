@@ -110,6 +110,7 @@ public class ExamAssignmentService : IExamAssignmentService
             Code = await QuizCode.GenerateUniqueAsync(_context, QuizService.CodeLength),
             TimeLimitMinutes = input.TimeLimitMinutes,
             MaxLeaves = input.MaxLeaves,
+            CodeHints = input.CodeHints,
             IsOpen = true,
             ResultsReleased = false,
             CreatedOn = DateTime.UtcNow
@@ -137,6 +138,7 @@ public class ExamAssignmentService : IExamAssignmentService
 
         exam!.TimeLimitMinutes = input.TimeLimitMinutes;
         exam.MaxLeaves = input.MaxLeaves;
+        exam.CodeHints = input.CodeHints;
         await _context.SaveChangesAsync();
 
         return ServiceResult<ExamAssignment>.Success(exam);

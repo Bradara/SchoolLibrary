@@ -478,3 +478,25 @@ body.sl-maximized-open {
 .sl-code-editor.CodeMirror pre.CodeMirror-line {
   padding-left: 0.5em;
 }
+
+/* Completion list of the code editor (sl-code-hints.js) */
+.CodeMirror-hints {
+  font-family: var(--bs-font-monospace);
+  font-size: 0.875rem;
+  z-index: 1080;
+}
+
+[data-bs-theme="dark"] .CodeMirror-hints {
+  background: #282a36;
+  border-color: #44475a;
+  box-shadow: 0 0.25rem 0.75rem rgba(0, 0, 0, 0.5);
+}
+
+[data-bs-theme="dark"] .CodeMirror-hint {
+  color: #f8f8f2;
+}
+
+[data-bs-theme="dark"] li.CodeMirror-hint-active {
+  background: #6272a4;
+  color: #fff;
+}

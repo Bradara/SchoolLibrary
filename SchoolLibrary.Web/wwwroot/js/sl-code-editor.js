@@ -4,6 +4,8 @@
 //                                                               so forms and "Провери" read it as before
 //   data-code-language-from="#select-id"                     – the language follows a <select> (question editor)
 //   <pre data-code-view data-code-language="python3">         – read-only view of a submitted program
+// Editable boxes get completion hints (sl-code-hints.js), except inside an element with data-code-hints="off"
+// (an exam where the teacher turned them off).
 // Without JavaScript the plain textarea / pre still work.
 (function () {
     "use strict";
@@ -15,6 +17,7 @@
 
     var script = document.currentScript;
     var base = (script && script.dataset.lib) || "/lib/codemirror/";
+    var hintsScript = (script && script.dataset.hints) || "/js/sl-code-hints.js";
     var maxLength = 10000;
 
     var modes = {
@@ -29,10 +32,10 @@
         document.head.appendChild(link);
     }
 
-    function loadScript(src) {
+    function loadScript(src, absolute) {
         return new Promise(function (resolve, reject) {
             var node = document.createElement("script");
-            node.src = base + src;
+            node.src = absolute ? src : base + src;
             node.onload = resolve;
             node.onerror = reject;
             document.head.appendChild(node);
@@ -161,6 +164,12 @@
             });
         }
 
+        if (window.SlCodeHints && !textarea.closest('[data-code-hints="off"]')) {
+            window.SlCodeHints.attach(editor, function () {
+                return languageSource ? languageSource.value : language;
+            });
+        }
+
         refreshWhenShown(editor);
         return editor;
     }
@@ -186,6 +195,7 @@
 
     loadCss("codemirror.min.css");
     loadCss("theme/dracula.min.css");
+    loadCss("addon/show-hint.min.css");
 
     loadScript("codemirror.min.js")
         .then(function () {
@@ -193,7 +203,9 @@
                 loadScript("mode/clike.min.js"),
                 loadScript("mode/python.min.js"),
                 loadScript("addon/matchbrackets.min.js"),
-                loadScript("addon/closebrackets.min.js")
+                loadScript("addon/closebrackets.min.js"),
+                loadScript("addon/show-hint.min.js"),
+                loadScript(hintsScript, true)
             ]);
         })
         .then(function () {

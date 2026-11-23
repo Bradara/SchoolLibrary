@@ -62,7 +62,20 @@ public class ExamAssignmentServiceTests
         Assert.False(exam.ResultsReleased);
         Assert.Equal(20, exam.TimeLimitMinutes);
         Assert.Equal(2, exam.MaxLeaves);
+        Assert.True(exam.CodeHints);
         Assert.Equal(DateTimeKind.Utc, exam.CreatedOn.Kind);
+    }
+
+    [Fact]
+    public async Task CreateAsync_WithoutCodeHints_KeepsTheChoice()
+    {
+        var s = await ArrangeAsync();
+        using var _ = s.Context;
+
+        var result = await s.Exams.CreateAsync(new ExamAssignmentInput(s.Quiz.Id, s.SchoolClass.Id, 20, null, CodeHints: false), Owner, false);
+
+        Assert.False(result.Value!.CodeHints);
+        Assert.False(s.Context.ExamAssignments.Single().CodeHints);
     }
 
     [Fact]
@@ -237,6 +250,41 @@ public class ExamAssignmentServiceTests
         Assert.True(result.Succeeded);
         Assert.Null(result.Value!.TimeLimitMinutes);
         Assert.Equal(0, result.Value.MaxLeaves);
+        Assert.True(result.Value.CodeHints);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_TurnsCodeHintsOffAndOn()
+    {
+        var s = await ArrangeAsync();
+        using var _ = s.Context;
+        var exam = (await AssignAsync(s)).Value!;
+
+        await s.Exams.UpdateSettingsAsync(exam.Id, new ExamSettingsInput(20, 2, CodeHints: false), Owner, false);
+        Assert.False(s.Context.ExamAssignments.Single().CodeHints);
+
+        await s.Exams.UpdateSettingsAsync(exam.Id, new ExamSettingsInput(20, 2, CodeHints: true), Owner, false);
+        Assert.True(s.Context.ExamAssignments.Single().CodeHints);
+    }
+
+    [Fact]
+    public async Task UpdateSettingsAsync_OutOfRange_KeepsCodeHints()
+    {
+        var s = await ArrangeAsync();
+        using var _ = s.Context;
+        var exam = (await AssignAsync(s)).Value!;
+
+        await s.Exams.UpdateSettingsAsync(exam.Id, new ExamSettingsInput(0, null, CodeHints: false), Owner, false);
+
+        Assert.True(s.Context.ExamAssignments.Single().CodeHints);
+    }
+
+    [Fact]
+    public void QuizAttempt_CodeHints_FollowsTheClassExamAndIsOnForAQuizExam()
+    {
+        Assert.True(new QuizAttempt { Quiz = new Quiz() }.CodeHints);
+        Assert.True(new QuizAttempt { ExamAssignment = new ExamAssignment { CodeHints = true } }.CodeHints);
+        Assert.False(new QuizAttempt { ExamAssignment = new ExamAssignment { CodeHints = false } }.CodeHints);
     }
 
     [Fact]

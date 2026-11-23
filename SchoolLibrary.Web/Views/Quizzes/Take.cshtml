@@ -96,7 +96,7 @@
         <p class="lead">@quiz.Description</p>
     }
 
-    <form method="post" asp-action="Take" asp-route-token="@Model.Attempt.Token"
+    <form method="post" asp-action="Take" asp-route-token="@Model.Attempt.Token" data-code-hints="@(Model.Attempt.CodeHints ? "on" : "off")"
           id="sl-exam-form" data-remaining-seconds="@(Model.RemainingSeconds?.ToString() ?? "")"
           data-proctored="@(proctored ? "true" : "false")"
           data-max-leaves="@(maxLeaves?.ToString() ?? "")"

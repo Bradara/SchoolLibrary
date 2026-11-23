@@ -25,6 +25,10 @@
             Клас <strong>@exam.SchoolClass.Name</strong>
             · @(exam.TimeLimitMinutes.HasValue ? exam.TimeLimitMinutes + " мин." : "без ограничение във времето")
             · @(proctored ? "надзор: до " + exam.MaxLeaves + " напускания" : "без надзор")
+            @if (!exam.CodeHints)
+            {
+                <text>· без подсказки за код</text>
+            }
         </div>
     </div>
     <div class="text-lg-end">

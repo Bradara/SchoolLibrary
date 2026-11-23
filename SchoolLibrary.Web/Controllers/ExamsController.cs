@@ -156,7 +156,7 @@ namespace SchoolLibrary.Controllers
             }
 
             var result = await _exams.CreateAsync(
-                new ExamAssignmentInput(vm.QuizId, vm.SchoolClassId, vm.TimeLimitMinutes, vm.MaxLeaves),
+                new ExamAssignmentInput(vm.QuizId, vm.SchoolClassId, vm.TimeLimitMinutes, vm.MaxLeaves, vm.CodeHints),
                 CurrentUserId, IsAdministrator);
 
             if (result.Error == ServiceError.Forbidden)
@@ -192,7 +192,12 @@ namespace SchoolLibrary.Controllers
             return View(new ExamDetailsViewModel
             {
                 Results = result.Value,
-                Settings = new ExamSettingsViewModel { TimeLimitMinutes = exam.TimeLimitMinutes, MaxLeaves = exam.MaxLeaves }
+                Settings = new ExamSettingsViewModel
+                {
+                    TimeLimitMinutes = exam.TimeLimitMinutes,
+                    MaxLeaves = exam.MaxLeaves,
+                    CodeHints = exam.CodeHints
+                }
             });
         }
 
@@ -209,7 +214,7 @@ namespace SchoolLibrary.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            var result = await _exams.UpdateSettingsAsync(id, new ExamSettingsInput(settings.TimeLimitMinutes, settings.MaxLeaves),
+            var result = await _exams.UpdateSettingsAsync(id, new ExamSettingsInput(settings.TimeLimitMinutes, settings.MaxLeaves, settings.CodeHints),
                 CurrentUserId, IsAdministrator);
             return AfterChange(id, result, "Настройките са запазени.");
         }

@@ -591,6 +591,9 @@ namespace SchoolLibrary.Data.Migrations
                         .HasMaxLength(12)
                         .HasColumnType("character varying(12)");
 
+                    b.Property<bool>("CodeHints")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("timestamp with time zone");
 

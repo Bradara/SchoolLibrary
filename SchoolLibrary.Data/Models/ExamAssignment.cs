@@ -28,6 +28,9 @@ namespace SchoolLibrary.Data.Models
         /// <summary>How many times a student may leave the page before the attempt is auto-submitted. Null means no proctoring.</summary>
         public int? MaxLeaves { get; set; }
 
+        /// <summary>Whether code questions suggest keywords and common functions while the student types.</summary>
+        public bool CodeHints { get; set; } = true;
+
         /// <summary>Whether students can start the exam now.</summary>
         public bool IsOpen { get; set; }
 

@@ -13,3 +13,11 @@
     <span asp-validation-for="MaxLeaves" class="text-danger small"></span>
     <div class="form-text">Колко пъти ученикът може да напусне страницата, преди изпитът да се предаде автоматично. Празно = без надзор.</div>
 </div>
+
+<div class="mb-3">
+    <div class="form-check">
+        <input asp-for="CodeHints" class="form-check-input" type="checkbox" />
+        <label asp-for="CodeHints" class="form-check-label"></label>
+    </div>
+    <div class="form-text">При въпросите с код се предлагат ключови думи, често ползвани функции и имената от програмата (Ctrl+Интервал). Упражненията винаги са с подсказки.</div>
+</div>

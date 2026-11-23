@@ -34,6 +34,9 @@ public class ExamSettingsViewModel
     [Range(0, 100, ErrorMessage = "Напусканията са между 0 и 100")]
     [Display(Name = "Допустими напускания")]
     public int? MaxLeaves { get; set; }
+
+    [Display(Name = "Подсказки при писане на код")]
+    public bool CodeHints { get; set; } = true;
 }
 
 /// <summary>The "give a practice quiz to a class as an exam" form, with the pickers' choices.</summary>
