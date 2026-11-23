@@ -15,7 +15,10 @@
 <article class="res-card" style="@(Model.StripeColor != null ? "--subj:" + Model.StripeColor : null)">
     <div class="top">
         <span class="media-tag"><i class="bi @Model.Media.Icon" aria-hidden="true"></i> @Model.Media.Label</span>
-        <span>@resource.Kind.Label()</span>
+        @if (Model.ShowKind)
+        {
+            <span class="kind">@resource.Kind.Label()</span>
+        }
         @if (Model.IsRestricted)
         {
             <i class="bi bi-eye-slash flag" data-sl-tip="@Model.VisibilityText" data-sl-placement="top"
@@ -23,7 +26,7 @@
         }
         @if (resource.License != null)
         {
-            <span class="license" data-sl-tip="Лиценз" data-sl-placement="top">@resource.License.Name</span>
+            <span class="license" data-sl-tip="Лиценз: @resource.License.Name" data-sl-placement="top">@resource.License.Name</span>
         }
     </div>
 

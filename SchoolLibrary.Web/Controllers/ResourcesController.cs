@@ -86,9 +86,10 @@ namespace SchoolLibrary.Controllers
             DateTime? fromDate,
             DateTime? toDate,
             ResourceSortOrder? sortOrder,
+            bool all = false,
             int page = 1)
         {
-            var result = await _resources.SearchAsync(new ResourceFilter
+            var filter = new ResourceFilter
             {
                 Kind = kind,
                 SearchText = searchTitle,
@@ -100,14 +101,7 @@ namespace SchoolLibrary.Controllers
                 SortOrder = sortOrder ?? ResourceSortOrder.DateDesc,
                 Page = page,
                 Viewer = Viewer
-            });
-
-            var owners = await _resources.GetOwnersAsync(Viewer);
-
-            // The hearts of the page: only signed-in users have favorites
-            var favoriteIds = IsSignedIn
-                ? await _favorites.GetFavoriteIdsAsync(CurrentUserId, result.Items.Select(r => r.Id))
-                : new HashSet<int>();
+            };
 
             var vm = new ResourceIndexViewModel
             {
@@ -118,18 +112,37 @@ namespace SchoolLibrary.Controllers
                 OwnerId = ownerId,
                 FromDate = fromDate,
                 ToDate = toDate,
-                SortOrder = sortOrder ?? ResourceSortOrder.DateDesc,
-
-                Categories = await _categories.GetOptionsAsync(),
-                GradeLevels = await _gradeLevels.GetAllAsync(),
-                Owners = owners.Select(o => new SelectListItem { Value = o.Id, Text = o.FullName }).ToList(),
-
-                Resources = result.Items,
-                FavoriteIds = favoriteIds,
-                Page = result.Page,
-                TotalPages = result.TotalPages,
-                TotalCount = result.TotalCount
+                SortOrder = filter.SortOrder,
+                All = all
             };
+
+            // Nothing narrows the catalog yet: the subject tiles, and under them only the newest few
+            if (vm.Query.ShowsTiles)
+            {
+                filter.Page = 1;
+                filter.PageSize = ResourceIndexViewModel.NewestOnTiles;
+                filter.SortOrder = ResourceSortOrder.DateDesc;
+            }
+
+            var result = await _resources.SearchAsync(filter);
+            var facets = await _resources.GetCatalogFacetsAsync(filter);
+
+            var owners = await _resources.GetOwnersAsync(Viewer);
+
+            // The hearts of the page: only signed-in users have favorites
+            var favoriteIds = IsSignedIn
+                ? await _favorites.GetFavoriteIdsAsync(CurrentUserId, result.Items.Select(r => r.Id))
+                : new HashSet<int>();
+
+            vm.Categories = await _categories.GetOptionsAsync();
+            vm.GradeLevels = await _gradeLevels.GetAllAsync();
+            vm.Owners = owners.Select(o => new SelectListItem { Value = o.Id, Text = o.FullName }).ToList();
+            vm.Facets = facets;
+            vm.Resources = result.Items;
+            vm.FavoriteIds = favoriteIds;
+            vm.Page = result.Page;
+            vm.TotalPages = result.TotalPages;
+            vm.TotalCount = result.TotalCount;
 
             return View(vm);
         }

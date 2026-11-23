@@ -34,6 +34,11 @@ public class ResourcesControllerTests
     private readonly Mock<IHighlightService> _highlights = new();
 
     private ResourceFilter? _filter;
+    private ResourceFilter? _facetFilter;
+
+    private static readonly CatalogFacets Facets = new(
+        new Dictionary<ResourceKind, int> { [ResourceKind.Lesson] = 2 },
+        new[] { new SubjectFacet(1, "Математика", "bi-plus-slash-minus", "#2f6fed", 2) });
 
     public ResourcesControllerTests()
     {
@@ -42,6 +47,9 @@ public class ResourcesControllerTests
             .ReturnsAsync(new PagedResult<Resource>(
                 new List<Resource> { new() { Id = 1, Title = "А" }, new() { Id = 2, Title = "Б" } }, 2, 1, 10));
         _resources.Setup(r => r.GetOwnersAsync(It.IsAny<ResourceViewer>())).ReturnsAsync(new List<ResourceOwnerOption>());
+        _resources.Setup(r => r.GetCatalogFacetsAsync(It.IsAny<ResourceFilter>()))
+            .Callback<ResourceFilter>(f => _facetFilter = f)
+            .ReturnsAsync(Facets);
         _categories.Setup(c => c.GetOptionsAsync()).ReturnsAsync(new List<Category> { new() { Id = 1, Name = "Математика" } });
         _gradeLevels.Setup(g => g.GetAllAsync()).ReturnsAsync(new List<GradeLevel> { new() { Id = 1, Number = 5 } });
         _licenses.Setup(l => l.GetOptionsAsync()).ReturnsAsync(new List<License> { new() { Id = 1, Name = "CC BY 4.0" } });
@@ -129,6 +137,53 @@ public class ResourcesControllerTests
         Assert.Equal(new DateTime(2026, 2, 1), _filter.ToDate);
         Assert.Equal(ResourceSortOrder.TitleAsc, _filter.SortOrder);
         Assert.Equal(2, _filter.Page);
+    }
+
+    [Fact]
+    public async Task Index_NothingChosen_ShowsTheTiles_AndOnlyTheNewestFew()
+    {
+        var result = await Controller().Index(ResourceKind.Lesson, null, null, 4, null, null, null,
+            ResourceSortOrder.TitleAsc, page: 3);
+
+        var model = Assert.IsType<ResourceIndexViewModel>(Assert.IsType<ViewResult>(result).Model);
+        Assert.True(model.Query.ShowsTiles);
+        // The newest few, whatever the page and the order in the address
+        Assert.Equal(1, _filter!.Page);
+        Assert.Equal(ResourceIndexViewModel.NewestOnTiles, _filter.PageSize);
+        Assert.Equal(ResourceSortOrder.DateDesc, _filter.SortOrder);
+        // The kind and the grade still narrow them; the order stays for the links
+        Assert.Equal(ResourceKind.Lesson, _filter.Kind);
+        Assert.Equal(4, _filter.GradeLevelId);
+        Assert.Equal(ResourceSortOrder.TitleAsc, model.SortOrder);
+    }
+
+    [Theory]
+    [InlineData("дроби", null, null, false)]
+    [InlineData(null, 3, null, false)]
+    [InlineData(null, null, "owner", false)]
+    [InlineData(null, null, null, true)]
+    public async Task Index_ASearchSubjectOwnerOrAll_ShowsTheResultsPage(string? search, int? categoryId, string? ownerId, bool all)
+    {
+        var result = await Controller().Index(null, search, categoryId, null, ownerId, null, null,
+            ResourceSortOrder.TitleAsc, all, page: 2);
+
+        var model = Assert.IsType<ResourceIndexViewModel>(Assert.IsType<ViewResult>(result).Model);
+        Assert.False(model.Query.ShowsTiles);
+        Assert.Equal(all, model.All);
+        Assert.Equal(2, _filter!.Page);
+        Assert.Equal(ResourceFilter.DefaultPageSize, _filter.PageSize);
+        Assert.Equal(ResourceSortOrder.TitleAsc, _filter.SortOrder);
+    }
+
+    [Fact]
+    public async Task Index_ShowsTheCountsForTheSameFilters()
+    {
+        var result = await Controller("u1", Roles.Teacher).Index(ResourceKind.External, "дроби", 3, 4, null, null, null, null);
+
+        var model = Assert.IsType<ResourceIndexViewModel>(Assert.IsType<ViewResult>(result).Model);
+        Assert.Same(Facets, model.Facets);
+        Assert.Same(_filter, _facetFilter);
+        Assert.Equal("u1", _facetFilter!.Viewer.UserId);
     }
 
     [Fact]

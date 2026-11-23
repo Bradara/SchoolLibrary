@@ -827,6 +827,12 @@ a.subject-tile:focus-visible {
   background: rgba(var(--sl-primary-rgb), .18);
 }
 
+.more-filters {
+  padding: .75rem;
+  border: 1px dashed var(--bs-border-color);
+  border-radius: .75rem;
+}
+
 .section-title {
   margin: 0 0 .75rem;
   font-size: .8rem;
@@ -904,9 +910,23 @@ a.subject-tile:focus-visible {
   z-index: 1;
 }
 
-/* The media and the kind on the left; the visibility icon and the license (whichever is first) on the right */
-.res-card .top > :nth-child(3) {
+/* The media and the kind on the left, never wrapped; the visibility icon and the license on the right */
+.res-card .top {
+  min-width: 0;
+}
+
+.res-card .top .kind {
+  white-space: nowrap;
+}
+
+.res-card .top .flag,
+.res-card .top .media-tag + .license,
+.res-card .top .kind + .license {
   margin-left: auto;
+}
+
+.res-card .top .flag + .license {
+  margin-left: .25rem;
 }
 
 .res-card .top .license {

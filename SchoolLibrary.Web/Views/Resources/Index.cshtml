@@ -12,12 +12,29 @@
         _ => ("📚 Учебни ресурси", "+ Нов ресурс")
     };
     ViewData["Title"] = heading[3..];
-    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var query = Model.Query;
     var returnUrl = Context.Request.Path + Context.Request.QueryString;
+    bool? FavoriteOf(int id) => User.Identity?.IsAuthenticated == true ? Model.FavoriteIds.Contains(id) : null;
+    ResourceCardModel Card(SchoolLibrary.Data.Models.Resource item) =>
+        new(item, FavoriteOf(item.Id), returnUrl, ShowKind: Model.Kind == null);
+
+    // "Още филтри" stays open while one of its filters is chosen
+    var moreFiltersOpen = !string.IsNullOrEmpty(Model.OwnerId) || Model.FromDate != null || Model.ToDate != null;
+
+    var sortOptions = new (ResourceSortOrder Value, string Text)[]
+    {
+        (ResourceSortOrder.DateDesc, "Най-нови първо"),
+        (ResourceSortOrder.DateAsc, "Най-стари първо"),
+        (ResourceSortOrder.TitleAsc, "Заглавие (А → Я)"),
+        (ResourceSortOrder.TitleDesc, "Заглавие (Я → А)"),
+        (ResourceSortOrder.AuthorAsc, "Автор (А → Я)"),
+        (ResourceSortOrder.AuthorDesc, "Автор (Я → А)"),
+        (ResourceSortOrder.OwnerAsc, "Публикувал (А → Я)")
+    };
 }
 
-<div class="d-flex justify-content-between align-items-center mb-4">
-    <h1>@heading <small class="fs-6 text-body-secondary">(намерени: @Model.TotalCount)</small></h1>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="mb-0">@heading</h1>
     @if (User.CanAddResources())
     {
         @if (Model.Kind == ResourceKind.Upload)
@@ -26,7 +43,7 @@
         }
         else
         {
-            <div class="d-flex gap-2">
+            <div class="d-flex flex-wrap gap-2">
                 @if (Model.Kind == ResourceKind.External)
                 {
                     <a asp-controller="Discovery" asp-action="Index" class="btn btn-outline-primary">
@@ -39,157 +56,134 @@
     }
 </div>
 
-<!-- Филтри и сортиране -->
-<form method="get" class="card card-body bg-body-tertiary py-2 mb-4">
+<partial name="_KindSwitch" model="Model" />
+
+<!-- Търсене и още филтри: изпращат се заедно, а избраните вид, предмет, клас и ред остават -->
+<form method="get" asp-action="Index" class="my-3" role="search">
     @if (Model.Kind.HasValue)
     {
         <input type="hidden" name="kind" value="@Model.Kind" />
     }
-    <div class="d-flex flex-wrap gap-2 align-items-end">
-        <div class="filter-field filter-field-wide">
-            <label class="form-label small mb-1" for="searchTitle">Търсене</label>
-            <input id="searchTitle" name="searchTitle" value="@Model.SearchTitle" class="form-control"
-                   placeholder="Заглавие или автор..." />
+    @if (Model.CategoryId.HasValue)
+    {
+        <input type="hidden" name="categoryId" value="@Model.CategoryId" />
+    }
+    @if (Model.GradeLevelId.HasValue)
+    {
+        <input type="hidden" name="gradeLevelId" value="@Model.GradeLevelId" />
+    }
+    @if (Model.SortOrder != ResourceSortOrder.DateDesc)
+    {
+        <input type="hidden" name="sortOrder" value="@Model.SortOrder" />
+    }
+
+    <div class="d-flex flex-wrap gap-2">
+        <div class="search-box">
+            <label class="visually-hidden" for="searchTitle">Търсене по заглавие или автор</label>
+            <i class="bi bi-search" aria-hidden="true"></i>
+            <input id="searchTitle" type="search" name="searchTitle" value="@Model.SearchTitle" class="form-control"
+                   placeholder="Търсене по заглавие или автор" />
         </div>
-        <div class="filter-field">
-            <label class="form-label small mb-1" for="categoryId">Предмет</label>
-            <select id="categoryId" name="categoryId" class="form-select">
-                <option value="">Всички</option>
-                @foreach (var c in Model.Categories)
-                {
-                    <option value="@c.Id" selected="@(Model.CategoryId == c.Id)">@c.Name</option>
-                }
-            </select>
-        </div>
-        <div class="filter-field">
-            <label class="form-label small mb-1" for="gradeLevelId">Клас</label>
-            <select id="gradeLevelId" name="gradeLevelId" class="form-select">
-                <option value="">Всички</option>
-                @foreach (var g in Model.GradeLevels)
-                {
-                    <option value="@g.Id" selected="@(Model.GradeLevelId == g.Id)">@g.Name</option>
-                }
-            </select>
-        </div>
-        <div class="filter-field">
-            <label class="form-label small mb-1" for="ownerId">Публикувал</label>
-            <select id="ownerId" name="ownerId" class="form-select">
-                <option value="">Всички</option>
-                @foreach (var o in Model.Owners)
-                {
-                    <option value="@o.Value" selected="@(Model.OwnerId == o.Value)">@o.Text</option>
-                }
-            </select>
-        </div>
-        <div class="filter-field filter-field-date">
-            <label class="form-label small mb-1" for="fromDate">От дата</label>
-            <input id="fromDate" type="date" name="fromDate"
-                   value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" class="form-control" />
-        </div>
-        <div class="filter-field filter-field-date">
-            <label class="form-label small mb-1" for="toDate">До дата</label>
-            <input id="toDate" type="date" name="toDate"
-                   value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" class="form-control" />
-        </div>
-        <div class="filter-field">
-            <label class="form-label small mb-1" for="sortOrder">Сортиране</label>
-            <select id="sortOrder" name="sortOrder" class="form-select" onchange="this.form.submit()">
-                @{
-                    var sortOptions = new (string Value, string Text)[]
+        <button type="submit" class="btn btn-primary">Търси</button>
+        <button type="button" class="btn btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#more-filters"
+                aria-expanded="@(moreFiltersOpen ? "true" : "false")" aria-controls="more-filters">
+            <i class="bi bi-sliders" aria-hidden="true"></i> Още филтри
+        </button>
+    </div>
+
+    <div class="collapse @(moreFiltersOpen ? "show" : null)" id="more-filters">
+        <div class="more-filters d-flex flex-wrap gap-2 align-items-end mt-2">
+            <div class="filter-field">
+                <label class="form-label small mb-1" for="ownerId">Публикувал</label>
+                <select id="ownerId" name="ownerId" class="form-select">
+                    <option value="">Всички</option>
+                    @foreach (var o in Model.Owners)
                     {
-                        ("DateDesc", "Най-нови първо"),
-                        ("DateAsc", "Най-стари първо"),
-                        ("TitleAsc", "Заглавие (А → Я)"),
-                        ("TitleDesc", "Заглавие (Я → А)"),
-                        ("AuthorAsc", "Автор (А → Я)"),
-                        ("AuthorDesc", "Автор (Я → А)"),
-                        ("OwnerAsc", "Публикувал (А → Я)")
-                    };
-                }
-                @foreach (var opt in sortOptions)
-                {
-                    <option value="@opt.Value" selected="@(Model.SortOrder.ToString() == opt.Value)">@opt.Text</option>
-                }
-            </select>
-        </div>
-        <div class="d-flex gap-1">
-            <button type="submit" class="btn btn-primary" title="Търси" aria-label="Търси"><i class="bi bi-search"></i></button>
-            <a asp-action="Index" class="btn btn-outline-secondary" title="Изчисти филтрите" aria-label="Изчисти филтрите"><i class="bi bi-x-lg"></i></a>
+                        <option value="@o.Value" selected="@(Model.OwnerId == o.Value)">@o.Text</option>
+                    }
+                </select>
+            </div>
+            <div class="filter-field filter-field-date">
+                <label class="form-label small mb-1" for="fromDate">От дата</label>
+                <input id="fromDate" type="date" name="fromDate" value="@(Model.FromDate?.ToString("yyyy-MM-dd"))" class="form-control" />
+            </div>
+            <div class="filter-field filter-field-date">
+                <label class="form-label small mb-1" for="toDate">До дата</label>
+                <input id="toDate" type="date" name="toDate" value="@(Model.ToDate?.ToString("yyyy-MM-dd"))" class="form-control" />
+            </div>
+            <button type="submit" class="btn btn-outline-primary">Приложи</button>
         </div>
     </div>
 </form>
 
-<!-- Резултатите -->
-@if (!Model.Resources.Any())
+<div class="mb-3">
+    <partial name="_GradeChips" model="Model" />
+</div>
+
+<div class="mb-3">
+    <partial name="_ActiveFilters" model="Model" />
+</div>
+
+@if (query.ShowsTiles)
 {
-    <div class="alert alert-info text-center py-5">
-        <p class="mb-0">Няма ресурси по избраните критерии.</p>
+    <h2 class="section-title">Предмети</h2>
+    <div class="mb-4">
+        <partial name="_SubjectTiles" model="Model" />
     </div>
+
+    @if (Model.Resources.Any())
+    {
+        <div class="d-flex align-items-baseline gap-2 mb-2">
+            <h2 class="section-title mb-0 me-auto">Най-нови</h2>
+            <a asp-action="Index" asp-all-route-data="(query with { All = true }).ToRouteValues()" class="small">
+                Виж всички (@Model.TotalCount) <i class="bi bi-arrow-right" aria-hidden="true"></i>
+            </a>
+        </div>
+        <div class="card-grid" data-resource-list>
+            @foreach (var item in Model.Resources)
+            {
+                <partial name="_ResourceCard" model="Card(item)" />
+            }
+        </div>
+    }
 }
 else
 {
-    <div class="table-responsive">
-        <table class="table table-hover align-middle">
-            <thead>
-                <tr>
-                    <th>Заглавие</th>
-                    <th>Предмети</th>
-                    <th>Класове</th>
-                    <th>Лиценз</th>
-                    <th>Публикувал</th>
-                    <th>Дата</th>
-                    <th class="text-end">Действия</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.Resources)
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <h2 class="section-title mb-0 me-auto">Намерени: @Model.TotalCount</h2>
+
+        <!-- Сортиране: същите избори, друг ред -->
+        <form method="get" asp-action="Index" class="d-flex align-items-center gap-2">
+            @foreach (var value in query.ToRouteValues().Where(v => v.Key != "sortOrder"))
+            {
+                <input type="hidden" name="@value.Key" value="@value.Value" />
+            }
+            <label class="small text-body-secondary text-nowrap" for="sortOrder">Подреди:</label>
+            <select id="sortOrder" name="sortOrder" class="form-select form-select-sm w-auto" onchange="this.form.submit()">
+                @foreach (var option in sortOptions)
                 {
-                    <tr>
-                        <td>
-                            <a asp-action="Details" asp-route-id="@item.Id" class="fw-bold text-decoration-none">
-                                @item.Title
-                            </a>
-                            @if (item.Audience != SchoolLibrary.Data.Enums.ResourceAudience.Everyone)
-                            {
-                                var visibility = "Видимост: " + SchoolLibrary.Services.Resources.ResourceVisibility.Describe(item.Audience);
-                                <i class="bi bi-eye-slash text-body-secondary ms-1" data-sl-tip="@visibility" data-sl-placement="top"
-                                   role="img" aria-label="@visibility"></i>
-                            }
-                        </td>
-                        <td>@foreach (var c in item.Categories.OrderBy(c => c.Name)) { <span class="badge bg-primary text-primary-emphasis">@c.Name</span> }</td>
-                        <td>@foreach (var g in item.GradeLevels.OrderBy(g => g.Number)) { <span class="badge bg-secondary text-secondary-emphasis">@g.Name</span> }</td>
-                        <td class="small">@(item.License?.Name ?? "—")</td>
-                        <td class="small">@item.PublisherName()</td>
-                        <td class="small text-body-secondary">@item.CreatedOn.ToString("dd.MM.yyyy")</td>
-                        <td class="text-end text-nowrap">
-                            @{
-                                var canEdit = ResourcePermissions.CanEdit(item, currentUserId, User.IsInRole(Roles.Administrator));
-                                var canDelete = ResourcePermissions.CanDelete(item, currentUserId, User.IsInRole(Roles.Administrator));
-                            }
-                            <div class="d-inline-flex gap-1">
-                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary"
-                                   data-sl-tip="Детайли" data-sl-placement="top" aria-label="Детайли"><i class="bi bi-eye"></i></a>
-                                @if (User.Identity?.IsAuthenticated == true)
-                                {
-                                    <partial name="_FavoriteButton" model="new FavoriteButtonModel(item.Id, Model.FavoriteIds.Contains(item.Id), returnUrl)" />
-                                }
-                                @if (canEdit && item.Kind != ResourceKind.Upload)
-                                {
-                                    <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary"
-                                       data-sl-tip="Редактирай" data-sl-placement="top" aria-label="Редактирай"><i class="bi bi-pencil"></i></a>
-                                }
-                                @if (canDelete)
-                                {
-                                    <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger"
-                                       data-sl-tip="Изтрий" data-sl-placement="top" aria-label="Изтрий"><i class="bi bi-trash"></i></a>
-                                }
-                            </div>
-                        </td>
-                    </tr>
+                    <option value="@option.Value" selected="@(Model.SortOrder == option.Value)">@option.Text</option>
                 }
-            </tbody>
-        </table>
+            </select>
+            <noscript><button type="submit" class="btn btn-sm btn-outline-secondary">Подреди</button></noscript>
+        </form>
     </div>
 
-    <partial name="_Pager" model="Model" />
+    @if (!Model.Resources.Any())
+    {
+        <div class="alert alert-info text-center py-5">
+            <p class="mb-0">Няма ресурси по избраните критерии.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card-grid mb-4" data-resource-list>
+            @foreach (var item in Model.Resources)
+            {
+                <partial name="_ResourceCard" model="Card(item)" />
+            }
+        </div>
+
+        <partial name="_Pager" model="Model" />
+    }
 }

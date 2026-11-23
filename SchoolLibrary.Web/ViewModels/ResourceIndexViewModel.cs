@@ -7,6 +7,9 @@ namespace SchoolLibrary.ViewModels;
 
 public class ResourceIndexViewModel
 {
+    /// <summary>How many of the newest resources are shown under the subject tiles.</summary>
+    public const int NewestOnTiles = 6;
+
     // Филтри (входни полета от формата)
     // null = all resources, otherwise one section of the library
     public ResourceKind? Kind { get; set; }

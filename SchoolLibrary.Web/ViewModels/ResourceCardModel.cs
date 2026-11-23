@@ -8,9 +8,10 @@ namespace SchoolLibrary.ViewModels;
 
 /// <summary>
 /// One resource on a catalog card (or a row of the list). <paramref name="IsFavorite"/> is null for a visitor
-/// who is not signed in: no heart is shown then.
+/// who is not signed in: no heart is shown then. <paramref name="ShowKind"/> is false in a section of one kind,
+/// where the kind goes without saying.
 /// </summary>
-public record ResourceCardModel(Resource Resource, bool? IsFavorite, string ReturnUrl)
+public record ResourceCardModel(Resource Resource, bool? IsFavorite, string ReturnUrl, bool ShowKind = true)
 {
     private static readonly StringComparer Bulgarian =
         StringComparer.Create(CultureInfo.GetCultureInfo("bg-BG"), ignoreCase: true);
