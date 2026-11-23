@@ -677,3 +677,420 @@ a.subject-tile:focus-visible {
   outline: 2px solid var(--sl-primary);
   outline-offset: 2px;
 }
+
+.subject-grid {
+  display: grid;
+  gap: .75rem;
+  grid-template-columns: repeat(auto-fill, minmax(9.5rem, 1fr));
+}
+
+/* ---------- Catalog: kind switch, search, chips, active filters ---------- */
+/* A segmented control; on a phone it scrolls sideways instead of wrapping */
+.kind-switch {
+  display: flex;
+  gap: .25rem;
+  padding: .25rem;
+  width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-radius: .75rem;
+  background: var(--bs-tertiary-bg);
+  border: 1px solid var(--bs-border-color);
+}
+
+.kind-switch::-webkit-scrollbar,
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+.kind-switch a {
+  white-space: nowrap;
+  border-radius: .55rem;
+  padding: .4rem .85rem;
+  color: var(--bs-body-color);
+  text-decoration: none;
+  font-size: .95rem;
+}
+
+.kind-switch a:hover {
+  background: var(--bs-secondary-bg);
+}
+
+.kind-switch a.active {
+  background: var(--bs-body-bg);
+  color: var(--sl-primary);
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .12);
+}
+
+.kind-switch .count {
+  margin-left: .25rem;
+  font-size: .75rem;
+  color: var(--bs-secondary-color);
+}
+
+.search-box {
+  position: relative;
+  flex: 1 1 12rem;
+}
+
+.search-box > .bi-search {
+  position: absolute;
+  left: .9rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--bs-secondary-color);
+  pointer-events: none;
+}
+
+.search-box .form-control {
+  height: 2.75rem;
+  padding-left: 2.5rem;
+  border-radius: .75rem;
+}
+
+.chip-row {
+  display: flex;
+  align-items: center;
+  gap: .4rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: .15rem;
+}
+
+.chip-row .label {
+  margin-right: .25rem;
+  white-space: nowrap;
+  font-size: .85rem;
+  color: var(--bs-secondary-color);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: .35rem;
+  white-space: nowrap;
+  padding: .25rem .8rem;
+  border-radius: 2rem;
+  border: 1px solid var(--bs-border-color);
+  background: var(--bs-body-bg);
+  color: var(--bs-body-color);
+  font-size: .875rem;
+  text-decoration: none;
+}
+
+.chip:hover {
+  border-color: var(--sl-primary);
+  color: var(--sl-primary);
+}
+
+.chip.active {
+  background: var(--sl-primary);
+  border-color: var(--sl-primary);
+  color: var(--sl-on-primary);
+}
+
+.active-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .4rem;
+}
+
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  padding: .2rem .35rem .2rem .75rem;
+  border-radius: 2rem;
+  font-size: .85rem;
+  background: var(--bs-primary-bg-subtle);
+  color: var(--bs-primary-text-emphasis);
+  border: 1px solid var(--bs-primary-border-subtle);
+}
+
+/* The × is a link to the same list without this filter */
+.filter-pill .remove {
+  display: inline-grid;
+  place-items: center;
+  width: 1.4rem;
+  height: 1.4rem;
+  border-radius: 50%;
+  line-height: 1;
+  color: inherit;
+  text-decoration: none;
+}
+
+.filter-pill .remove:hover,
+.filter-pill .remove:focus-visible {
+  background: rgba(var(--sl-primary-rgb), .18);
+}
+
+.section-title {
+  margin: 0 0 .75rem;
+  font-size: .8rem;
+  font-weight: 600;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--bs-secondary-color);
+}
+
+/* ---------- Catalog: resource cards (and the same cards as a list) ---------- */
+/* --subj is the color of the first subject; without one the stripe has the border color */
+.card-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+}
+
+.res-card {
+  --subj: var(--bs-border-color);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: .5rem;
+  min-width: 0;
+  padding: 1rem 1rem .85rem 1.15rem;
+  border-radius: .9rem;
+  background: var(--bs-body-bg);
+  border: 1px solid var(--bs-border-color);
+  overflow: hidden;
+  transition: box-shadow .12s ease, border-color .12s ease;
+}
+
+.res-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--subj);
+}
+
+.res-card:hover {
+  border-color: color-mix(in srgb, var(--subj) 55%, var(--bs-border-color));
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, .35);
+}
+
+/* The title link covers the whole card (::after); the keyboard focus is shown on the card */
+.res-card:has(.title:focus-visible) {
+  outline: 2px solid var(--sl-primary);
+  outline-offset: 2px;
+}
+
+.res-card .top {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .8rem;
+  color: var(--bs-secondary-color);
+}
+
+.media-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: .3rem;
+  padding: .1rem .5rem;
+  border-radius: .4rem;
+  white-space: nowrap;
+  background: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
+}
+
+.res-card .title {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 1.02rem;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--bs-emphasis-color);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+
+.res-card .title:focus-visible {
+  outline: 0;
+}
+
+.res-card .title::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+.res-card .title:hover {
+  color: var(--sl-primary);
+}
+
+.res-card .desc {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  margin: 0;
+  font-size: .875rem;
+  color: var(--bs-secondary-color);
+}
+
+.res-card .tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem;
+}
+
+.subj-tag,
+.grade-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: .25rem;
+  padding: .1rem .5rem;
+  border-radius: 1rem;
+  font-size: .78rem;
+  white-space: nowrap;
+}
+
+/* A long subject name wraps inside the card instead of running out of it */
+.subj-tag {
+  max-width: 100%;
+  white-space: normal;
+  color: color-mix(in srgb, var(--subj) 80%, var(--bs-body-color));
+  background: color-mix(in srgb, var(--subj) 13%, var(--bs-body-bg));
+}
+
+.grade-tag {
+  background: var(--bs-secondary-bg);
+}
+
+.res-card .meta {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-top: auto;
+  min-width: 0;
+  font-size: .8rem;
+  color: var(--bs-secondary-color);
+}
+
+.res-card .meta .by {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Above the card link, so the heart and the buttons stay clickable */
+.res-card .actions {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  gap: .2rem;
+  margin-left: auto;
+}
+
+.res-card .actions form {
+  display: contents;
+}
+
+.icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 0;
+  border-radius: .5rem;
+  background: transparent;
+  color: var(--bs-secondary-color);
+  text-decoration: none;
+}
+
+.icon-btn:hover,
+.icon-btn:focus-visible {
+  background: var(--bs-tertiary-bg);
+  color: var(--bs-body-color);
+}
+
+.icon-btn.is-favorite {
+  color: var(--bs-danger);
+}
+
+.icon-btn.danger:hover,
+.icon-btn.danger:focus-visible {
+  color: var(--bs-danger);
+}
+
+/* The list: one card per row, for teachers who go through many resources */
+.card-grid.is-list {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  border: 1px solid var(--bs-border-color);
+  border-radius: .9rem;
+  overflow: hidden;
+}
+
+.card-grid.is-list .res-card {
+  display: grid;
+  grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+  grid-template-areas:
+    "top title meta"
+    "top tags  meta";
+  align-items: center;
+  column-gap: 1rem;
+  row-gap: .2rem;
+  padding: .6rem .9rem .6rem 1.15rem;
+  border: 0;
+  border-top: 1px solid var(--bs-border-color);
+  border-radius: 0;
+}
+
+.card-grid.is-list .res-card:first-child {
+  border-top: 0;
+}
+
+.card-grid.is-list .res-card:hover {
+  box-shadow: none;
+  background: var(--bs-tertiary-bg);
+}
+
+.card-grid.is-list .res-card:has(.title:focus-visible) {
+  outline-offset: -2px;
+}
+
+.card-grid.is-list .top { grid-area: top; flex-direction: column; align-items: flex-start; gap: .1rem; }
+.card-grid.is-list .title { grid-area: title; -webkit-line-clamp: 1; font-size: .98rem; }
+.card-grid.is-list .tags { grid-area: tags; }
+.card-grid.is-list .meta { grid-area: meta; margin-top: 0; }
+.card-grid.is-list .desc { display: none; }
+
+@media (max-width: 575.98px) {
+  .card-grid.is-list .res-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "top   meta"
+      "title title"
+      "tags  tags";
+  }
+
+  .card-grid.is-list .top {
+    flex-direction: row;
+    align-items: center;
+    gap: .5rem;
+  }
+
+  .card-grid.is-list .meta .by {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .subject-tile,
+  .res-card {
+    transition: none;
+  }
+
+  a.subject-tile:hover,
+  a.subject-tile:focus-visible {
+    transform: none;
+  }
+}

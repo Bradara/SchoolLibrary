@@ -118,6 +118,16 @@ html[data-theme="dracula"] {
   --bs-nav-pills-link-active-color: var(--sl-on-primary);
 }
 
+.pagination {
+  --bs-pagination-color: var(--bs-link-color);
+  --bs-pagination-hover-color: var(--bs-link-hover-color);
+  --bs-pagination-focus-color: var(--bs-link-hover-color);
+  --bs-pagination-focus-box-shadow: 0 0 0 .25rem rgba(var(--sl-primary-rgb), .25);
+  --bs-pagination-active-color: var(--sl-on-primary);
+  --bs-pagination-active-bg: var(--sl-primary);
+  --bs-pagination-active-border-color: var(--sl-primary);
+}
+
 .dropdown-menu {
   --bs-dropdown-link-active-bg: var(--sl-primary);
   --bs-dropdown-link-active-color: var(--sl-on-primary);
