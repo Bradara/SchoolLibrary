@@ -3,6 +3,20 @@ using SchoolLibrary.Services.Reading;
 
 namespace SchoolLibrary.ViewModels;
 
+/// <summary>The start page: the newest resources the visitor may see.</summary>
+public class HomeIndexViewModel
+{
+    public const int NewestCount = 6;
+
+    public IReadOnlyList<Resource> Newest { get; set; } = new List<Resource>();
+
+    /// <summary>Which of them the signed-in user saved (empty for a visitor).</summary>
+    public IReadOnlySet<int> FavoriteIds { get; set; } = new HashSet<int>();
+
+    /// <summary>All resources the visitor may see, for "Виж всички".</summary>
+    public int TotalCount { get; set; }
+}
+
 public class FavoritesIndexViewModel
 {
     public IReadOnlyList<Resource> Resources { get; set; } = new List<Resource>();

@@ -1,5 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using SchoolLibrary.Models;
+using SchoolLibrary.Services.Favorites;
+using SchoolLibrary.Services.Resources;
+using SchoolLibrary.ViewModels;
+using System.Security.Claims;
 using System.Diagnostics;
 
 namespace SchoolLibrary.Controllers
@@ -13,9 +17,28 @@ namespace SchoolLibrary.Controllers
             _logger = logger;
         }
 
-        public IActionResult Index()
+        // The services come with the action, so the error pages keep their plain constructor
+        public async Task<IActionResult> Index(
+            [FromServices] IResourceService resources,
+            [FromServices] IFavoriteService favorites)
         {
-            return View();
+            var newest = await resources.SearchAsync(new ResourceFilter
+            {
+                PageSize = HomeIndexViewModel.NewestCount,
+                Viewer = ResourceViewer.For(User)
+            });
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var favoriteIds = userId != null
+                ? await favorites.GetFavoriteIdsAsync(userId, newest.Items.Select(r => r.Id))
+                : new HashSet<int>();
+
+            return View(new HomeIndexViewModel
+            {
+                Newest = newest.Items,
+                FavoriteIds = favoriteIds,
+                TotalCount = newest.TotalCount
+            });
         }
 
         public IActionResult Privacy()

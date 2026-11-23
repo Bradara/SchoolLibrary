@@ -190,6 +190,29 @@ public class FavoriteServiceTests
     }
 
     [Fact]
+    public async Task GetFavoritesAsync_UploadedResource_ComesWithItsFile()
+    {
+        var resource = await AddResourceAsync("Книга");
+        resource.Kind = SchoolLibrary.Data.Enums.ResourceKind.Upload;
+        _context.ResourceFiles.Add(new ResourceFile
+        {
+            ResourceId = resource.Id,
+            StorageKey = "resources/book.pdf",
+            FileName = "book.pdf",
+            ContentType = "application/pdf",
+            Sha256 = new string('b', ResourceFile.Sha256Length)
+        });
+        await _context.SaveChangesAsync();
+        await SaveFavoriteAsync("ivan", resource.Id, DateTime.UtcNow);
+        _context.ChangeTracker.Clear();
+
+        var item = (await _service.GetFavoritesAsync(TestViewers.Student("ivan"), 1)).Items.Single();
+
+        // The card tells a PDF from a book by the file
+        Assert.Equal("application/pdf", item.File?.ContentType);
+    }
+
+    [Fact]
     public async Task GetFavoritesAsync_PagesTheResults()
     {
         for (var i = 1; i <= 5; i++)

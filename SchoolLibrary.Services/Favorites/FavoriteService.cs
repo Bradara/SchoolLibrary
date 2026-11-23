@@ -107,6 +107,8 @@ public class FavoriteService : IFavoriteService
             .Include(r => r.GradeLevels)
             .Include(r => r.Owner)
             .Include(r => r.License)
+            // The card shows whether an uploaded file is a PDF, a book or a text
+            .Include(r => r.File)
             .AsSplitQuery()
             .ToListAsync();
 

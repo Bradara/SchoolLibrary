@@ -1,5 +1,9 @@
-﻿@{
+﻿@model SchoolLibrary.ViewModels.HomeIndexViewModel
+@using SchoolLibrary.ViewModels
+@{
     ViewData["Title"] = "Начало";
+    var returnUrl = Context.Request.Path + Context.Request.QueryString;
+    var signedIn = User.Identity?.IsAuthenticated == true;
 }
 
 <div class="text-center py-5 bg-body-tertiary rounded-3 mb-4">
@@ -31,6 +35,25 @@
         }
     </div>
 </div>
+
+@if (Model.Newest.Count > 0)
+{
+    <section class="mb-5" aria-labelledby="newest-heading">
+        <div class="d-flex align-items-center gap-2 mb-2">
+            <h2 id="newest-heading" class="section-title mb-0 me-auto">Най-нови</h2>
+            <a asp-controller="Resources" asp-action="Index" asp-route-all="true" class="small">
+                Виж всички (@Model.TotalCount) <i class="bi bi-arrow-right" aria-hidden="true"></i>
+            </a>
+            <partial name="_ViewToggle" />
+        </div>
+        <div class="card-grid" data-resource-list>
+            @foreach (var item in Model.Newest)
+            {
+                <partial name="_ResourceCard" model="new ResourceCardModel(item, signedIn ? Model.FavoriteIds.Contains(item.Id) : null, returnUrl)" />
+            }
+        </div>
+    </section>
+}
 
 <div class="row g-4 row-cols-1 row-cols-md-3">
     <div class="col">
