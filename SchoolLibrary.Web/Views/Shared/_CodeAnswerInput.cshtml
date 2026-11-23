@@ -39,7 +39,8 @@
 
 <label class="form-label small text-body-secondary mb-1" for="@codeId">Вашата програма (@language)</label>
 <textarea class="form-control font-monospace" name="code[@Model.Id]" id="@codeId" rows="12" maxlength="10000"
-          spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off">@Model.AnswerPreload</textarea>
+          spellcheck="false" autocomplete="off" autocapitalize="off" wrap="off"
+          data-code-editor data-code-language="@Model.CodeLanguage">@Model.AnswerPreload</textarea>
 <p class="form-text mb-0">Програмата чете от стандартния вход и печата на стандартния изход.</p>
 
 @* "Провери" (sl-code-check.js): the including page sets ViewData["CodeCheckUrl"] and ViewData["CodeCheckMode"]

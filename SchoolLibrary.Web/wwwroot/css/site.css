@@ -442,3 +442,39 @@ body.sl-maximized-open {
 .question-form:has(input[name="Type"][value="Matching"]:checked) .qt-mark {
   display: none;
 }
+
+/* Code editor (sl-code-editor.js, CodeMirror) */
+.sl-code-editor.CodeMirror,
+.sl-code-editor .CodeMirror {
+  font-family: var(--bs-font-monospace);
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.sl-code-editor.CodeMirror {
+  overflow: hidden;
+}
+
+.sl-code-editor.CodeMirror-focused {
+  border-color: #86b7fe;
+  box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+.sl-code-view .CodeMirror {
+  height: auto;
+  border-radius: var(--bs-border-radius);
+}
+
+.sl-code-editor .CodeMirror-linenumber {
+  min-width: 2em;
+  padding: 0 0.6em 0 0.4em;
+}
+
+.sl-code-editor .CodeMirror-lines {
+  padding: 0.375rem 0;
+}
+
+.sl-code-editor .CodeMirror pre.CodeMirror-line,
+.sl-code-editor.CodeMirror pre.CodeMirror-line {
+  padding-left: 0.5em;
+}
