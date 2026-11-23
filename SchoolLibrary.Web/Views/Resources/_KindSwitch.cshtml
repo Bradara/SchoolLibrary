@@ -1,0 +1,22 @@
+@* The sections of the library with their numbers. Switching keeps the other filters; the numbers already count them *@
+@model SchoolLibrary.ViewModels.ResourceIndexViewModel
+@using SchoolLibrary.Data.Enums
+@{
+    var query = Model.Query;
+    var items = new (ResourceKind? Kind, string Label, int Count)[]
+    {
+        (null, "Всички", Model.Facets.Total),
+        (ResourceKind.Lesson, ResourceKind.Lesson.SectionTitle(), Model.Facets.CountOf(ResourceKind.Lesson)),
+        (ResourceKind.External, ResourceKind.External.SectionTitle(), Model.Facets.CountOf(ResourceKind.External)),
+        (ResourceKind.Upload, ResourceKind.Upload.SectionTitle(), Model.Facets.CountOf(ResourceKind.Upload))
+    };
+}
+<nav class="kind-switch" aria-label="Вид ресурси">
+    @foreach (var item in items)
+    {
+        var active = item.Kind == Model.Kind;
+        <a asp-area="" asp-controller="Resources" asp-action="Index"
+           asp-all-route-data="(query with { Kind = item.Kind }).ToRouteValues()"
+           class="@(active ? "active" : null)" aria-current="@(active ? "page" : null)">@item.Label<span class="count">@item.Count</span></a>
+    }
+</nav>

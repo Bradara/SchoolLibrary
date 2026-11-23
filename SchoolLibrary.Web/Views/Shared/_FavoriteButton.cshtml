@@ -3,12 +3,15 @@
 @model SchoolLibrary.ViewModels.FavoriteButtonModel
 @{
     var label = Model.IsFavorite ? "Премахни от любими" : "Добави в любими";
+    var buttonClass = Model.Compact
+        ? "icon-btn" + (Model.IsFavorite ? " is-favorite" : "")
+        : "btn btn-sm " + (Model.IsFavorite ? "btn-danger" : "btn-outline-danger");
 }
 
 <form asp-area="" asp-controller="Favorites" asp-action="@(Model.IsFavorite ? "Remove" : "Add")" method="post" class="d-inline">
     <input type="hidden" name="resourceId" value="@Model.ResourceId" />
     <input type="hidden" name="returnUrl" value="@Model.ReturnUrl" />
-    <button type="submit" class="btn btn-sm @(Model.IsFavorite ? "btn-danger" : "btn-outline-danger")"
+    <button type="submit" class="@buttonClass"
             data-sl-tip="@label" data-sl-placement="top" aria-label="@label">
         <i class="bi @(Model.IsFavorite ? "bi-heart-fill" : "bi-heart")"></i>
     </button>

@@ -8,18 +8,7 @@
     var last = Math.Min(Model.TotalPages, first + 4);
     first = Math.Max(1, last - 4);
 
-    Dictionary<string, string?> RouteFor(int page) => new()
-    {
-        ["kind"] = Model.Kind?.ToString(),
-        ["searchTitle"] = Model.SearchTitle,
-        ["categoryId"] = Model.CategoryId?.ToString(),
-        ["gradeLevelId"] = Model.GradeLevelId?.ToString(),
-        ["ownerId"] = Model.OwnerId,
-        ["fromDate"] = Model.FromDate?.ToString("yyyy-MM-dd"),
-        ["toDate"] = Model.ToDate?.ToString("yyyy-MM-dd"),
-        ["sortOrder"] = Model.SortOrder.ToString(),
-        ["page"] = page.ToString()
-    };
+    Dictionary<string, string?> RouteFor(int page) => Model.Query.ToRouteValues(page);
 
     <nav aria-label="Страници с ресурси">
         <ul class="pagination justify-content-center flex-wrap">

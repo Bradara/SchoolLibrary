@@ -1,0 +1,24 @@
+@* The chosen filters as pills. Each × is a plain link to the same page without that filter *@
+@model SchoolLibrary.ViewModels.ResourceIndexViewModel
+@{
+    var query = Model.Query;
+    var filters = query.ActiveFilters(
+        Model.Categories.Select(c => (c.Id, c.Name)),
+        Model.GradeLevels.Select(g => (g.Id, g.Name)),
+        Model.Owners.Select(o => (o.Value, o.Text)));
+}
+@if (filters.Count > 0)
+{
+    <div class="active-filters" role="group" aria-label="Избрани филтри">
+        @foreach (var filter in filters)
+        {
+            <span class="filter-pill">
+                @filter.Label
+                <a asp-area="" asp-controller="Resources" asp-action="Index" asp-all-route-data="filter.Without.ToRouteValues()"
+                   class="remove" aria-label="Премахни: @filter.Label"><i class="bi bi-x" aria-hidden="true"></i></a>
+            </span>
+        }
+        <a asp-area="" asp-controller="Resources" asp-action="Index" asp-all-route-data="query.Cleared().ToRouteValues()"
+           class="small">Изчисти всичко</a>
+    </div>
+}

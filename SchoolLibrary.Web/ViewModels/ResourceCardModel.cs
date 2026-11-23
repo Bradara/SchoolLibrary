@@ -1,0 +1,34 @@
+using System.Globalization;
+using SchoolLibrary.Data.Common;
+using SchoolLibrary.Data.Enums;
+using SchoolLibrary.Data.Models;
+using SchoolLibrary.Services.Resources;
+
+namespace SchoolLibrary.ViewModels;
+
+/// <summary>
+/// One resource on a catalog card (or a row of the list). <paramref name="IsFavorite"/> is null for a visitor
+/// who is not signed in: no heart is shown then.
+/// </summary>
+public record ResourceCardModel(Resource Resource, bool? IsFavorite, string ReturnUrl)
+{
+    private static readonly StringComparer Bulgarian =
+        StringComparer.Create(CultureInfo.GetCultureInfo("bg-BG"), ignoreCase: true);
+
+    /// <summary>The subjects in alphabetical order; the first one gives the card its color.</summary>
+    public IReadOnlyList<Category> Subjects { get; } =
+        Resource.Categories.OrderBy(c => c.Name, Bulgarian).ToList();
+
+    public IReadOnlyList<GradeLevel> Grades { get; } =
+        Resource.GradeLevels.OrderBy(g => g.Number).ToList();
+
+    public MediaInfo Media { get; } = ResourceMedia.For(Resource);
+
+    /// <summary>The color of the stripe, or null for the neutral stripe of a resource without a subject.</summary>
+    public string? StripeColor => Subjects.Count > 0 ? SubjectLook.Of(Subjects[0]).Color : null;
+
+    /// <summary>Whether only some roles may see the resource (an icon on the card says so).</summary>
+    public bool IsRestricted => Resource.Audience != ResourceAudience.Everyone;
+
+    public string VisibilityText => "Видимост: " + ResourceVisibility.Describe(Resource.Audience);
+}

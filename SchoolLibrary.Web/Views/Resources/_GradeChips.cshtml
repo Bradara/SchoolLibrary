@@ -1,0 +1,21 @@
+@* One chip per grade. A grade narrows the results and the numbers on the tiles, but keeps the tiles *@
+@model SchoolLibrary.ViewModels.ResourceIndexViewModel
+@using SchoolLibrary.Data.Enums
+@{
+    var query = Model.Query;
+    var noGrade = Model.GradeLevelId == null;
+}
+<div class="chip-row" role="group" aria-label="Клас">
+    <span class="label">Клас:</span>
+    <a asp-area="" asp-controller="Resources" asp-action="Index"
+       asp-all-route-data="(query with { GradeLevelId = null }).ToRouteValues()"
+       class="chip @(noGrade ? "active" : null)" aria-current="@(noGrade ? "true" : null)">Всички</a>
+    @foreach (var grade in Model.GradeLevels.OrderBy(g => g.Number))
+    {
+        var active = Model.GradeLevelId == grade.Id;
+        <a asp-area="" asp-controller="Resources" asp-action="Index"
+           asp-all-route-data="(query with { GradeLevelId = grade.Id }).ToRouteValues()"
+           class="chip @(active ? "active" : null)" aria-current="@(active ? "true" : null)"
+           aria-label="@grade.Name">@((Grades)grade.Number)</a>
+    }
+</div>

@@ -897,6 +897,25 @@ a.subject-tile:focus-visible {
   color: var(--bs-body-color);
 }
 
+/* Above the card link, so their tooltips show */
+.res-card .top .flag,
+.res-card .top .license {
+  position: relative;
+  z-index: 1;
+}
+
+/* The media and the kind on the left; the visibility icon and the license (whichever is first) on the right */
+.res-card .top > :nth-child(3) {
+  margin-left: auto;
+}
+
+.res-card .top .license {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .res-card .title {
   display: -webkit-box;
   -webkit-line-clamp: 2;

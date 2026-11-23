@@ -18,6 +18,27 @@ public class ResourceIndexViewModel
     public DateTime? ToDate { get; set; }
     public ResourceSortOrder SortOrder { get; set; } = ResourceSortOrder.DateDesc;
 
+    /// <summary>"Виж всички": the results instead of the subject tiles.</summary>
+    public bool All { get; set; }
+
+    /// <summary>The same choices as a query, for the links of the page.</summary>
+    public CatalogQuery Query => new()
+    {
+        Kind = Kind,
+        SearchTitle = SearchTitle,
+        CategoryId = CategoryId,
+        GradeLevelId = GradeLevelId,
+        OwnerId = OwnerId,
+        FromDate = FromDate,
+        ToDate = ToDate,
+        SortOrder = SortOrder,
+        All = All
+    };
+
+    /// <summary>The numbers on the kind switch and the subject tiles.</summary>
+    public CatalogFacets Facets { get; set; } =
+        new(new Dictionary<ResourceKind, int>(), Array.Empty<SubjectFacet>());
+
     // Данни за падащите менюта
     public IReadOnlyList<Category> Categories { get; set; } = new List<Category>();
     public IReadOnlyList<GradeLevel> GradeLevels { get; set; } = new List<GradeLevel>();

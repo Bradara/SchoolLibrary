@@ -12,8 +12,11 @@ public class FavoritesIndexViewModel
     public int TotalCount { get; set; }
 }
 
-/// <summary>What the heart button needs: which resource, whether it is saved, and where to go back to.</summary>
-public record FavoriteButtonModel(int ResourceId, bool IsFavorite, string ReturnUrl);
+/// <summary>
+/// What the heart button needs: which resource, whether it is saved, and where to go back to.
+/// <paramref name="Compact"/> draws only the icon (on a catalog card) instead of a small button.
+/// </summary>
+public record FavoriteButtonModel(int ResourceId, bool IsFavorite, string ReturnUrl, bool Compact = false);
 
 /// <summary>A resource with the favorite information shown on its details page.</summary>
 public class ResourceDetailsViewModel

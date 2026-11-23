@@ -1,0 +1,37 @@
+@* The subjects that have resources for the viewer, with their numbers. The first ones are shown, the rest open with a button *@
+@model SchoolLibrary.ViewModels.ResourceIndexViewModel
+@using SchoolLibrary.ViewModels
+@{
+    const int FirstShown = 12;
+    var query = Model.Query;
+    var subjects = Model.Facets.Subjects;
+}
+@if (subjects.Count == 0)
+{
+    <p class="text-body-secondary">Няма ресурси по избраните критерии.</p>
+}
+else
+{
+    <div class="subject-grid">
+        @foreach (var subject in subjects.Take(FirstShown))
+        {
+            <partial name="_SubjectTile" model="new SubjectTileModel(subject, query)" />
+        }
+    </div>
+
+    @if (subjects.Count > FirstShown)
+    {
+        <div class="collapse" id="more-subjects">
+            <div class="subject-grid mt-3">
+                @foreach (var subject in subjects.Skip(FirstShown))
+                {
+                    <partial name="_SubjectTile" model="new SubjectTileModel(subject, query)" />
+                }
+            </div>
+        </div>
+        <button type="button" class="btn btn-link px-0 mt-2" data-bs-toggle="collapse" data-bs-target="#more-subjects"
+                aria-expanded="false" aria-controls="more-subjects">
+            Покажи всички @subjects.Count предмета
+        </button>
+    }
+}

@@ -1,0 +1,12 @@
+@* One subject tile: a link to the results of the subject, with the other choices kept *@
+@model SchoolLibrary.ViewModels.SubjectTileModel
+@using SchoolLibrary.ViewModels
+@{
+    var (icon, color) = SubjectLook.Of(Model.Subject.Icon, Model.Subject.Color);
+}
+<a asp-area="" asp-controller="Resources" asp-action="Index" asp-all-route-data="Model.Link.ToRouteValues()"
+   class="subject-tile" style="--subj:@color">
+    <span class="icon" aria-hidden="true"><i class="bi @icon"></i></span>
+    <span class="name">@Model.Subject.Name</span>
+    <span class="count">@CatalogQuery.ResourceCount(Model.Subject.Count)</span>
+</a>

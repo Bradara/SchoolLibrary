@@ -1,0 +1,74 @@
+@* A resource as a card. The title link covers the whole card; the visibility icon, the license, the heart and the
+   buttons sit above it. The list view is the same card in a container with the "is-list" class *@
+@model SchoolLibrary.ViewModels.ResourceCardModel
+@using SchoolLibrary.Data.Enums
+@using SchoolLibrary.Services.Resources
+@using SchoolLibrary.ViewModels
+@{
+    var resource = Model.Resource;
+    var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var isAdministrator = User.IsInRole(Roles.Administrator);
+    // An uploaded file has no edit form
+    var canEdit = resource.Kind != ResourceKind.Upload && ResourcePermissions.CanEdit(resource, userId, isAdministrator);
+    var canDelete = ResourcePermissions.CanDelete(resource, userId, isAdministrator);
+}
+<article class="res-card" style="@(Model.StripeColor != null ? "--subj:" + Model.StripeColor : null)">
+    <div class="top">
+        <span class="media-tag"><i class="bi @Model.Media.Icon" aria-hidden="true"></i> @Model.Media.Label</span>
+        <span>@resource.Kind.Label()</span>
+        @if (Model.IsRestricted)
+        {
+            <i class="bi bi-eye-slash flag" data-sl-tip="@Model.VisibilityText" data-sl-placement="top"
+               role="img" aria-label="@Model.VisibilityText"></i>
+        }
+        @if (resource.License != null)
+        {
+            <span class="license" data-sl-tip="Лиценз" data-sl-placement="top">@resource.License.Name</span>
+        }
+    </div>
+
+    <a class="title" asp-area="" asp-controller="Resources" asp-action="Details" asp-route-id="@resource.Id">@resource.Title</a>
+
+    @if (!string.IsNullOrWhiteSpace(resource.Description))
+    {
+        <p class="desc">@resource.Description</p>
+    }
+
+    @if (Model.Subjects.Count > 0 || Model.Grades.Count > 0)
+    {
+        <div class="tags">
+            @foreach (var subject in Model.Subjects)
+            {
+                var (icon, color) = SubjectLook.Of(subject);
+                <span class="subj-tag" style="--subj:@color"><i class="bi @icon" aria-hidden="true"></i> @subject.Name</span>
+            }
+            @foreach (var grade in Model.Grades)
+            {
+                <span class="grade-tag">@grade.Name</span>
+            }
+        </div>
+    }
+
+    <div class="meta">
+        <span class="by">@resource.PublisherName() · <time datetime="@resource.CreatedOn.ToString("yyyy-MM-dd")">@resource.CreatedOn.ToString("dd.MM.yyyy")</time></span>
+        @if (Model.IsFavorite.HasValue || canEdit || canDelete)
+        {
+            <span class="actions">
+                @if (Model.IsFavorite is { } isFavorite)
+                {
+                    <partial name="_FavoriteButton" model="new FavoriteButtonModel(resource.Id, isFavorite, Model.ReturnUrl, Compact: true)" />
+                }
+                @if (canEdit)
+                {
+                    <a asp-area="" asp-controller="Resources" asp-action="Edit" asp-route-id="@resource.Id" class="icon-btn"
+                       data-sl-tip="Редактирай" data-sl-placement="top" aria-label="Редактирай: @resource.Title"><i class="bi bi-pencil" aria-hidden="true"></i></a>
+                }
+                @if (canDelete)
+                {
+                    <a asp-area="" asp-controller="Resources" asp-action="Delete" asp-route-id="@resource.Id" class="icon-btn danger"
+                       data-sl-tip="Изтрий" data-sl-placement="top" aria-label="Изтрий: @resource.Title"><i class="bi bi-trash" aria-hidden="true"></i></a>
+                }
+            </span>
+        }
+    </div>
+</article>
