@@ -66,6 +66,11 @@ else
                     }
                 </p>
             }
+            <div data-diff-scope>
+            @if (tests.Any(t => !t.Passed && !t.IsHidden))
+            {
+                <partial name="_CodeDiffToggle" />
+            }
             <div class="table-responsive">
                 <table class="table table-sm table-bordered align-top mb-0 small">
                     <thead>
@@ -80,7 +85,7 @@ else
                         @for (var i = 0; i < tests.Count; i++)
                         {
                             var test = tests[i];
-                            <tr class="@(test.Passed ? "table-success" : "table-danger")">
+                            <tr class="@(test.Passed ? "table-success" : "table-danger")" data-diff-row="@(test.Passed || test.IsHidden ? null : "true")">
                                 <td class="text-nowrap">
                                     @if (test.Passed)
                                     {
@@ -101,9 +106,9 @@ else
                                 else
                                 {
                                     <td><pre class="mb-0">@test.Stdin</pre></td>
-                                    <td><pre class="mb-0">@test.Expected</pre></td>
+                                    <td><pre class="mb-0" data-diff="expected">@test.Expected</pre></td>
                                     <td>
-                                        <pre class="mb-0">@test.Output</pre>
+                                        <pre class="mb-0" data-diff="actual">@test.Output</pre>
                                         @if (test.TimedOut)
                                         {
                                             <div class="text-danger">Превишено време.</div>
@@ -118,6 +123,7 @@ else
                         }
                     </tbody>
                 </table>
+            </div>
             </div>
             break;
     }

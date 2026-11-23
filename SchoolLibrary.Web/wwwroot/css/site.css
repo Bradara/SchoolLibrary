@@ -500,3 +500,11 @@ body.sl-maximized-open {
   background: #6272a4;
   color: #fff;
 }
+
+/* Differences between the expected and the actual output (sl-code-diff.js) */
+mark.sl-diff {
+  padding: 0;
+  border-radius: 2px;
+  background-color: #ffc107;
+  color: #000;
+}

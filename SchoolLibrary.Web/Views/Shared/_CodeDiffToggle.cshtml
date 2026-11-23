@@ -1,0 +1,10 @@
+@* "Покажи разликите" over a table of code tests (sl-code-diff.js); the table is inside the same [data-diff-scope]. *@
+<div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+    <button type="button" class="btn btn-sm btn-outline-secondary" data-diff-toggle aria-pressed="false">
+        <i class="bi bi-file-diff" aria-hidden="true"></i> <span data-diff-label>Покажи разликите</span>
+    </button>
+    <span class="small text-body-secondary" data-diff-legend hidden>
+        <mark class="sl-diff">Оцветено</mark> е различното; <mark class="sl-diff">·</mark> = интервал, <mark class="sl-diff">⏎</mark> = празен ред.
+        Интервалите в края на реда и празните редове накрая не се броят.
+    </span>
+</div>

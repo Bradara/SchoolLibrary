@@ -41,6 +41,9 @@
         var body = element("tbody");
         tests.forEach(function (test, index) {
             var row = element("tr", test.passed ? "table-success" : "table-danger");
+            if (!test.passed && !test.hidden) {
+                row.dataset.diffRow = "true";
+            }
             row.appendChild(element("td", "text-nowrap", (test.passed ? "✓ " : "✗ ") + (index + 1)));
             if (test.hidden) {
                 var hidden = element("td", "fst-italic text-body-secondary", "Скрит тест");
@@ -50,9 +53,13 @@
                 var input = element("td");
                 input.appendChild(pre(test.stdin));
                 var expected = element("td");
-                expected.appendChild(pre(test.expected));
+                var expectedText = pre(test.expected);
+                expectedText.dataset.diff = "expected";
+                expected.appendChild(expectedText);
                 var output = element("td");
-                output.appendChild(pre(test.output));
+                var outputText = pre(test.output);
+                outputText.dataset.diff = "actual";
+                output.appendChild(outputText);
                 if (test.timedOut) {
                     output.appendChild(element("div", "text-danger", "Превишено време."));
                 }
@@ -68,6 +75,35 @@
         table.appendChild(body);
         wrapper.appendChild(table);
         return wrapper;
+    }
+
+    // Same markup as the _CodeDiffToggle partial (sl-code-diff.js handles the click)
+    function diffToggle() {
+        var bar = element("div", "d-flex flex-wrap align-items-center gap-2 mb-2");
+        var button = element("button", "btn btn-sm btn-outline-secondary");
+        button.type = "button";
+        button.dataset.diffToggle = "true";
+        button.setAttribute("aria-pressed", "false");
+        var icon = element("i", "bi bi-file-diff");
+        icon.setAttribute("aria-hidden", "true");
+        button.appendChild(icon);
+        button.appendChild(document.createTextNode(" "));
+        var label = element("span", null, "Покажи разликите");
+        label.dataset.diffLabel = "true";
+        button.appendChild(label);
+        bar.appendChild(button);
+
+        var legend = element("span", "small text-body-secondary");
+        legend.dataset.diffLegend = "true";
+        legend.hidden = true;
+        legend.appendChild(element("mark", "sl-diff", "Оцветено"));
+        legend.appendChild(document.createTextNode(" е различното; "));
+        legend.appendChild(element("mark", "sl-diff", "·"));
+        legend.appendChild(document.createTextNode(" = интервал, "));
+        legend.appendChild(element("mark", "sl-diff", "⏎"));
+        legend.appendChild(document.createTextNode(" = празен ред. Интервалите в края на реда и празните редове накрая не се броят."));
+        bar.appendChild(legend);
+        return bar;
     }
 
     function render(box, data) {
@@ -93,7 +129,13 @@
         }
 
         if (data.status === "Graded" && tests.length > 0) {
-            box.appendChild(renderTests(tests));
+            var scope = element("div");
+            scope.dataset.diffScope = "true";
+            if (tests.some(function (t) { return !t.passed && !t.hidden; })) {
+                scope.appendChild(diffToggle());
+            }
+            scope.appendChild(renderTests(tests));
+            box.appendChild(scope);
         }
 
         if (!data.counted) {
