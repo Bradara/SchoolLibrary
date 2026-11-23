@@ -19,14 +19,19 @@
         {
             <span class="kind">@resource.Kind.Label()</span>
         }
-        @if (Model.IsRestricted)
+        @if (Model.IsRestricted || resource.License != null)
         {
-            <i class="bi bi-eye-slash flag" data-sl-tip="@Model.VisibilityText" data-sl-placement="top"
-               role="img" aria-label="@Model.VisibilityText"></i>
-        }
-        @if (resource.License != null)
-        {
-            <span class="license" data-sl-tip="Лиценз: @resource.License.Name" data-sl-placement="top">@resource.License.Name</span>
+            <span class="top-end">
+                @if (Model.IsRestricted)
+                {
+                    <i class="bi bi-eye-slash flag" data-sl-tip="@Model.VisibilityText" data-sl-placement="top"
+                       role="img" aria-label="@Model.VisibilityText"></i>
+                }
+                @if (resource.License != null)
+                {
+                    <span class="license" data-sl-tip="Лиценз: @resource.License.Name" data-sl-placement="top">@resource.License.Name</span>
+                }
+            </span>
         }
     </div>
 

@@ -22,6 +22,17 @@
         })();
     </script>
 
+    @* The same for the catalog: cards or a list, as chosen last time (sl-view-toggle.js) *@
+    <script>
+        (function () {
+            try {
+                if (localStorage.getItem('resource-view') === 'list') {
+                    document.documentElement.setAttribute('data-resource-view', 'list');
+                }
+            } catch (e) { }
+        })();
+    </script>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/lib/bootstrap-icons/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -72,6 +83,7 @@
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     <script src="~/js/sl-code-diff.js" asp-append-version="true"></script>
+    <script src="~/js/sl-view-toggle.js" asp-append-version="true"></script>
     <script src="~/js/sl-code-editor.js" asp-append-version="true" data-lib="@Url.Content("~/lib/codemirror/")"
             data-hints="@FileVersion.AddFileVersionToPath(Context.Request.PathBase, "/js/sl-code-hints.js")"></script>
     @await RenderSectionAsync("Scripts", required: false)

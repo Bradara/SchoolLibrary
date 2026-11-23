@@ -133,11 +133,12 @@
 
     @if (Model.Resources.Any())
     {
-        <div class="d-flex align-items-baseline gap-2 mb-2">
+        <div class="d-flex align-items-center gap-2 mb-2">
             <h2 class="section-title mb-0 me-auto">Най-нови</h2>
             <a asp-action="Index" asp-all-route-data="(query with { All = true }).ToRouteValues()" class="small">
                 Виж всички (@Model.TotalCount) <i class="bi bi-arrow-right" aria-hidden="true"></i>
             </a>
+            <partial name="_ViewToggle" />
         </div>
         <div class="card-grid" data-resource-list>
             @foreach (var item in Model.Resources)
@@ -167,6 +168,7 @@ else
             </select>
             <noscript><button type="submit" class="btn btn-sm btn-outline-secondary">Подреди</button></noscript>
         </form>
+        <partial name="_ViewToggle" />
     </div>
 
     @if (!Model.Resources.Any())

@@ -827,6 +827,10 @@ a.subject-tile:focus-visible {
   background: rgba(var(--sl-primary-rgb), .18);
 }
 
+.view-toggle .btn {
+  padding: .25rem .55rem;
+}
+
 .more-filters {
   padding: .75rem;
   border: 1px dashed var(--bs-border-color);
@@ -903,14 +907,8 @@ a.subject-tile:focus-visible {
   color: var(--bs-body-color);
 }
 
-/* Above the card link, so their tooltips show */
-.res-card .top .flag,
-.res-card .top .license {
-  position: relative;
-  z-index: 1;
-}
-
-/* The media and the kind on the left, never wrapped; the visibility icon and the license on the right */
+/* The media and the kind on the left, never wrapped; the visibility icon and the license on the right,
+   above the card link, so their tooltips show */
 .res-card .top {
   min-width: 0;
 }
@@ -919,14 +917,14 @@ a.subject-tile:focus-visible {
   white-space: nowrap;
 }
 
-.res-card .top .flag,
-.res-card .top .media-tag + .license,
-.res-card .top .kind + .license {
+.res-card .top-end {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: .35rem;
+  min-width: 0;
   margin-left: auto;
-}
-
-.res-card .top .flag + .license {
-  margin-left: .25rem;
 }
 
 .res-card .top .license {
@@ -1059,8 +1057,9 @@ a.subject-tile:focus-visible {
   color: var(--bs-danger);
 }
 
-/* The list: one card per row, for teachers who go through many resources */
-.card-grid.is-list {
+/* The list: one card per row, for teachers who go through many resources. It applies to a grid with the
+   "is-list" class, or to the catalog grid (data-resource-list) when the visitor chose the list */
+:is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) {
   grid-template-columns: minmax(0, 1fr);
   gap: 0;
   border: 1px solid var(--bs-border-color);
@@ -1068,12 +1067,12 @@ a.subject-tile:focus-visible {
   overflow: hidden;
 }
 
-.card-grid.is-list .res-card {
+:is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .res-card {
   display: grid;
-  grid-template-columns: 7.5rem minmax(0, 1fr) auto;
+  grid-template-columns: 8.5rem minmax(0, 1fr) minmax(0, 10rem) auto;
   grid-template-areas:
-    "top title meta"
-    "top tags  meta";
+    "media title end meta"
+    "kind  tags  end meta";
   align-items: center;
   column-gap: 1rem;
   row-gap: .2rem;
@@ -1083,41 +1082,42 @@ a.subject-tile:focus-visible {
   border-radius: 0;
 }
 
-.card-grid.is-list .res-card:first-child {
+:is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .res-card:first-child {
   border-top: 0;
 }
 
-.card-grid.is-list .res-card:hover {
+:is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .res-card:hover {
   box-shadow: none;
   background: var(--bs-tertiary-bg);
 }
 
-.card-grid.is-list .res-card:has(.title:focus-visible) {
+:is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .res-card:has(.title:focus-visible) {
   outline-offset: -2px;
 }
 
-.card-grid.is-list .top { grid-area: top; flex-direction: column; align-items: flex-start; gap: .1rem; }
-.card-grid.is-list .title { grid-area: title; -webkit-line-clamp: 1; font-size: .98rem; }
-.card-grid.is-list .tags { grid-area: tags; }
-.card-grid.is-list .meta { grid-area: meta; margin-top: 0; }
-.card-grid.is-list .desc { display: none; }
+:is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .top { display: contents; }
+:is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .media-tag { grid-area: media; justify-self: start; }
+:is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .kind { grid-area: kind; font-size: .8rem; color: var(--bs-secondary-color); }
+:is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .top-end { grid-area: end; margin-left: 0; font-size: .8rem; color: var(--bs-secondary-color); }
+:is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .title { grid-area: title; -webkit-line-clamp: 1; font-size: .98rem; }
+:is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .tags { grid-area: tags; }
+:is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .meta { grid-area: meta; margin-top: 0; }
+:is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .desc { display: none; }
 
 @media (max-width: 575.98px) {
-  .card-grid.is-list .res-card {
-    grid-template-columns: minmax(0, 1fr) auto;
+  :is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .res-card {
+    grid-template-columns: auto minmax(0, 1fr) auto;
     grid-template-areas:
-      "top   meta"
-      "title title"
-      "tags  tags";
+      "media end   meta"
+      "title title title"
+      "tags  tags  tags";
   }
 
-  .card-grid.is-list .top {
-    flex-direction: row;
-    align-items: center;
-    gap: .5rem;
+  :is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .kind {
+    display: none;
   }
 
-  .card-grid.is-list .meta .by {
+  :is(.card-grid.is-list, [data-resource-view="list"] .card-grid[data-resource-list]) .meta .by {
     display: none;
   }
 }
