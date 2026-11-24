@@ -83,6 +83,19 @@ public static class QuestionImageFiles
     }
 
     /// <summary>
+    /// Marks the picture rows for removal (saved with the caller's SaveChanges) and returns their keys,
+    /// to pass to <see cref="DeleteUnusedAsync"/> afterwards. The rows are removed explicitly rather than
+    /// left to the cascade, so the keys are known and every database provider removes them.
+    /// </summary>
+    public static async Task<IReadOnlyList<string>> RemoveRowsAsync(ApplicationDbContext context,
+        IQueryable<QuestionImage> images, CancellationToken cancellationToken = default)
+    {
+        var rows = await images.ToListAsync(cancellationToken);
+        context.QuestionImages.RemoveRange(rows);
+        return rows.Select(i => i.StorageKey).Distinct().ToList();
+    }
+
+    /// <summary>
     /// Deletes the stored files of the given keys that no picture row refers to any more. Call it after
     /// the rows were removed (copies of a question may share a file).
     /// </summary>

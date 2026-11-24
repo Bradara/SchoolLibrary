@@ -3,6 +3,7 @@ using SchoolLibrary.Data;
 using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
+using SchoolLibrary.Services.Storage;
 
 namespace SchoolLibrary.Services.Quizzes;
 
@@ -29,6 +30,7 @@ public class QuizService : IQuizService
     private readonly IQuizItemService _items;
     private readonly CodeGrader? _codeGrader;
     private readonly CodeRunning.CodeGradingSignal? _codeQueue;
+    private readonly IFileStorage? _storage;
 
     /// <param name="codeGrader">Runs code answers; null when no sandbox server is configured (they are then not checked).</param>
     /// <param name="codeQueue">
@@ -36,12 +38,13 @@ public class QuizService : IQuizService
     /// woken; without it they are run while the exam is submitted.
     /// </param>
     public QuizService(ApplicationDbContext context, IQuizItemService items, CodeGrader? codeGrader = null,
-        CodeRunning.CodeGradingSignal? codeQueue = null)
+        CodeRunning.CodeGradingSignal? codeQueue = null, IFileStorage? storage = null)
     {
         _context = context;
         _items = items;
         _codeGrader = codeGrader;
         _codeQueue = codeQueue;
+        _storage = storage;
     }
 
     // The wrong checks an exam attempt made, by question (counted on the server, not taken from the form)
@@ -231,6 +234,15 @@ public class QuizService : IQuizService
         return ServiceResult<Quiz>.Success(quiz);
     }
 
+    // Without a storage (some tests) the rows are still removed; only the files stay
+    private async Task DeleteUnusedImagesAsync(IReadOnlyList<string> keys)
+    {
+        if (_storage != null)
+        {
+            await QuestionImageFiles.DeleteUnusedAsync(_context, _storage, keys);
+        }
+    }
+
     public async Task<ServiceResult<Quiz>> DeleteAsync(int id, string userId, bool isAdministrator)
     {
         var quiz = await _context.Quizzes.FirstOrDefaultAsync(q => q.Id == id);
@@ -244,9 +256,13 @@ public class QuizService : IQuizService
             return ServiceResult<Quiz>.Failure(ServiceError.Forbidden, "Нямате права за това действие.");
         }
 
-        // Cascade removes the questions, options, attempts and answers
+        // Cascade removes the questions, options, attempts and answers; the pictures of the direct
+        // questions are removed here so their stored files can be deleted afterwards
+        var imageKeys = await QuestionImageFiles.RemoveRowsAsync(_context,
+            _context.QuestionImages.Where(i => i.Question.QuizId == quiz.Id));
         _context.Quizzes.Remove(quiz);
         await _context.SaveChangesAsync();
+        await DeleteUnusedImagesAsync(imageKeys);
 
         return ServiceResult<Quiz>.Success(quiz);
     }
@@ -395,8 +411,11 @@ public class QuizService : IQuizService
         }
 
         // Cascade removes the question's options
+        var imageKeys = await QuestionImageFiles.RemoveRowsAsync(_context,
+            _context.QuestionImages.Where(i => i.QuestionId == question.Id));
         _context.Questions.Remove(question);
         await _context.SaveChangesAsync();
+        await DeleteUnusedImagesAsync(imageKeys);
 
         return ServiceResult<Question>.Success(question);
     }

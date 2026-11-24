@@ -5,7 +5,6 @@ using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
 using SchoolLibrary.Services.Quizzes;
 using SchoolLibrary.Services.Resources;
-using SchoolLibrary.Services.Storage;
 
 namespace SchoolLibrary.Tests.Services;
 
@@ -15,7 +14,7 @@ public class QuestionImageServiceTests
     private const string Other = "teacher-2";
 
     private readonly ApplicationDbContext _context = TestDbContextFactory.Create();
-    private readonly FakeFileStorage _storage = new();
+    private readonly InMemoryFileStorage _storage = new();
     private readonly QuestionImageService _service;
 
     public QuestionImageServiceTests()
@@ -466,30 +465,5 @@ public class QuestionImageServiceTests
     {
         Assert.Equal("[[img:10]] и", QuestionImageMarkers.Remove("[[img:10]] и [[img:1]]", 1));
         Assert.Null(QuestionImageMarkers.Remove(null, 1));
-    }
-
-    private sealed class FakeFileStorage : IFileStorage
-    {
-        public Dictionary<string, byte[]> Files { get; } = new();
-
-        public Task SaveAsync(string key, Stream content, CancellationToken cancellationToken = default)
-        {
-            using var buffer = new MemoryStream();
-            content.CopyTo(buffer);
-            Files[key] = buffer.ToArray();
-            return Task.CompletedTask;
-        }
-
-        public Task<Stream?> OpenReadAsync(string key, CancellationToken cancellationToken = default) =>
-            Task.FromResult<Stream?>(Files.TryGetValue(key, out var bytes) ? new MemoryStream(bytes) : null);
-
-        public Task DeleteAsync(string key, CancellationToken cancellationToken = default)
-        {
-            Files.Remove(key);
-            return Task.CompletedTask;
-        }
-
-        public Task<bool> ExistsAsync(string key, CancellationToken cancellationToken = default) =>
-            Task.FromResult(Files.ContainsKey(key));
     }
 }

@@ -3,6 +3,7 @@ using SchoolLibrary.Data;
 using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
+using SchoolLibrary.Services.Storage;
 
 namespace SchoolLibrary.Services.Quizzes;
 
@@ -10,10 +11,12 @@ public class QuestionBankService : IQuestionBankService
 {
     private readonly ApplicationDbContext _context;
     private readonly AnsweredQuestionEditor _answered;
+    private readonly IFileStorage? _storage;
 
-    public QuestionBankService(ApplicationDbContext context)
+    public QuestionBankService(ApplicationDbContext context, IFileStorage? storage = null)
     {
         _context = context;
+        _storage = storage;
         _answered = new AnsweredQuestionEditor(context);
     }
 
@@ -168,7 +171,8 @@ public class QuestionBankService : IQuestionBankService
     }
 
     // Takes the questions out of the quizzes they are pinned to (the database restricts deleting a pinned
-    // question), then deletes them; cascade removes their options
+    // question), then deletes them; cascade removes their options. The pictures are removed explicitly,
+    // then their stored files unless another question shares them.
     private async Task RemoveAsync(IReadOnlyCollection<Question> questions)
     {
         if (questions.Count == 0)
@@ -181,8 +185,15 @@ public class QuestionBankService : IQuestionBankService
             .Where(i => i.QuestionId != null && ids.Contains(i.QuestionId.Value))
             .ToListAsync();
         _context.QuizItems.RemoveRange(pins);
+        var imageKeys = await QuestionImageFiles.RemoveRowsAsync(_context,
+            _context.QuestionImages.Where(i => ids.Contains(i.QuestionId)));
         _context.Questions.RemoveRange(questions);
         await _context.SaveChangesAsync();
+
+        if (_storage != null)
+        {
+            await QuestionImageFiles.DeleteUnusedAsync(_context, _storage, imageKeys);
+        }
     }
 
     public async Task<ServiceResult<int>> MoveQuestionsAsync(IReadOnlyCollection<int> questionIds, int targetSectionId, string userId, bool isAdministrator)
