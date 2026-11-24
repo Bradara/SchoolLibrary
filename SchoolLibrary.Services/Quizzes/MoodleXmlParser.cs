@@ -30,6 +30,12 @@ namespace SchoolLibrary.Services.Quizzes;
 public static class MoodleXmlParser
 {
     private static readonly Regex HtmlTag = new("<[^>]+>", RegexOptions.Compiled);
+
+    // Tags that separate words (blocks, line breaks, table cells). Other tags (span, b, i, sub, a, ...) sit
+    // inside a word as often as between words ("O<span>(</span>n", "<b>най</b>-лошия"), so they leave nothing.
+    private static readonly Regex HtmlBlockTag = new(
+        @"</?(p|div|br|hr|li|ul|ol|dl|dt|dd|table|thead|tbody|tfoot|tr|td|th|caption|h[1-6]|pre|blockquote|section|article|header|footer|figure|figcaption)\b[^>]*>",
+        RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex HtmlLineBreak = new(@"<br\s*/?>|</(p|div|pre|li|h[1-6]|tr)>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     /// <summary>CodeRunner question types that can be imported → the language they become.</summary>
@@ -356,7 +362,7 @@ public static class MoodleXmlParser
     private static string MultilineHtml(string html)
     {
         var withBreaks = HtmlLineBreak.Replace(html.Replace("\r\n", "\n"), "\n");
-        var decoded = WebUtility.HtmlDecode(HtmlTag.Replace(withBreaks, " "));
+        var decoded = WebUtility.HtmlDecode(StripTags(withBreaks));
         var lines = decoded.Split('\n')
             .Select(line => Regex.Replace(line, @"[ \t\u00A0]+", " ").Trim())
             .ToList();
@@ -443,9 +449,13 @@ public static class MoodleXmlParser
     private static string CleanText(XElement? element)
         => element == null ? string.Empty : CleanHtml(element.Value);
 
+    // Block tags become a space, the inline ones disappear
+    private static string StripTags(string html)
+        => HtmlTag.Replace(HtmlBlockTag.Replace(html, " "), string.Empty);
+
     private static string CleanHtml(string html)
     {
-        var stripped = HtmlTag.Replace(html, " ");
+        var stripped = StripTags(html);
         var decoded = WebUtility.HtmlDecode(stripped);
         return Regex.Replace(decoded, @"\s+", " ").Trim();
     }
