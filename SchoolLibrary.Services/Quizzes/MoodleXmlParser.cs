@@ -102,6 +102,11 @@ public static class MoodleXmlParser
             number++;
             var label = Describe(question, number);
 
+            // The pictures embedded in the question text become [[img:N]] markers in its HTML
+            var (questionHtml, images) = MoodleImages.Extract(question.Element("questiontext"), label, errors);
+
+            void Add(QuestionInput input) => questions.Add(images.Count == 0 ? input : input with { Images = images });
+
             if (!string.Equals(type, "multichoice", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(type, "truefalse", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(type, "shortanswer", StringComparison.OrdinalIgnoreCase)
@@ -116,14 +121,14 @@ public static class MoodleXmlParser
 
             if (string.Equals(type, "coderunner", StringComparison.OrdinalIgnoreCase))
             {
-                var (code, error) = ParseCodeRunner(question);
+                var (code, error) = ParseCodeRunner(question, questionHtml);
                 if (code == null)
                 {
                     errors.Add($"{label}: {error}");
                 }
                 else
                 {
-                    questions.Add(code);
+                    Add(code);
                 }
 
                 continue;
@@ -132,7 +137,7 @@ public static class MoodleXmlParser
             var isMultiple = string.Equals(type, "multichoice", StringComparison.OrdinalIgnoreCase)
                 && string.Equals(CleanText(question.Element("single")), "false", StringComparison.OrdinalIgnoreCase);
 
-            var questionText = CleanText(question.Element("questiontext")?.Element("text"));
+            var questionText = CleanHtml(questionHtml);
             if (questionText.Length == 0)
             {
                 errors.Add($"{label}: липсва текст на въпроса.");
@@ -141,7 +146,7 @@ public static class MoodleXmlParser
 
             if (string.Equals(type, "description", StringComparison.OrdinalIgnoreCase))
             {
-                questions.Add(QuestionInput.Description(questionText));
+                Add(QuestionInput.Description(questionText));
                 continue;
             }
 
@@ -157,7 +162,7 @@ public static class MoodleXmlParser
                     continue;
                 }
 
-                questions.Add(QuestionInput.TrueFalse(questionText, answer, points));
+                Add(QuestionInput.TrueFalse(questionText, answer, points));
                 continue;
             }
 
@@ -175,7 +180,7 @@ public static class MoodleXmlParser
                 }
 
                 var caseSensitive = CleanText(question.Element("usecase")) == "1";
-                questions.Add(new QuestionInput(questionText, accepted.Select(a => a.Text).ToList(), -1, points,
+                Add(new QuestionInput(questionText, accepted.Select(a => a.Text).ToList(), -1, points,
                     QuestionType.ShortAnswer, accepted.Select(a => a.Fraction).ToList(), caseSensitive));
                 continue;
             }
@@ -194,7 +199,7 @@ public static class MoodleXmlParser
                     continue;
                 }
 
-                questions.Add(QuestionInput.Matching(questionText, pairs, points));
+                Add(QuestionInput.Matching(questionText, pairs, points));
                 continue;
             }
 
@@ -218,7 +223,7 @@ public static class MoodleXmlParser
                     continue;
                 }
 
-                questions.Add(new QuestionInput(questionText, accepted.Select(a => a.Text).ToList(), -1, points,
+                Add(new QuestionInput(questionText, accepted.Select(a => a.Text).ToList(), -1, points,
                     QuestionType.Numerical, accepted.Select(a => a.Fraction).ToList(),
                     Tolerances: accepted.Select(a => (decimal?)Math.Abs(a.Tolerance)).ToList()));
                 continue;
@@ -241,7 +246,7 @@ public static class MoodleXmlParser
                     continue;
                 }
 
-                questions.Add(new QuestionInput(questionText, options, -1, points, QuestionType.MultipleChoice, fractions));
+                Add(new QuestionInput(questionText, options, -1, points, QuestionType.MultipleChoice, fractions));
                 continue;
             }
 
@@ -252,14 +257,14 @@ public static class MoodleXmlParser
                 continue;
             }
 
-            questions.Add(new QuestionInput(questionText, options, correctIndex, points));
+            Add(new QuestionInput(questionText, options, correctIndex, points));
         }
 
         return new ImportParseResult(questions, errors);
     }
 
     // A CodeRunner question that runs a whole program with each test's input; null with the reason otherwise
-    private static (QuestionInput? Question, string? Error) ParseCodeRunner(XElement question)
+    private static (QuestionInput? Question, string? Error) ParseCodeRunner(XElement question, string questionHtml)
     {
         if (CleanText(question.Element("prototypetype")) is var prototype && prototype.Length > 0 && prototype != "0")
         {
@@ -279,7 +284,7 @@ public static class MoodleXmlParser
         }
 
         // The question text is the task; the question's name is its short title (or the task's first line)
-        var statement = MultilineText(question.Element("questiontext")?.Element("text"));
+        var statement = MultilineHtml(questionHtml);
         var name = CleanText(question.Element("name")?.Element("text"));
         var text = name.Length > 0 ? name : statement.Split('\n')[0];
         if (text.Length == 0)
@@ -348,14 +353,9 @@ public static class MoodleXmlParser
         => (element?.Value ?? string.Empty).Replace("\r\n", "\n");
 
     // HTML question text with its line breaks kept: tags removed, entities decoded, spaces collapsed per line
-    private static string MultilineText(XElement? element)
+    private static string MultilineHtml(string html)
     {
-        if (element == null)
-        {
-            return string.Empty;
-        }
-
-        var withBreaks = HtmlLineBreak.Replace(element.Value.Replace("\r\n", "\n"), "\n");
+        var withBreaks = HtmlLineBreak.Replace(html.Replace("\r\n", "\n"), "\n");
         var decoded = WebUtility.HtmlDecode(HtmlTag.Replace(withBreaks, " "));
         var lines = decoded.Split('\n')
             .Select(line => Regex.Replace(line, @"[ \t\u00A0]+", " ").Trim())
@@ -441,13 +441,11 @@ public static class MoodleXmlParser
 
     // Moodle wraps text in <text> (often CDATA with HTML); strip tags and decode entities
     private static string CleanText(XElement? element)
-    {
-        if (element == null)
-        {
-            return string.Empty;
-        }
+        => element == null ? string.Empty : CleanHtml(element.Value);
 
-        var stripped = HtmlTag.Replace(element.Value, " ");
+    private static string CleanHtml(string html)
+    {
+        var stripped = HtmlTag.Replace(html, " ");
         var decoded = WebUtility.HtmlDecode(stripped);
         return Regex.Replace(decoded, @"\s+", " ").Trim();
     }

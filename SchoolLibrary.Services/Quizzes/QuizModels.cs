@@ -28,6 +28,12 @@ public record QuestionInput(string Text, IReadOnlyList<string> Options, int Corr
     public CodeQuestionInput? Code { get; init; }
 
     /// <summary>
+    /// Pictures read from an imported file, placed in the text by <c>[[img:N]]</c> markers; null when there
+    /// are none. Only the import sets them; the form adds pictures through <c>IQuestionImageService</c>.
+    /// </summary>
+    public IReadOnlyList<ImportedImage>? Images { get; init; }
+
+    /// <summary>
     /// A code question in <paramref name="language"/> (a <c>CodeLanguages</c> id) whose answer box starts with
     /// <paramref name="preload"/>, checked with <paramref name="tests"/>.
     /// </summary>
@@ -173,3 +179,9 @@ public record ExamEntry(string Code, string Title, string? ClassName, int? TimeL
 
 /// <summary>Proctoring state after a student left the exam: the leave count and whether to submit now.</summary>
 public record ProctorStatus(int LeaveCount, bool Flagged, bool ShouldSubmit);
+
+/// <summary>
+/// A picture read from an imported question: its marker number, the file name in the file, the bytes
+/// (already checked to be PNG, JPEG, GIF or WebP within the size limit) and the description.
+/// </summary>
+public sealed record ImportedImage(int Number, string FileName, byte[] Bytes, string ContentType, string? AltText);

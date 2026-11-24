@@ -272,6 +272,7 @@ public class QuestionBankService : IQuestionBankService
             .MaxAsync() ?? 0;
 
         var added = 0;
+        var storedKeys = new List<string>();
         foreach (var input in parsed.Questions)
         {
             var validation = QuizService.ValidateQuestion(input);
@@ -287,12 +288,71 @@ public class QuestionBankService : IQuestionBankService
                 Order = ++maxOrder
             };
             QuestionContent.Apply(question, input);
+            await AttachImportedImagesAsync(question, input.Images, storedKeys, errors);
             _context.Questions.Add(question);
             added++;
         }
 
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch
+        {
+            // Keep no stored file without its row
+            foreach (var key in storedKeys)
+            {
+                await _storage!.DeleteAsync(key);
+            }
+
+            throw;
+        }
+
         return ServiceResult<ImportSummary>.Success(new ImportSummary(added, errors));
+    }
+
+    // Stores the pictures read from the file and adds their rows to the new question. Without a file
+    // storage the markers are taken out of the text, so none is left without its picture.
+    private async Task AttachImportedImagesAsync(Question question, IReadOnlyList<ImportedImage>? images,
+        List<string> storedKeys, List<string> errors)
+    {
+        if (images == null || images.Count == 0)
+        {
+            return;
+        }
+
+        if (_storage == null)
+        {
+            foreach (var image in images)
+            {
+                question.Text = QuestionImageMarkers.Remove(question.Text, image.Number) ?? string.Empty;
+                question.Statement = QuestionImageMarkers.Remove(question.Statement, image.Number);
+            }
+
+            errors.Add($"„{Shorten(question.Text)}“: изображенията са пропуснати — няма хранилище за файлове.");
+            return;
+        }
+
+        foreach (var image in images)
+        {
+            var extension = Path.GetExtension(image.FileName);
+            var key = QuestionImageFiles.NewKey(extension);
+            using (var content = new MemoryStream(image.Bytes, writable: false))
+            {
+                await _storage.SaveAsync(key, content);
+            }
+
+            storedKeys.Add(key);
+            question.Images.Add(new QuestionImage
+            {
+                Number = image.Number,
+                StorageKey = key,
+                FileName = image.FileName,
+                ContentType = image.ContentType,
+                SizeBytes = image.Bytes.Length,
+                AltText = image.AltText
+            });
+        }
     }
 
     private static string Shorten(string text)
