@@ -24,7 +24,7 @@
     <div class="card mb-3 border-@border">
         <div class="card-body">
             <h2 class="h6 card-title">
-                @number. @questionResult.Question.Text
+                @number. @Html.QuestionText(questionResult.Question)
                 @if (questionResult.IsCorrect)
                 {
                     <span class="badge text-bg-success">Вярно</span>

@@ -10,7 +10,7 @@
 
 @if (!string.IsNullOrEmpty(Model.Statement))
 {
-    <div class="mb-3" style="white-space: pre-line;">@Model.Statement</div>
+    <div class="mb-3" style="white-space: pre-line;">@Html.QuestionStatement(Model)</div>
 }
 
 @if (examples.Count > 0)

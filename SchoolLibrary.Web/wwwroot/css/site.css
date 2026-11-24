@@ -1154,3 +1154,19 @@ a.subject-tile:focus-visible {
     transform: none;
   }
 }
+
+/* Pictures in question texts: never wider than the card; a light backing so transparent diagrams stay
+   readable in the dark themes. In the teacher's lists they are small previews. */
+.question-image {
+    display: block;
+    max-width: 100%;
+    height: auto;
+    margin: 0.5rem 0;
+    border-radius: 0.25rem;
+    background-color: #fff;
+}
+
+.question-image.is-compact {
+    max-height: 6rem;
+    width: auto;
+}

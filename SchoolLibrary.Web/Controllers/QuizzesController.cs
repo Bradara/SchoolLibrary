@@ -27,6 +27,26 @@ namespace SchoolLibrary.Controllers
             return View(result);
         }
 
+        // GET: Quizzes/Image/{fileId} — a picture in a question text. The id is the random guid of the stored
+        // file, known only to someone shown the question; a file never changes, so the browser may keep it.
+        [HttpGet]
+        public async Task<IActionResult> Image(string id, [FromServices] IQuestionImageService images, CancellationToken cancellationToken)
+        {
+            if (!Guid.TryParseExact(id, "N", out var fileId))
+            {
+                return NotFound();
+            }
+
+            var image = await images.OpenAsync(fileId, cancellationToken);
+            if (image == null)
+            {
+                return NotFound();
+            }
+
+            Response.Headers.CacheControl = "private, max-age=86400";
+            return File(image.Content, image.ContentType);
+        }
+
         // GET: Quizzes/Solve/5 — the questions to answer
         public async Task<IActionResult> Solve(int id)
         {

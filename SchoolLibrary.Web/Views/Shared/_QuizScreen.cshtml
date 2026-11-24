@@ -9,7 +9,7 @@
 {
     <fieldset class="card mb-3">
         <div class="card-body">
-            <legend class="h6 card-title" tabindex="-1">@Model.Number. @Model.Question.Text</legend>
+            <legend class="h6 card-title" tabindex="-1">@Model.Number. @Html.QuestionText(Model.Question)</legend>
             <partial name="_QuestionAnswerInput" model="Model.Question" />
         </div>
     </fieldset>

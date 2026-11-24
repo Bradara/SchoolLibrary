@@ -1,5 +1,5 @@
 @model SchoolLibrary.Data.Models.Question
 @* A description between the questions (instructions, a passage to read): text only, no number, no points. *@
 <div class="card mb-3 border-0 bg-body-tertiary">
-    <div class="card-body" style="white-space: pre-line;">@Model.Text</div>
+    <div class="card-body" style="white-space: pre-line;">@Html.QuestionText(Model)</div>
 </div>

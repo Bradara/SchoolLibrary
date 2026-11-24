@@ -494,3 +494,37 @@ public record QuizScreen(int Number, IReadOnlyList<Question> Descriptions, Quest
 {
     public IReadOnlyList<Question> TrailingDescriptions { get; init; } = Array.Empty<Question>();
 }
+
+/// <summary>
+/// A question text with its pictures, for the partial <c>_QuestionText</c>: the text cut at its
+/// <c>[[img:N]]</c> markers and the pictures no marker places, shown after it. A code question keeps its
+/// title (<see cref="Question.Text"/>) apart from its task (<see cref="Question.Statement"/>); the unplaced
+/// pictures then go after the task.
+/// </summary>
+public sealed record QuestionTextModel(IReadOnlyList<QuestionTextPart> Parts, IReadOnlyList<QuestionImage> After, bool Compact = false)
+{
+    /// <summary>The question text (the title of a code question with a task).</summary>
+    public static QuestionTextModel ForText(Question question, bool compact = false)
+    {
+        var after = TakesUnplaced(question, statement: false)
+            ? QuestionImageMarkers.Unplaced(question.Images, question.Text, question.Statement)
+            : Array.Empty<QuestionImage>();
+        return new QuestionTextModel(QuestionImageMarkers.Split(question.Text, question.Images), after, compact);
+    }
+
+    /// <summary>The task of a code question.</summary>
+    public static QuestionTextModel ForStatement(Question question, bool compact = false)
+    {
+        var after = TakesUnplaced(question, statement: true)
+            ? QuestionImageMarkers.Unplaced(question.Images, question.Text, question.Statement)
+            : Array.Empty<QuestionImage>();
+        return new QuestionTextModel(QuestionImageMarkers.Split(question.Statement, question.Images), after, compact);
+    }
+
+    // The unplaced pictures are shown once: after the task when there is one, else after the text
+    private static bool TakesUnplaced(Question question, bool statement)
+        => statement == !string.IsNullOrEmpty(question.Statement);
+
+    /// <summary>Whether anything is shown.</summary>
+    public bool IsEmpty => Parts.Count == 0 && After.Count == 0;
+}

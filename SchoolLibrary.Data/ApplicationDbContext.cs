@@ -314,6 +314,12 @@ namespace SchoolLibrary.Data
                 .HasIndex(i => new { i.QuestionId, i.Number })
                 .IsUnique();
 
+            // A question is shown with its pictures everywhere (solving, results, the bank), so they are
+            // loaded with it; projections and counts are not affected
+            builder.Entity<Question>()
+                .Navigation(q => q.Images)
+                .AutoInclude();
+
             builder.Entity<QuestionImage>()
                 .HasIndex(i => i.StorageKey);
 

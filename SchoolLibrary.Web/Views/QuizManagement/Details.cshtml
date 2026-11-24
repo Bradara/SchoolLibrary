@@ -163,7 +163,7 @@ else
                                     <optgroup label="@sec.Path">
                                         @foreach (var question in group)
                                         {
-                                            <option value="@question.Id">@question.Text</option>
+                                            <option value="@question.Id">@SchoolLibrary.Services.Quizzes.QuestionImageMarkers.ToPlainText(question.Text)</option>
                                         }
                                     </optgroup>
                                 }
@@ -189,7 +189,7 @@ else
         <div class="card mb-2">
             <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start gap-2">
-                    <h3 class="h6 mb-1">@number. @question.Text @if (question.Type != SchoolLibrary.Data.Enums.QuestionType.Description) { <span class="badge text-bg-light">@question.Points т.</span> }<partial name="_QuestionTypeBadge" model="question" /></h3>
+                    <h3 class="h6 mb-1">@number. @Html.QuestionText(question, compact: true) @if (question.Type != SchoolLibrary.Data.Enums.QuestionType.Description) { <span class="badge text-bg-light">@question.Points т.</span> }<partial name="_QuestionTypeBadge" model="question" /></h3>
                     <div class="d-inline-flex gap-1">
                         <a asp-action="EditQuestion" asp-route-id="@quiz.Id" asp-route-questionId="@question.Id"
                            class="btn btn-sm btn-outline-primary" aria-label="Редактирай въпроса"><i class="bi bi-pencil"></i></a>
