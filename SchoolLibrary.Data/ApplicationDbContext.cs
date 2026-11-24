@@ -302,6 +302,30 @@ namespace SchoolLibrary.Data
                 .Property(t => t.Weight)
                 .HasPrecision(7, 2);
 
+            // A question owns its pictures; the stored bytes are removed separately by the service.
+            // Copies of a question may share a stored file, so the key is not unique.
+            builder.Entity<QuestionImage>()
+                .HasOne(i => i.Question)
+                .WithMany(q => q.Images)
+                .HasForeignKey(i => i.QuestionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<QuestionImage>()
+                .HasIndex(i => new { i.QuestionId, i.Number })
+                .IsUnique();
+
+            builder.Entity<QuestionImage>()
+                .HasIndex(i => i.StorageKey);
+
+            builder.Entity<QuestionImage>()
+                .ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_QuestionImages_Number", $"\"Number\" BETWEEN 1 AND {QuestionImage.MaxPerQuestion}");
+                    t.HasCheckConstraint("CK_QuestionImages_Size", $"\"SizeBytes\" BETWEEN 1 AND {QuestionImage.MaxSizeBytes}");
+                    t.HasCheckConstraint("CK_QuestionImages_ContentType",
+                        "\"ContentType\" IN ('image/png', 'image/jpeg', 'image/gif', 'image/webp')");
+                });
+
             // A quiz owns its composition items; a referenced bank question or section is kept (Restrict)
             builder.Entity<QuizItem>()
                 .HasOne(i => i.Quiz)
@@ -472,6 +496,7 @@ namespace SchoolLibrary.Data
         public DbSet<Question> Questions { get; set; }
         public DbSet<AnswerOption> AnswerOptions { get; set; }
         public DbSet<CodeTestCase> CodeTestCases { get; set; }
+        public DbSet<QuestionImage> QuestionImages { get; set; }
         public DbSet<CodeCheck> CodeChecks { get; set; }
         public DbSet<QuizAttempt> QuizAttempts { get; set; }
         public DbSet<AttemptQuestion> AttemptQuestions { get; set; }

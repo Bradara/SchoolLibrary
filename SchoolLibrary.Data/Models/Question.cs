@@ -66,5 +66,8 @@ namespace SchoolLibrary.Data.Models
 
         /// <summary>For a code question: the tests the program is run with. Empty for the other types.</summary>
         public ICollection<CodeTestCase> TestCases { get; set; } = new List<CodeTestCase>();
+
+        /// <summary>Pictures shown in the text, referred to by <c>[[img:N]]</c> markers.</summary>
+        public ICollection<QuestionImage> Images { get; set; } = new List<QuestionImage>();
     }
 }

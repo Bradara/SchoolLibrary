@@ -874,6 +874,59 @@ namespace SchoolLibrary.Data.Migrations
                     b.ToTable("Questions");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.QuestionImage", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AltText")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("ContentType")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("FileName")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int>("Number")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("QuestionId")
+                        .HasColumnType("integer");
+
+                    b.Property<long>("SizeBytes")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("StorageKey")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("StorageKey");
+
+                    b.HasIndex("QuestionId", "Number")
+                        .IsUnique();
+
+                    b.ToTable("QuestionImages", t =>
+                        {
+                            t.HasCheckConstraint("CK_QuestionImages_ContentType", "\"ContentType\" IN ('image/png', 'image/jpeg', 'image/gif', 'image/webp')");
+
+                            t.HasCheckConstraint("CK_QuestionImages_Number", "\"Number\" BETWEEN 1 AND 10");
+
+                            t.HasCheckConstraint("CK_QuestionImages_Size", "\"SizeBytes\" BETWEEN 1 AND 2097152");
+                        });
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Quiz", b =>
                 {
                     b.Property<int>("Id")
@@ -1610,6 +1663,17 @@ namespace SchoolLibrary.Data.Migrations
                     b.Navigation("Section");
                 });
 
+            modelBuilder.Entity("SchoolLibrary.Data.Models.QuestionImage", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.Question", "Question")
+                        .WithMany("Images")
+                        .HasForeignKey("QuestionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Question");
+                });
+
             modelBuilder.Entity("SchoolLibrary.Data.Models.Quiz", b =>
                 {
                     b.HasOne("SchoolLibrary.Data.Models.ApplicationUser", "Owner")
@@ -1780,6 +1844,8 @@ namespace SchoolLibrary.Data.Migrations
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Question", b =>
                 {
+                    b.Navigation("Images");
+
                     b.Navigation("Options");
 
                     b.Navigation("TestCases");
