@@ -46,6 +46,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISectionService, SectionService>();
         services.AddScoped<IQuestionBankService, QuestionBankService>();
         services.AddScoped<IQuestionExportService, QuestionExportService>();
+        services.AddScoped<IQuestionImageService, QuestionImageService>();
         services.AddScoped<IQuizItemService, QuizItemService>();
         services.AddScoped<ISchoolClassService, SchoolClassService>();
         services.AddScoped<IExamAssignmentService, ExamAssignmentService>();
