@@ -1,3 +1,4 @@
+using Microsoft.EntityFrameworkCore;
 using System.Text;
 using SchoolLibrary.Data;
 using SchoolLibrary.Data.Enums;
@@ -269,6 +270,101 @@ public class ResourceUploadServiceTests
     }
 
     // A simple in-memory file storage that records what was saved
+    // ---------- covers ----------
+
+    private static readonly byte[] JpegCover = { 0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3 };
+
+    // A small EPUB with a title, an author and, optionally, a cover picture
+    private static byte[] Book(byte[]? cover)
+    {
+        var manifest = cover == null ? "" : """<item id="c" href="c.jpg" media-type="image/jpeg" properties="cover-image"/>""";
+        using var buffer = new MemoryStream();
+        using (var zip = new System.IO.Compression.ZipArchive(buffer, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
+        {
+            void Add(string path, byte[] bytes)
+            {
+                using var stream = zip.CreateEntry(path).Open();
+                stream.Write(bytes);
+            }
+
+            Add("META-INF/container.xml", Encoding.UTF8.GetBytes(
+                """<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="content.opf"/></rootfiles></container>"""));
+            Add("content.opf", Encoding.UTF8.GetBytes(
+                $"""<package xmlns="http://www.idpf.org/2007/opf"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Книга</dc:title></metadata><manifest>{manifest}</manifest></package>"""));
+            if (cover != null)
+            {
+                Add("c.jpg", cover);
+            }
+        }
+
+        return buffer.ToArray();
+    }
+
+    [Fact]
+    public async Task UploadAsync_BookWithCover_StoresTheCoverAndRecordsIt()
+    {
+        var result = await UploadAsync("book.epub", Book(JpegCover));
+
+        Assert.True(result.Succeeded);
+        var file = _context.ResourceFiles.Single();
+        Assert.StartsWith(ResourceCovers.KeyPrefix, file.CoverKey);
+        Assert.EndsWith(".jpg", file.CoverKey);
+        Assert.Equal("image/jpeg", file.CoverContentType);
+        Assert.Equal(JpegCover, _storage.Files[file.CoverKey!]);
+    }
+
+    [Fact]
+    public async Task UploadAsync_BookWithoutCover_HasNoCover()
+    {
+        var result = await UploadAsync("book.epub", Book(cover: null));
+
+        Assert.True(result.Succeeded);
+        var file = _context.ResourceFiles.Single();
+        Assert.Null(file.CoverKey);
+        Assert.Null(file.CoverContentType);
+        Assert.Single(_storage.Files);
+    }
+
+    [Fact]
+    public async Task UploadAsync_Pdf_HasNoCover()
+    {
+        await UploadAsync("lesson.pdf", Pdf());
+
+        Assert.Null(_context.ResourceFiles.Single().CoverKey);
+    }
+
+    [Fact]
+    public async Task UploadAsync_WhenTheDatabaseWriteFails_RemovesTheCoverToo()
+    {
+        var context = new FailingSaveContext();
+        var license = new License { Name = "CC BY 4.0" };
+        var subject = new Category { Name = "Литература" };
+        var grade = new GradeLevel { Number = 9 };
+        context.AddRange(license, subject, grade);
+        context.SaveWorks = true;
+        await context.SaveChangesAsync();
+        context.SaveWorks = false;
+        var input = Input();
+        input.LicenseId = license.Id;
+        input.CategoryIds = new List<int> { subject.Id };
+        input.GradeLevelIds = new List<int> { grade.Id };
+
+        await Assert.ThrowsAsync<DbUpdateException>(() =>
+            new ResourceUploadService(context, _storage).UploadAsync(input, File("book.epub", Book(JpegCover)), ownerId: "teacher-1"));
+
+        Assert.Empty(_storage.Files);
+    }
+
+    // An in-memory database whose writes fail on demand
+    private sealed class FailingSaveContext() : ApplicationDbContext(
+        new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options)
+    {
+        public bool SaveWorks { get; set; }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+            SaveWorks ? base.SaveChangesAsync(cancellationToken) : throw new DbUpdateException("write failed");
+    }
+
     private sealed class FakeFileStorage : IFileStorage
     {
         public Dictionary<string, byte[]> Files { get; } = new();

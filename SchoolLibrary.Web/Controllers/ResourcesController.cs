@@ -500,6 +500,10 @@ namespace SchoolLibrary.Controllers
             if (file != null)
             {
                 await _storage.DeleteAsync(file.StorageKey);
+                if (file.CoverKey != null)
+                {
+                    await _storage.DeleteAsync(file.CoverKey);
+                }
             }
 
             TempData["SuccessMessage"] = $"Ресурсът {result.Value!.Title} е изтрит успешно.";

@@ -199,6 +199,19 @@ namespace SchoolLibrary.Data
             builder.Entity<ResourceFile>()
                 .HasIndex(f => f.Sha256);
 
+            // A cover has both a key and a picture type, or neither; only the picture types the upload recognizes
+            builder.Entity<ResourceFile>()
+                .HasIndex(f => f.CoverKey)
+                .IsUnique();
+
+            builder.Entity<ResourceFile>()
+                .ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_ResourceFiles_Cover", "(\"CoverKey\" IS NULL) = (\"CoverContentType\" IS NULL)");
+                    t.HasCheckConstraint("CK_ResourceFiles_CoverContentType",
+                        "\"CoverContentType\" IN ('image/png', 'image/jpeg', 'image/gif', 'image/webp')");
+                });
+
             // ---------- Quizzes ----------
 
             // Deleting a teacher keeps their quizzes (OwnerId becomes NULL, like resources)

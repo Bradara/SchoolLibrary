@@ -1259,6 +1259,14 @@ namespace SchoolLibrary.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("CoverContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CoverKey")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
                     b.Property<string>("FileName")
                         .IsRequired()
                         .HasMaxLength(255)
@@ -1285,6 +1293,9 @@ namespace SchoolLibrary.Data.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CoverKey")
+                        .IsUnique();
+
                     b.HasIndex("ResourceId")
                         .IsUnique();
 
@@ -1293,7 +1304,12 @@ namespace SchoolLibrary.Data.Migrations
                     b.HasIndex("StorageKey")
                         .IsUnique();
 
-                    b.ToTable("ResourceFiles");
+                    b.ToTable("ResourceFiles", t =>
+                        {
+                            t.HasCheckConstraint("CK_ResourceFiles_Cover", "(\"CoverKey\" IS NULL) = (\"CoverContentType\" IS NULL)");
+
+                            t.HasCheckConstraint("CK_ResourceFiles_CoverContentType", "\"CoverContentType\" IN ('image/png', 'image/jpeg', 'image/gif', 'image/webp')");
+                        });
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.SchoolClass", b =>

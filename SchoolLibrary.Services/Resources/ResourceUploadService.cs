@@ -97,6 +97,7 @@ public class ResourceUploadService : IResourceUploadService
 
         var key = $"resources/{Guid.NewGuid():N}{type.Extension}";
         await _storage.SaveAsync(key, new MemoryStream(bytes, writable: false), cancellationToken);
+        string? coverKey = null;
 
         try
         {
@@ -124,6 +125,12 @@ public class ResourceUploadService : IResourceUploadService
                 }
             };
 
+            // A book keeps its cover for the catalog card; a book without one simply has none
+            if (ResourceCovers.IsBook(resource.File))
+            {
+                coverKey = await ResourceCovers.AttachAsync(resource.File, bytes, _storage, cancellationToken);
+            }
+
             foreach (var category in categories)
             {
                 resource.Categories.Add(category);
@@ -143,6 +150,11 @@ public class ResourceUploadService : IResourceUploadService
         {
             // Never leave an orphan file behind when the database write fails
             await _storage.DeleteAsync(key, cancellationToken);
+            if (coverKey != null)
+            {
+                await _storage.DeleteAsync(coverKey, cancellationToken);
+            }
+
             throw;
         }
     }

@@ -42,5 +42,16 @@ namespace SchoolLibrary.Data.Models
         public string Sha256 { get; set; } = string.Empty;
 
         public DateTime UploadedOn { get; set; }
+
+        /// <summary>
+        /// The key of the cover picture taken out of an EPUB (e.g. "covers/{guid}.jpg"), or null when the book
+        /// has none or the file is not a book.
+        /// </summary>
+        [MaxLength(StorageKeyMaxLength)]
+        public string? CoverKey { get; set; }
+
+        /// <summary>The type of the cover (PNG, JPEG, GIF or WebP, recognized from the bytes); null without a cover.</summary>
+        [MaxLength(ContentTypeMaxLength)]
+        public string? CoverContentType { get; set; }
     }
 }

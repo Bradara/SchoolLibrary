@@ -884,6 +884,23 @@ public class ResourcesControllerTests
     }
 
     [Fact]
+    public async Task DeleteConfirmed_AlsoRemovesTheCoverOfABook()
+    {
+        var book = new ResourceFile
+        {
+            ResourceId = 5, StorageKey = "resources/b.epub", ContentType = "application/epub+zip",
+            CoverKey = "covers/c.jpg", CoverContentType = "image/jpeg"
+        };
+        _resources.Setup(r => r.GetFileAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(book);
+        _resources.Setup(r => r.DeleteAsync(5, "u1", false)).ReturnsAsync(Saved());
+
+        await Controller().DeleteConfirmed(5);
+
+        _storage.Verify(s => s.DeleteAsync("resources/b.epub", It.IsAny<CancellationToken>()), Times.Once);
+        _storage.Verify(s => s.DeleteAsync("covers/c.jpg", It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
     public async Task DeleteConfirmed_DoesNotTouchStorage_WhenResourceHasNoFile()
     {
         _resources.Setup(r => r.GetFileAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync((ResourceFile?)null);
