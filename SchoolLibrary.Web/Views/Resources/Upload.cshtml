@@ -12,7 +12,7 @@
 <hr />
 <div class="row">
     <div class="col-lg-8">
-        <form asp-action="Upload" enctype="multipart/form-data">
+        <form asp-action="Upload" enctype="multipart/form-data" data-epub-metadata>
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <div class="form-group mb-3">
@@ -22,18 +22,22 @@
                 <div class="form-text">
                     Разрешени формати: PDF, EPUB, Markdown (.pdf, .epub, .md).
                     Максимален размер: @UploadConstraints.MaxFileSizeMegabytes МБ.
+                    При EPUB заглавието и авторът се попълват от книгата.
+                </div>
+                <div class="form-text text-success" data-epub-metadata-note hidden aria-live="polite">
+                    <i class="bi bi-check2-circle" aria-hidden="true"></i> Заглавието и авторът са взети от книгата — проверете ги.
                 </div>
             </div>
 
             <div class="form-group mb-3">
                 <label asp-for="Title" class="control-label"></label>
-                <input asp-for="Title" class="form-control" />
+                <input asp-for="Title" class="form-control" data-epub-field="title" />
                 <span asp-validation-for="Title" class="text-danger"></span>
             </div>
 
             <div class="form-group mb-3">
                 <label asp-for="Author" class="control-label"></label>
-                <input asp-for="Author" class="form-control" />
+                <input asp-for="Author" class="form-control" data-epub-field="author" />
                 <span asp-validation-for="Author" class="text-danger"></span>
             </div>
 
@@ -102,4 +106,6 @@
 
 @section Scripts {
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/lib/jszip/jszip.min.js"></script>
+    <script src="~/js/sl-epub-metadata.js" asp-append-version="true"></script>
 }
