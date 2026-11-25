@@ -126,6 +126,7 @@ else
             <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
             <div class="mb-2">
                 <input name="Text" value="@newQuestion.Text" class="form-control" maxlength="1000" placeholder="Текст на въпроса" required />
+                <div class="form-text">Изображения се добавят след запис — от „Редакция“ на въпроса.</div>
             </div>
             <div class="mb-2 qt-points" style="max-width: 9rem;">
                 <label class="form-label small mb-0" for="q-points">Точки</label>
@@ -149,7 +150,7 @@ else
                 <span class="text-body-secondary small">или качи файл:</span>
                 <input type="file" name="importFile" accept=".txt,.xml,text/plain,text/xml,application/xml" class="form-control form-control-sm" style="max-width: 18rem;" />
             </div>
-            <div class="form-text">Качен файл има предимство пред текста. Поддържат се .txt (Aiken) и .xml (Moodle).</div>
+            <div class="form-text">Качен файл има предимство пред текста. Поддържат се .txt (Aiken) и .xml (Moodle, със снимките в текста на въпросите), до @SchoolLibrary.Controllers.SectionsController.MaxImportMegabytes МБ.</div>
         </form>
         <details class="mt-2">
             <summary class="small text-body-secondary">Формат Aiken</summary>

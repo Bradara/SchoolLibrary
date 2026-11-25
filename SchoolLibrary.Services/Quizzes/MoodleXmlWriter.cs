@@ -13,6 +13,8 @@ namespace SchoolLibrary.Services.Quizzes;
 /// (<c>coderunner</c>: Python as the built-in <c>python3</c> type, C# as the <c>csharp_program</c> prototype,
 /// which has to be imported into Moodle first).
 /// Answer shares are written as Moodle expects them (33.33 → 33.33333), so Moodle accepts them as listed grades.
+/// The pictures of a question text are written as Moodle does: <c>&lt;img src="@@PLUGINFILE@@/name"&gt;</c> in
+/// place of the <c>[[img:N]]</c> marker (unplaced ones at the end) and the bytes in a base64 <c>&lt;file&gt;</c>.
 /// </summary>
 public static class MoodleXmlWriter
 {
@@ -35,11 +37,14 @@ public static class MoodleXmlWriter
         => text.Length <= length ? text : text[..(length - 1)].TrimEnd() + "…";
 
     /// <summary>Writes the questions (in the given order) without category markers.</summary>
-    public static string Write(IEnumerable<Question> questions)
-        => Write(new[] { new Group(null, questions.ToList()) });
+    public static string Write(IEnumerable<Question> questions, IReadOnlyDictionary<string, byte[]>? imageFiles = null)
+        => Write(new[] { new Group(null, questions.ToList()) }, imageFiles);
 
-    /// <summary>Writes each group, preceded by its category marker (a path such as <c>$course$/top/Тема/Подтема</c>).</summary>
-    public static string Write(IEnumerable<Group> groups)
+    /// <summary>
+    /// Writes each group, preceded by its category marker (a path such as <c>$course$/top/Тема/Подтема</c>).
+    /// <paramref name="imageFiles"/> gives the bytes of the pictures by storage key; a picture without bytes is left out.
+    /// </summary>
+    public static string Write(IEnumerable<Group> groups, IReadOnlyDictionary<string, byte[]>? imageFiles = null)
     {
         var quiz = new XElement("quiz");
         foreach (var group in groups)
@@ -52,7 +57,7 @@ public static class MoodleXmlWriter
 
             foreach (var question in group.Questions)
             {
-                quiz.Add(WriteQuestion(question));
+                quiz.Add(WriteQuestion(question, imageFiles));
             }
         }
 
@@ -64,16 +69,14 @@ public static class MoodleXmlWriter
     public static string CategoryPath(IEnumerable<string> names)
         => "$course$/top/" + string.Join("/", names.Select(n => n.Replace("/", "//")));
 
-    private static XElement WriteQuestion(Question question)
+    private static XElement WriteQuestion(Question question, IReadOnlyDictionary<string, byte[]>? imageFiles)
     {
         var options = question.Options.OrderBy(o => o.Order).ToList();
         var element = new XElement("question", new XAttribute("type", MoodleType(question.Type)),
             // A code question's text is its title (the name) and its statement is the question text
             new XElement("name", new XElement("text", question.Type == QuestionType.Code
                 ? Shorten(question.Text, MaxCodeNameLength) : Name(question.Text))),
-            new XElement("questiontext", new XAttribute("format", "html"),
-                new XElement("text", new XCData(Html(question.Type == QuestionType.Code && !string.IsNullOrEmpty(question.Statement)
-                    ? question.Statement : question.Text)))),
+            QuestionText(question, imageFiles),
             new XElement("generalfeedback", new XAttribute("format", "html"), new XElement("text", string.Empty)),
             new XElement("defaultgrade", Number(QuizGrading.MaxPoints(question))),
             new XElement("penalty", "0"),
@@ -219,10 +222,60 @@ public static class MoodleXmlWriter
             new XElement("text", text),
             new XElement("feedback", new XAttribute("format", "html"), new XElement("text", string.Empty)));
 
-    // The question's name in the bank: the start of its text on one line
+    // The question text (the task of a code question) as HTML, with its pictures: an <img> in place of each
+    // marker, the unplaced ones at the end, and a <file> with the bytes of each picture that is written
+    private static XElement QuestionText(Question question, IReadOnlyDictionary<string, byte[]>? imageFiles)
+    {
+        var text = question.Type == QuestionType.Code && !string.IsNullOrEmpty(question.Statement)
+            ? question.Statement
+            : question.Text;
+
+        // Only the pictures whose bytes are known; each gets a file name unique within the question
+        var images = question.Images
+            .Where(i => imageFiles != null && imageFiles.ContainsKey(i.StorageKey))
+            .OrderBy(i => i.Number)
+            .ToList();
+        var names = new Dictionary<int, string>();
+        var used = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (var image in images)
+        {
+            var name = used.Add(image.FileName) ? image.FileName : $"{image.Number}-{image.FileName}";
+            used.Add(name);
+            names[image.Number] = name;
+        }
+
+        var html = new System.Text.StringBuilder();
+        foreach (var part in QuestionImageMarkers.Split(text, images))
+        {
+            html.Append(part.Image == null ? Html(part.Text!, paragraph: false) : Img(part.Image, names[part.Image.Number]));
+        }
+
+        foreach (var image in QuestionImageMarkers.Unplaced(images, question.Text, question.Statement))
+        {
+            html.Append("<br>").Append(Img(image, names[image.Number]));
+        }
+
+        var element = new XElement("questiontext", new XAttribute("format", "html"),
+            new XElement("text", new XCData($"<p>{html}</p>")));
+        foreach (var image in images)
+        {
+            element.Add(new XElement("file",
+                new XAttribute("name", names[image.Number]),
+                new XAttribute("path", "/"),
+                new XAttribute("encoding", "base64"),
+                Convert.ToBase64String(imageFiles![image.StorageKey])));
+        }
+
+        return element;
+    }
+
+    private static string Img(QuestionImage image, string fileName)
+        => $"<img src=\"@@PLUGINFILE@@/{Uri.EscapeDataString(fileName)}\" alt=\"{WebUtility.HtmlEncode(image.AltText ?? string.Empty)}\">";
+
+    // The question's name in the bank: the start of its text on one line (a picture marker as "[изображение]")
     private static string Name(string text)
     {
-        var line = string.Join(' ', text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        var line = string.Join(' ', QuestionImageMarkers.ToPlainText(text).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
         return line.Length <= MaxNameLength ? line : line[..MaxNameLength].TrimEnd() + "…";
     }
 

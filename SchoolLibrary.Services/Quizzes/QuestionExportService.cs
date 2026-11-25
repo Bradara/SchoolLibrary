@@ -4,16 +4,45 @@ using SchoolLibrary.Data;
 using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
+using SchoolLibrary.Services.Storage;
 
 namespace SchoolLibrary.Services.Quizzes;
 
 public class QuestionExportService : IQuestionExportService
 {
     private readonly ApplicationDbContext _context;
+    private readonly IFileStorage? _storage;
 
-    public QuestionExportService(ApplicationDbContext context)
+    // Without a file storage the pictures are left out of the file
+    public QuestionExportService(ApplicationDbContext context, IFileStorage? storage = null)
     {
         _context = context;
+        _storage = storage;
+    }
+
+    // The bytes of the questions' pictures by storage key; a file missing in the storage is skipped
+    private async Task<IReadOnlyDictionary<string, byte[]>> ImageFilesAsync(IEnumerable<Question> questions)
+    {
+        var files = new Dictionary<string, byte[]>(StringComparer.Ordinal);
+        if (_storage == null)
+        {
+            return files;
+        }
+
+        foreach (var key in questions.SelectMany(q => q.Images).Select(i => i.StorageKey).Distinct())
+        {
+            await using var content = await _storage.OpenReadAsync(key);
+            if (content == null)
+            {
+                continue;
+            }
+
+            using var buffer = new MemoryStream();
+            await content.CopyToAsync(buffer);
+            files[key] = buffer.ToArray();
+        }
+
+        return files;
     }
 
     public async Task<ServiceResult<QuestionExport>> ExportSectionAsync(int sectionId, string userId, bool isAdministrator)
@@ -71,7 +100,7 @@ public class QuestionExportService : IQuestionExportService
             .ToList();
 
         return ServiceResult<QuestionExport>.Success(
-            new QuestionExport(FileName(section.Name), MoodleXmlWriter.Write(groups), questions.Count));
+            new QuestionExport(FileName(section.Name), MoodleXmlWriter.Write(groups, await ImageFilesAsync(questions)), questions.Count));
     }
 
     public async Task<ServiceResult<QuestionExport>> ExportQuizAsync(int quizId, string userId, bool isAdministrator)
@@ -112,7 +141,7 @@ public class QuestionExportService : IQuestionExportService
         var skipped = items.Count(i => i.Kind == QuizItemKind.RandomFromSection);
 
         return ServiceResult<QuestionExport>.Success(
-            new QuestionExport(FileName(quiz.Title), MoodleXmlWriter.Write(questions), questions.Count, skipped));
+            new QuestionExport(FileName(quiz.Title), MoodleXmlWriter.Write(questions, await ImageFilesAsync(questions)), questions.Count, skipped));
     }
 
     // A file name from a title: letters and digits kept (Cyrillic too), everything else becomes "-"

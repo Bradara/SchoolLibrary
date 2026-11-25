@@ -528,3 +528,12 @@ public sealed record QuestionTextModel(IReadOnlyList<QuestionTextPart> Parts, IR
     /// <summary>Whether anything is shown.</summary>
     public bool IsEmpty => Parts.Count == 0 && After.Count == 0;
 }
+
+/// <summary>The pictures panel on a question's edit page: the question and its pictures by number.</summary>
+public sealed record QuestionImagesPanelModel(int QuestionId, IReadOnlyList<QuestionImage> Images)
+{
+    public static QuestionImagesPanelModel For(Question question)
+        => new(question.Id, question.Images.OrderBy(i => i.Number).ToList());
+
+    public bool CanAddMore => Images.Count < QuestionImage.MaxPerQuestion;
+}

@@ -311,6 +311,7 @@ namespace SchoolLibrary.Controllers
             ViewBag.QuizId = question.QuizId;
             ViewBag.QuestionId = questionId;
             ViewBag.AnsweredAttempts = await _bank.CountAnsweredAttemptsAsync(questionId);
+            ViewBag.ImagesPanel = QuestionImagesPanelModel.For(question);
             return View(QuestionFormViewModel.FromQuestion(question));
         }
 
@@ -336,6 +337,11 @@ namespace SchoolLibrary.Controllers
                 ViewBag.QuizId = id;
                 ViewBag.QuestionId = questionId;
                 ViewBag.AnsweredAttempts = await _bank.CountAnsweredAttemptsAsync(questionId);
+                if (await _quizzes.GetQuestionAsync(questionId) is { } current)
+                {
+                    ViewBag.ImagesPanel = QuestionImagesPanelModel.For(current);
+                }
+
                 return View(vm);
             }
 

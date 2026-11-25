@@ -1,0 +1,73 @@
+@using SchoolLibrary.Data.Models
+@using SchoolLibrary.Services.Quizzes
+@model SchoolLibrary.ViewModels.QuestionImagesPanelModel
+@* The pictures of a question on its edit page. Each form posts on its own (forms cannot be nested in the
+   question form) and comes back here; "Вмъкни в текста" puts the marker where the cursor was in the text
+   or in the task of a code question, without saving. *@
+@{
+    var returnUrl = $"{Context.Request.PathBase}{Context.Request.Path}{Context.Request.QueryString}";
+}
+<section class="card mb-3" aria-labelledby="question-images-title">
+    <div class="card-body">
+        <h2 class="h6 card-title" id="question-images-title"><i class="bi bi-image" aria-hidden="true"></i> Изображения</h2>
+        <p class="small text-body-secondary mb-2">
+            Сложете маркера (напр. <code>@QuestionImageMarkers.Marker(1)</code>) в текста на въпроса или в условието,
+            за да покажете изображението на това място; без маркер то е под текста.
+            Запишете промените в текста, преди да качите или премахнете изображение.
+        </p>
+
+        @foreach (var image in Model.Images)
+        {
+            var fileId = QuestionImageFiles.FileIdOf(image.StorageKey)?.ToString("N");
+            <div class="border rounded p-2 mb-2">
+                <div class="d-flex gap-2 align-items-start">
+                    @if (fileId != null)
+                    {
+                        <img src="@Url.Action("Image", "Quizzes", new { area = "", id = fileId })" alt="" class="question-image is-compact m-0" />
+                    }
+                    <div class="flex-grow-1 small">
+                        <div><code>@QuestionImageMarkers.Marker(image.Number)</code> · @image.FileName · @(image.SizeBytes / 1024 + 1) KB</div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mt-1" data-insert-marker="@QuestionImageMarkers.Marker(image.Number)" hidden>
+                            <i class="bi bi-box-arrow-in-down-left" aria-hidden="true"></i> Вмъкни в текста
+                        </button>
+                    </div>
+                </div>
+
+                <form method="post" asp-controller="QuestionImages" asp-action="UpdateAltText" asp-route-id="@image.Id" class="d-flex gap-2 mt-2">
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+                    <label class="visually-hidden" for="alt-@image.Id">Описание на изображение @image.Number</label>
+                    <input id="alt-@image.Id" name="altText" value="@image.AltText" maxlength="@QuestionImage.AltTextMaxLength"
+                           class="form-control form-control-sm" placeholder="Описание за незрящи (по желание)" />
+                    <button type="submit" class="btn btn-sm btn-outline-primary">Запази</button>
+                </form>
+
+                <form method="post" asp-controller="QuestionImages" asp-action="Delete" asp-route-id="@image.Id" class="mt-2">
+                    <input type="hidden" name="returnUrl" value="@returnUrl" />
+                    <button type="submit" class="btn btn-sm btn-outline-danger">
+                        <i class="bi bi-trash" aria-hidden="true"></i> Премахни
+                    </button>
+                </form>
+            </div>
+        }
+
+        @if (Model.CanAddMore)
+        {
+            <form method="post" enctype="multipart/form-data" asp-controller="QuestionImages" asp-action="Upload" asp-route-questionId="@Model.QuestionId">
+                <input type="hidden" name="returnUrl" value="@returnUrl" />
+                <div class="mb-2">
+                    <label class="form-label small" for="question-image-file">Ново изображение (PNG, JPEG, GIF или WebP, до @(QuestionImage.MaxSizeBytes / (1024 * 1024)) МБ)</label>
+                    <input type="file" id="question-image-file" name="image" accept="@QuestionImageFiles.AcceptAttribute" class="form-control form-control-sm" required />
+                </div>
+                <div class="mb-2">
+                    <label class="form-label small" for="question-image-alt">Описание (по желание)</label>
+                    <input id="question-image-alt" name="altText" maxlength="@QuestionImage.AltTextMaxLength" class="form-control form-control-sm" />
+                </div>
+                <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-upload" aria-hidden="true"></i> Качи</button>
+            </form>
+        }
+        else
+        {
+            <p class="small mb-0">Въпросът има най-много @QuestionImage.MaxPerQuestion изображения.</p>
+        }
+    </div>
+</section>

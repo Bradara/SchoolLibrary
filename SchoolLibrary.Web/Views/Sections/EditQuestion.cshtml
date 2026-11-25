@@ -16,6 +16,8 @@
 
 <h1 class="h3 mb-3">Редакция на въпрос</h1>
 
+<partial name="_MessagePartial" />
+
 @if (ViewBag.AnsweredAttempts is int answered && answered > 0)
 {
     <div class="alert alert-info small" role="note">
@@ -48,8 +50,15 @@
             <a asp-action="Details" asp-route-id="@sectionId" class="btn btn-link">Отказ</a>
         </form>
     </div>
+    @if (ViewBag.ImagesPanel is SchoolLibrary.ViewModels.QuestionImagesPanelModel imagesPanel)
+    {
+        <div class="col-lg-5">
+            <partial name="_QuestionImagesPanel" model="imagesPanel" />
+        </div>
+    }
 </div>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script src="~/js/sl-question-images.js" asp-append-version="true"></script>
 }

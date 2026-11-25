@@ -12,6 +12,14 @@ namespace SchoolLibrary.Controllers
     [Authorize(Roles = Roles.TeacherOrAdministrator)]
     public class SectionsController : Controller
     {
+        /// <summary>
+        /// The largest import request: Moodle XML carries its pictures as base64 (a third larger than the
+        /// files), so a few pictures already pass the old 2 MB.
+        /// </summary>
+        public const int MaxImportMegabytes = 20;
+
+        private const long MaxImportBytes = MaxImportMegabytes * 1024L * 1024L;
+
         private readonly ISectionService _sections;
         private readonly IQuestionBankService _questions;
 
@@ -249,6 +257,7 @@ namespace SchoolLibrary.Controllers
             ViewBag.SectionId = question.SectionId;
             ViewBag.QuestionId = questionId;
             ViewBag.AnsweredAttempts = await _questions.CountAnsweredAttemptsAsync(questionId);
+            ViewBag.ImagesPanel = QuestionImagesPanelModel.For(question);
             return View(QuestionFormViewModel.FromQuestion(question));
         }
 
@@ -274,6 +283,11 @@ namespace SchoolLibrary.Controllers
                 ViewBag.SectionId = id;
                 ViewBag.QuestionId = questionId;
                 ViewBag.AnsweredAttempts = await _questions.CountAnsweredAttemptsAsync(questionId);
+                if (await _questions.GetQuestionAsync(questionId) is { } current)
+                {
+                    ViewBag.ImagesPanel = QuestionImagesPanelModel.For(current);
+                }
+
                 return View(vm);
             }
 
@@ -302,7 +316,8 @@ namespace SchoolLibrary.Controllers
         // POST: Sections/Import/5 — bulk-load questions from pasted text or an uploaded file (Aiken .txt or Moodle .xml)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        [RequestSizeLimit(2 * 1024 * 1024)]
+        [RequestSizeLimit(MaxImportBytes)]
+        [RequestFormLimits(MultipartBodyLengthLimit = MaxImportBytes, ValueLengthLimit = (int)MaxImportBytes)]
         public async Task<IActionResult> Import(int id, string? importText, IFormFile? importFile = null)
         {
             // An uploaded file wins over the textarea when present

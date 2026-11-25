@@ -378,4 +378,18 @@ public class SectionsControllerTests
 
         Assert.IsType<NotFoundResult>(await Controller("t1", Roles.Teacher).Import(5, "x"));
     }
+
+    [Fact]
+    public void Import_AcceptsFilesWithPictures_UpTo20Megabytes()
+    {
+        var method = typeof(SectionsController).GetMethod(nameof(SectionsController.Import))!;
+        var size = Attribute.GetCustomAttribute(method, typeof(RequestSizeLimitAttribute));
+        var form = (RequestFormLimitsAttribute)Attribute.GetCustomAttribute(method, typeof(RequestFormLimitsAttribute))!;
+        var bytes = SectionsController.MaxImportMegabytes * 1024L * 1024L;
+
+        Assert.Equal(20, SectionsController.MaxImportMegabytes);
+        Assert.Equal(bytes, form.MultipartBodyLengthLimit);
+        Assert.Equal(bytes, form.ValueLengthLimit);
+        Assert.NotNull(size); // its value is not public; the constant and the form limits are checked
+    }
 }
