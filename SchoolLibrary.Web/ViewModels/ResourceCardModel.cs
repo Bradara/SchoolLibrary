@@ -31,6 +31,12 @@ public record ResourceCardModel(Resource Resource, bool? IsFavorite, string Retu
     /// <summary>The large faint icon in the header: the first subject's, or the media's without a subject.</summary>
     public string HeaderIcon => Subjects.Count > 0 ? SubjectLook.Of(Subjects[0]).Icon : Media.Icon;
 
+    /// <summary>
+    /// The version of the book's cover for its address (the file id from the storage key), or null without a
+    /// cover. A new cover gets a new address, so browsers may cache the picture for long.
+    /// </summary>
+    public string? CoverVersion => Resource.File?.CoverKey is { } key ? Path.GetFileNameWithoutExtension(key) : null;
+
     /// <summary>The author of the resource, or null when none is given.</summary>
     public string? Author => string.IsNullOrWhiteSpace(Resource.Author) ? null : Resource.Author.Trim();
 

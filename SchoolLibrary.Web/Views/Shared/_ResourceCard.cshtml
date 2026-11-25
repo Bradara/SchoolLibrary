@@ -14,8 +14,19 @@
     var canDelete = ResourcePermissions.CanDelete(resource, userId, isAdministrator);
 }
 <article class="res-card" style="--subj:@Model.Color">
-    <div class="band">
-        <i class="bi @Model.HeaderIcon wm" aria-hidden="true"></i>
+    <div class="band@(Model.CoverVersion != null ? " has-cover" : null)">
+        @if (Model.CoverVersion != null)
+        {
+            // The same picture twice: blurred behind the band, and small as the book itself. The title says what
+            // the book is, so the pictures are decorative.
+            var coverUrl = Url.Action("Cover", "Resources", new { area = "", id = resource.Id, v = Model.CoverVersion });
+            <img class="cover-bg" src="@coverUrl" alt="" loading="lazy" decoding="async" />
+            <img class="cover" src="@coverUrl" alt="" loading="lazy" decoding="async" />
+        }
+        else
+        {
+            <i class="bi @Model.HeaderIcon wm" aria-hidden="true"></i>
+        }
         <div class="top">
             <span class="media-tag"><i class="bi @Model.Media.Icon" aria-hidden="true"></i> @Model.Media.Label</span>
             @if (Model.ShowKind)

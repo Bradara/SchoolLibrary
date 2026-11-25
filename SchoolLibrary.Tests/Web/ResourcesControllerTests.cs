@@ -114,6 +114,56 @@ public class ResourcesControllerTests
         Assert.IsType<NotFoundResult>(await Controller().Download(5));
     }
 
+    private static ResourceFile BookWithCover() => new()
+    {
+        ResourceId = 5,
+        StorageKey = "resources/b.epub",
+        ContentType = "application/epub+zip",
+        FileName = "книга.epub",
+        CoverKey = "covers/c.jpg",
+        CoverContentType = "image/jpeg"
+    };
+
+    [Fact]
+    public async Task Cover_ReturnsThePicture_AsAPrivateCachedImage()
+    {
+        _resources.Setup(r => r.GetFileAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(BookWithCover());
+        _storage.Setup(s => s.OpenReadAsync("covers/c.jpg", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new MemoryStream(new byte[] { 0xFF, 0xD8, 0xFF }));
+        var controller = Controller();
+
+        var result = await controller.Cover(5);
+
+        Assert.Equal("image/jpeg", Assert.IsType<FileStreamResult>(result).ContentType);
+        Assert.StartsWith("private", controller.Response.Headers.CacheControl.ToString());
+    }
+
+    [Fact]
+    public async Task Cover_OfAFileWithoutCover_IsNotFound()
+    {
+        _resources.Setup(r => r.GetFileAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(PdfFile());
+
+        Assert.IsType<NotFoundResult>(await Controller().Cover(5));
+    }
+
+    [Fact]
+    public async Task Cover_OfAHiddenOrMissingResource_IsNotFound()
+    {
+        // The service hides the file of a resource the viewer may not see
+        _resources.Setup(r => r.GetFileAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync((ResourceFile?)null);
+
+        Assert.IsType<NotFoundResult>(await Controller().Cover(5));
+    }
+
+    [Fact]
+    public async Task Cover_WhenTheBytesAreMissing_IsNotFound()
+    {
+        _resources.Setup(r => r.GetFileAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(BookWithCover());
+        _storage.Setup(s => s.OpenReadAsync(It.IsAny<string>(), It.IsAny<CancellationToken>())).ReturnsAsync((Stream?)null);
+
+        Assert.IsType<NotFoundResult>(await Controller().Cover(5));
+    }
+
     private static ServiceResult<Resource> Saved(int id = 5) =>
         ServiceResult<Resource>.Success(new Resource { Id = id, Title = "Дроби", Url = "https://example.com/a" });
 

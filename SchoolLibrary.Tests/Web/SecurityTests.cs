@@ -145,7 +145,7 @@ public class SecurityTests
     }
 
     [Fact]
-    public void ResourcesThatAnonymousVisitorsMayRead_AreOnlyTheListTheDetailsAndTheFile()
+    public void ResourcesThatAnonymousVisitorsMayRead_AreOnlyTheListTheDetailsTheFileAndTheCover()
     {
         var anonymous = typeof(ResourcesController)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
@@ -153,7 +153,8 @@ public class SecurityTests
             .Select(m => m.Name)
             .OrderBy(n => n);
 
-        // Download serves a public resource's file, so the preview and download work for anonymous visitors too
-        Assert.Equal(new[] { "Details", "Download", "Index" }, anonymous);
+        // Download serves a public resource's file, so the preview and download work for anonymous visitors too;
+        // Cover serves a public book's cover for the catalog card, with the same visibility check
+        Assert.Equal(new[] { "Cover", "Details", "Download", "Index" }, anonymous);
     }
 }

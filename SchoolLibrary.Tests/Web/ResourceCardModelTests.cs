@@ -40,6 +40,25 @@ public class ResourceCardModelTests
         Assert.Equal(card.Media.Icon, card.HeaderIcon);
     }
 
+    [Fact]
+    public void CoverVersion_IsTheIdOfTheStoredCover()
+    {
+        var book = NewResource();
+        book.File = new ResourceFile { CoverKey = "covers/3f2a9c.jpg", CoverContentType = "image/jpeg" };
+
+        Assert.Equal("3f2a9c", new ResourceCardModel(book, null, "/").CoverVersion);
+    }
+
+    [Fact]
+    public void CoverVersion_WithoutACover_IsNull()
+    {
+        var pdf = NewResource();
+        pdf.File = new ResourceFile { ContentType = "application/pdf" };
+
+        Assert.Null(new ResourceCardModel(pdf, null, "/").CoverVersion);
+        Assert.Null(new ResourceCardModel(NewResource(), null, "/").CoverVersion);
+    }
+
     [Theory]
     [InlineData("  Иван Вазов ", "Иван Вазов")]
     [InlineData("", null)]

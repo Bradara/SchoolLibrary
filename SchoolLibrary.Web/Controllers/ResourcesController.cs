@@ -327,6 +327,28 @@ namespace SchoolLibrary.Controllers
                 : File(stream, file.ContentType, enableRangeProcessing: true);
         }
 
+        // GET: Resources/Cover/5?v=… — the cover picture of an uploaded book, with the same visibility as the file.
+        // The address changes with the cover (v), so the browser may keep it for a long time.
+        [AllowAnonymous]
+        public async Task<IActionResult> Cover(int id)
+        {
+            var file = await _resources.GetFileAsync(id, Viewer);
+            if (file?.CoverKey == null || file.CoverContentType == null)
+            {
+                return NotFound();
+            }
+
+            var stream = await _storage.OpenReadAsync(file.CoverKey);
+            if (stream == null)
+            {
+                return NotFound();
+            }
+
+            // Private: a cover of a resource hidden from some roles must not be kept by shared caches
+            Response.Headers.CacheControl = "private, max-age=604800";
+            return File(stream, file.CoverContentType);
+        }
+
         // GET: Resources/Create
         [Authorize(Roles = Roles.TeacherOrAdministrator)]
         public async Task<IActionResult> Create(ResourceKind kind = ResourceKind.Lesson)
