@@ -40,6 +40,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IResourceService, ResourceService>();
         services.AddScoped<IResourceImportService, ResourceImportService>();
         services.AddScoped<IResourceUploadService, ResourceUploadService>();
+        services.AddScoped<IResourceCoverService, ResourceCoverService>();
         services.AddScoped<IStatisticsService, StatisticsService>();
         services.AddScoped<IUserService, UserService>();
         services.AddScoped<IResourceDiscoveryService, ResourceDiscoveryService>();

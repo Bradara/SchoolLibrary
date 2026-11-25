@@ -6,6 +6,7 @@ using SchoolLibrary.Data.Constants;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Categories;
 using SchoolLibrary.Services.Common;
+using SchoolLibrary.Services.Resources;
 using SchoolLibrary.Services.Statistics;
 using SchoolLibrary.Services.Users;
 
@@ -21,9 +22,61 @@ public class AdminHomeControllerTests
         statistics.Setup(s => s.GetDashboardAsync()).ReturnsAsync(totals);
         var controller = new SchoolLibrary.Areas.Admin.Controllers.HomeController(statistics.Object).WithUser("admin", Roles.Administrator);
 
-        var result = await controller.Index();
+        var covers = new Mock<IResourceCoverService>();
+        covers.Setup(c => c.CountBooksWithoutCoverAsync(It.IsAny<CancellationToken>())).ReturnsAsync(4);
 
-        Assert.Equal(totals, Assert.IsType<ViewResult>(result).Model);
+        var result = await controller.Index(covers.Object);
+
+        var view = Assert.IsType<ViewResult>(result);
+        Assert.Equal(totals, view.Model);
+        Assert.Equal(4, view.ViewData["BooksWithoutCover"]);
+    }
+}
+
+public class AdminBookCoversControllerTests
+{
+    private readonly Mock<IResourceCoverService> _covers = new();
+
+    private BookCoversController Controller() => new BookCoversController(_covers.Object).WithUser("admin", Roles.Administrator);
+
+    private void Returns(CoverExtractionResult result) =>
+        _covers.Setup(c => c.ExtractMissingAsync(It.IsAny<CancellationToken>())).ReturnsAsync(result);
+
+    [Fact]
+    public async Task Extract_SaysHowManyCoversWereAdded_AndGoesBackToTheDashboard()
+    {
+        Returns(new CoverExtractionResult(3, 2, 1, 0));
+        var controller = Controller();
+
+        var result = Assert.IsType<RedirectToActionResult>(await controller.Extract(CancellationToken.None));
+
+        Assert.Equal(("Index", "Home"), (result.ActionName, result.ControllerName));
+        var message = controller.TempDataText("SuccessMessage");
+        Assert.Contains("Проверени книги: 3", message);
+        Assert.Contains("Добавени обложки: 2", message);
+        Assert.Contains("Без обложка във файла: 1", message);
+    }
+
+    [Fact]
+    public async Task Extract_WithMissingFiles_ShowsAnError()
+    {
+        Returns(new CoverExtractionResult(2, 1, 0, 1));
+        var controller = Controller();
+
+        await controller.Extract(CancellationToken.None);
+
+        Assert.Contains("Липсващ файл: 1", controller.TempDataText("ErrorMessage"));
+    }
+
+    [Fact]
+    public async Task Extract_WhenNothingIsMissing_SaysSo()
+    {
+        Returns(new CoverExtractionResult(0, 0, 0, 0));
+        var controller = Controller();
+
+        await controller.Extract(CancellationToken.None);
+
+        Assert.Equal("Всички книги вече имат обложки.", controller.TempDataText("SuccessMessage"));
     }
 }
 

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using SchoolLibrary.Services.Resources;
 using SchoolLibrary.Services.Statistics;
 
 namespace SchoolLibrary.Areas.Admin.Controllers
@@ -13,8 +14,10 @@ namespace SchoolLibrary.Areas.Admin.Controllers
         }
 
         // GET: Admin
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index([FromServices] IResourceCoverService covers)
         {
+            // The books uploaded before covers were kept; the dashboard offers to take their covers out
+            ViewData["BooksWithoutCover"] = await covers.CountBooksWithoutCoverAsync();
             return View(await _statistics.GetDashboardAsync());
         }
     }

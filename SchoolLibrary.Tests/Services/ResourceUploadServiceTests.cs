@@ -272,51 +272,23 @@ public class ResourceUploadServiceTests
     // A simple in-memory file storage that records what was saved
     // ---------- covers ----------
 
-    private static readonly byte[] JpegCover = { 0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3 };
-
-    // A small EPUB with a title, an author and, optionally, a cover picture
-    private static byte[] Book(byte[]? cover)
-    {
-        var manifest = cover == null ? "" : """<item id="c" href="c.jpg" media-type="image/jpeg" properties="cover-image"/>""";
-        using var buffer = new MemoryStream();
-        using (var zip = new System.IO.Compression.ZipArchive(buffer, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true))
-        {
-            void Add(string path, byte[] bytes)
-            {
-                using var stream = zip.CreateEntry(path).Open();
-                stream.Write(bytes);
-            }
-
-            Add("META-INF/container.xml", Encoding.UTF8.GetBytes(
-                """<container xmlns="urn:oasis:names:tc:opendocument:xmlns:container"><rootfiles><rootfile full-path="content.opf"/></rootfiles></container>"""));
-            Add("content.opf", Encoding.UTF8.GetBytes(
-                $"""<package xmlns="http://www.idpf.org/2007/opf"><metadata xmlns:dc="http://purl.org/dc/elements/1.1/"><dc:title>Книга</dc:title></metadata><manifest>{manifest}</manifest></package>"""));
-            if (cover != null)
-            {
-                Add("c.jpg", cover);
-            }
-        }
-
-        return buffer.ToArray();
-    }
-
     [Fact]
     public async Task UploadAsync_BookWithCover_StoresTheCoverAndRecordsIt()
     {
-        var result = await UploadAsync("book.epub", Book(JpegCover));
+        var result = await UploadAsync("book.epub", TestEpubs.Book(TestEpubs.JpegCover));
 
         Assert.True(result.Succeeded);
         var file = _context.ResourceFiles.Single();
         Assert.StartsWith(ResourceCovers.KeyPrefix, file.CoverKey);
         Assert.EndsWith(".jpg", file.CoverKey);
         Assert.Equal("image/jpeg", file.CoverContentType);
-        Assert.Equal(JpegCover, _storage.Files[file.CoverKey!]);
+        Assert.Equal(TestEpubs.JpegCover, _storage.Files[file.CoverKey!]);
     }
 
     [Fact]
     public async Task UploadAsync_BookWithoutCover_HasNoCover()
     {
-        var result = await UploadAsync("book.epub", Book(cover: null));
+        var result = await UploadAsync("book.epub", TestEpubs.Book(cover: null));
 
         Assert.True(result.Succeeded);
         var file = _context.ResourceFiles.Single();
@@ -350,7 +322,7 @@ public class ResourceUploadServiceTests
         input.GradeLevelIds = new List<int> { grade.Id };
 
         await Assert.ThrowsAsync<DbUpdateException>(() =>
-            new ResourceUploadService(context, _storage).UploadAsync(input, File("book.epub", Book(JpegCover)), ownerId: "teacher-1"));
+            new ResourceUploadService(context, _storage).UploadAsync(input, File("book.epub", TestEpubs.Book(TestEpubs.JpegCover)), ownerId: "teacher-1"));
 
         Assert.Empty(_storage.Files);
     }
