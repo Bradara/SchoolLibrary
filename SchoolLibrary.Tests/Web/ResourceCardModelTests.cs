@@ -19,7 +19,7 @@ public class ResourceCardModelTests
     }
 
     [Fact]
-    public void Subjects_AreInBulgarianOrder_AndTheFirstGivesTheStripe()
+    public void Subjects_AreInBulgarianOrder_AndTheFirstGivesTheHeader()
     {
         var music = new Category { Name = "Музика", Icon = "bi-music-note-beamed", Color = "#9c36b5" };
         var art = new Category { Name = "Изобразително изкуство", Icon = "bi-palette", Color = "#e8590c" };
@@ -27,13 +27,29 @@ public class ResourceCardModelTests
         var card = new ResourceCardModel(NewResource(music, art), null, "/");
 
         Assert.Equal(new[] { "Изобразително изкуство", "Музика" }, card.Subjects.Select(s => s.Name));
-        Assert.Equal("#e8590c", card.StripeColor);
+        Assert.Equal("#e8590c", card.Color);
+        Assert.Equal("bi-palette", card.HeaderIcon);
     }
 
     [Fact]
-    public void WithoutSubjects_TheStripeIsNeutral()
+    public void WithoutSubjects_TheHeaderIsGrayWithTheMediaIcon()
     {
-        Assert.Null(new ResourceCardModel(NewResource(), null, "/").StripeColor);
+        var card = new ResourceCardModel(NewResource(), null, "/");
+
+        Assert.Equal(SubjectAppearance.DefaultColor, card.Color);
+        Assert.Equal(card.Media.Icon, card.HeaderIcon);
+    }
+
+    [Theory]
+    [InlineData("  Иван Вазов ", "Иван Вазов")]
+    [InlineData("", null)]
+    [InlineData("   ", null)]
+    public void Author_IsTrimmed_AndMissingWhenEmpty(string author, string? expected)
+    {
+        var resource = NewResource();
+        resource.Author = author;
+
+        Assert.Equal(expected, new ResourceCardModel(resource, null, "/").Author);
     }
 
     [Fact]
@@ -43,7 +59,8 @@ public class ResourceCardModelTests
 
         var card = new ResourceCardModel(NewResource(odd), null, "/");
 
-        Assert.Equal(SubjectAppearance.DefaultColor, card.StripeColor);
+        Assert.Equal(SubjectAppearance.DefaultColor, card.Color);
+        Assert.Equal(SubjectAppearance.DefaultIcon, card.HeaderIcon);
     }
 
     [Fact]

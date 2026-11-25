@@ -25,8 +25,14 @@ public record ResourceCardModel(Resource Resource, bool? IsFavorite, string Retu
 
     public MediaInfo Media { get; } = ResourceMedia.For(Resource);
 
-    /// <summary>The color of the stripe, or null for the neutral stripe of a resource without a subject.</summary>
-    public string? StripeColor => Subjects.Count > 0 ? SubjectLook.Of(Subjects[0]).Color : null;
+    /// <summary>The color of the header band: the first subject's, or gray for a resource without a subject.</summary>
+    public string Color => Subjects.Count > 0 ? SubjectLook.Of(Subjects[0]).Color : SubjectAppearance.DefaultColor;
+
+    /// <summary>The large faint icon in the header: the first subject's, or the media's without a subject.</summary>
+    public string HeaderIcon => Subjects.Count > 0 ? SubjectLook.Of(Subjects[0]).Icon : Media.Icon;
+
+    /// <summary>The author of the resource, or null when none is given.</summary>
+    public string? Author => string.IsNullOrWhiteSpace(Resource.Author) ? null : Resource.Author.Trim();
 
     /// <summary>Whether only some roles may see the resource (an icon on the card says so).</summary>
     public bool IsRestricted => Resource.Audience != ResourceAudience.Everyone;
