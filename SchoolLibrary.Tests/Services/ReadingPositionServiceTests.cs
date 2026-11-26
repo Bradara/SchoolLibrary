@@ -164,14 +164,91 @@ public class ReadingPositionServiceTests
     }
 
     [Fact]
-    public async Task SaveAsync_RefusesUploadThatIsNotEpub()
+    public async Task SaveAsync_RefusesUploadThatIsNotABookOrPdf()
     {
-        var pdf = await AddUploadAsync("A", "application/pdf");
+        var markdown = await AddUploadAsync("A", "text/markdown");
 
-        var result = await _service.SaveAsync("ivan", pdf.Id, Cfi, 10);
+        var result = await _service.SaveAsync("ivan", markdown.Id, Cfi, 10);
 
         Assert.Equal(ServiceError.NotFound, result.Error);
         Assert.Empty(_context.ReadingPositions);
+    }
+
+    // ---------- PDF ----------
+
+    [Fact]
+    public async Task SaveAsync_StoresPageOfPdf()
+    {
+        var pdf = await AddUploadAsync("A", ReadingPositionService.PdfContentType);
+
+        var result = await _service.SaveAsync("ivan", pdf.Id, " pdfpage(12) ", 30);
+
+        Assert.True(result.Succeeded);
+        var saved = Assert.Single(_context.ReadingPositions);
+        Assert.Equal("pdfpage(12)", saved.Cfi);
+        Assert.Equal(30, saved.Percent);
+    }
+
+    [Theory]
+    [InlineData(Cfi)]
+    [InlineData("pdfpage(0)")]
+    [InlineData("pdfpage(-1)")]
+    [InlineData("pdfpage(012)")]
+    [InlineData("pdfpage(1.5)")]
+    [InlineData("pdfpage(100001)")]
+    [InlineData("pdfpage(12")]
+    [InlineData("page 12")]
+    [InlineData(null)]
+    public async Task SaveAsync_RefusesInvalidPageOfPdf(string? location)
+    {
+        var pdf = await AddUploadAsync("A", ReadingPositionService.PdfContentType);
+
+        var result = await _service.SaveAsync("ivan", pdf.Id, location, 10);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        Assert.Equal("Невалидна страница в документа.", result.Message);
+        Assert.Empty(_context.ReadingPositions);
+    }
+
+    [Fact]
+    public async Task SaveAsync_RefusesPageOfPdfForABook()
+    {
+        var book = await AddUploadAsync("A");
+
+        var result = await _service.SaveAsync("ivan", book.Id, "pdfpage(3)", 10);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        Assert.Empty(_context.ReadingPositions);
+    }
+
+    [Fact]
+    public async Task SaveAsync_PdfAndBooksShareTheLimitOfRecentlyRead()
+    {
+        for (var i = 0; i < ReadingPositionService.MaxBooksPerUser; i++)
+        {
+            var book = await AddUploadAsync("B" + i);
+            _context.ReadingPositions.Add(new ReadingPosition
+            {
+                UserId = "ivan", ResourceId = book.Id, Cfi = Cfi, UpdatedOn = DateTime.UtcNow.AddHours(i - 10)
+            });
+        }
+        await _context.SaveChangesAsync();
+        var pdf = await AddUploadAsync("P", ReadingPositionService.PdfContentType);
+
+        await _service.SaveAsync("ivan", pdf.Id, "pdfpage(2)", 1);
+
+        Assert.Equal(ReadingPositionService.MaxBooksPerUser, _context.ReadingPositions.Count());
+        Assert.Contains(_context.ReadingPositions, p => p.ResourceId == pdf.Id);
+    }
+
+    [Theory]
+    [InlineData("application/epub+zip", true)]
+    [InlineData("application/pdf", true)]
+    [InlineData("text/markdown", false)]
+    [InlineData(null, false)]
+    public void KeepsPosition_OnlyForBooksAndPdf(string? contentType, bool expected)
+    {
+        Assert.Equal(expected, ReadingPositionService.KeepsPosition(contentType));
     }
 
     [Fact]

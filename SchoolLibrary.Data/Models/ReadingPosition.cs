@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations;
 namespace SchoolLibrary.Data.Models
 {
     /// <summary>
-    /// Where a user stopped reading an uploaded book, so the reader continues from there on any device.
+    /// Where a user stopped reading an uploaded book (EPUB) or document (PDF), so the reader continues from there on any device.
     /// One row per user and book; only the most recently read books of a user are kept.
     /// </summary>
     public class ReadingPosition
@@ -17,7 +17,10 @@ namespace SchoolLibrary.Data.Models
         public int ResourceId { get; set; }
         public Resource Resource { get; set; } = null!;
 
-        /// <summary>The EPUB location of the first visible text, for example "epubcfi(/6/4!/4/2/1:0)".</summary>
+        /// <summary>
+        /// Where the reader is: in an EPUB the location of the first visible text, for example "epubcfi(/6/4!/4/2/1:0)";
+        /// in a PDF the page, for example "pdfpage(12)".
+        /// </summary>
         [Required]
         [StringLength(CfiMaxLength, ErrorMessage = "Позицията в книгата е твърде дълга.")]
         public string Cfi { get; set; } = string.Empty;

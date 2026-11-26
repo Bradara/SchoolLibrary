@@ -482,6 +482,20 @@ public class ResourcesControllerTests
     }
 
     [Fact]
+    public async Task Details_OfAPdf_BringsTheSavedPage()
+    {
+        var pdf = Book();
+        pdf.File!.ContentType = ReadingPositionService.PdfContentType;
+        _resources.Setup(r => r.GetDetailsAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(pdf);
+        var saved = new ReadingPositionInfo("pdfpage(12)", 30, DateTime.UtcNow);
+        _reading.Setup(r => r.GetAsync("u1", 5)).ReturnsAsync(saved);
+
+        var result = await Controller().Details(5);
+
+        Assert.Same(saved, Assert.IsType<ResourceDetailsViewModel>(Assert.IsType<ViewResult>(result).Model).ReadingPosition);
+    }
+
+    [Fact]
     public async Task Details_ForAVisitor_DoesNotLookForAReadingPosition()
     {
         _resources.Setup(r => r.GetDetailsAsync(5, It.IsAny<ResourceViewer>())).ReturnsAsync(Book());

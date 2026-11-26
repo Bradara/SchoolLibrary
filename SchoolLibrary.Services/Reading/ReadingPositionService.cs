@@ -12,6 +12,12 @@ public class ReadingPositionService : IReadingPositionService
 
     public const string EpubContentType = EpubLocation.EpubContentType;
 
+    public const string PdfContentType = PdfLocation.PdfContentType;
+
+    /// <summary>Whether the reader of this file type keeps the place where the user stopped.</summary>
+    public static bool KeepsPosition(string? contentType) =>
+        contentType is EpubContentType or PdfContentType;
+
     private readonly ApplicationDbContext _context;
 
     public ReadingPositionService(ApplicationDbContext context)
@@ -28,17 +34,31 @@ public class ReadingPositionService : IReadingPositionService
             .FirstOrDefaultAsync();
     }
 
-    public async Task<ServiceResult> SaveAsync(string userId, int resourceId, string? cfi, int percent)
+    public async Task<ServiceResult> SaveAsync(string userId, int resourceId, string? location, int percent)
     {
-        cfi = cfi?.Trim();
-        if (!EpubLocation.IsValidCfi(cfi))
-        {
-            return ServiceResult.Failure(ServiceError.Invalid, "Невалидна позиция в книгата.");
-        }
+        location = location?.Trim();
 
-        if (!await EpubLocation.IsBookAsync(_context, resourceId))
+        // The kind of the file decides what a valid location looks like
+        var contentType = await _context.ResourceFiles
+            .Where(f => f.ResourceId == resourceId)
+            .Select(f => f.ContentType)
+            .FirstOrDefaultAsync();
+        var valid = contentType switch
+        {
+            EpubContentType => EpubLocation.IsValidCfi(location),
+            PdfContentType => PdfLocation.IsValid(location),
+            _ => (bool?)null
+        };
+
+        if (valid == null)
         {
             return ServiceResult.Failure(ServiceError.NotFound, "Книгата не е намерена.");
+        }
+
+        if (valid == false)
+        {
+            return ServiceResult.Failure(ServiceError.Invalid,
+                contentType == PdfContentType ? "Невалидна страница в документа." : "Невалидна позиция в книгата.");
         }
 
         var position = await _context.ReadingPositions
@@ -49,7 +69,7 @@ public class ReadingPositionService : IReadingPositionService
             _context.ReadingPositions.Add(position);
         }
 
-        position.Cfi = cfi!;
+        position.Cfi = location!;
         position.Percent = Math.Clamp(percent, 0, 100);
         position.UpdatedOn = DateTime.UtcNow;
 

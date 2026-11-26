@@ -2,7 +2,8 @@
 // The file is fetched from the Download endpoint of this site. The pages are drawn one under another, only
 // the ones near the screen (a long document does not fill the memory); each page gets a text layer, so the
 // text can be selected and copied. Zoom (page width, whole page, percent) and dark pages are kept in this
-// browser. Unlike the PDF viewer of the browser in a frame, this works the same on phones.
+// browser. The page the reader stopped at is kept on the server for a signed-in user (any device) and in this
+// browser for a visitor. Unlike the PDF viewer of the browser in a frame, this works the same on phones.
 const stage = document.getElementById("sl-pdf");
 
 const ZOOM_KEY = "sl-pdf-zoom";
@@ -15,6 +16,7 @@ const MAX_CANVAS_PIXELS = 8e6;    // a sharper picture than this costs too much 
 const PAGE_GAP = 12;              // the space around the pages (as in the CSS)
 // Dark pages: pdf.js draws the text and the lines in these colors; pictures stay as they are
 const DARK_COLORS = { background: "#1e1f22", foreground: "#e3e3e3" };
+const SAVE_DELAY = 1500;          // the page is sent to the server when the reader stays on it this long
 
 function load(key, fallback) {
     try {
@@ -52,6 +54,94 @@ function showMessage(text, withLink) {
     if (!message.isConnected) {
         stage.prepend(message);
     }
+}
+
+// "pdfpage(12)" → 12 (the same shape as PdfLocation on the server); 0 when it is not a page
+function pageOf(location) {
+    const match = /^pdfpage\(([1-9][0-9]{0,5})\)$/.exec(location || "");
+    return match ? parseInt(match[1], 10) : 0;
+}
+
+function antiforgeryToken() {
+    const input = document.querySelector('#sl-pdf-token input[name="__RequestVerificationToken"]');
+    return input ? input.value : "";
+}
+
+// --- the page the reader is on: on the server for a signed-in user, in this browser for a visitor ---
+function createSync(pageCount) {
+    const saveUrl = stage.dataset.pdfSaveUrl || "";
+    const key = stage.dataset.pdfKey;
+    const serverLocation = stage.dataset.pdfPosition || "";
+    const status = el("sl-pdf-sync");
+
+    let savedLocation = serverLocation;
+    let pending = null;
+    let timer = 0;
+
+    function showStatus(ok) {
+        if (!status) {
+            return;
+        }
+        const icon = document.createElement("i");
+        icon.className = ok ? "bi bi-cloud-check" : "bi bi-cloud-slash text-warning";
+        status.title = ok
+            ? "Докъдето сте стигнали, се пази в профила ви — продължете от всяко устройство."
+            : "Страницата не можа да се запази в профила ви. Ще опитаме отново.";
+        status.replaceChildren(icon);
+    }
+
+    function send(keepalive) {
+        clearTimeout(timer);
+        if (!pending || !saveUrl || !antiforgeryToken() || pending.location === savedLocation) {
+            return;
+        }
+        const position = pending;
+        const body = new FormData();
+        body.append("location", position.location);
+        body.append("percent", String(position.percent));
+        body.append("__RequestVerificationToken", antiforgeryToken());
+
+        fetch(saveUrl, { method: "POST", body, credentials: "same-origin", keepalive: !!keepalive })
+            .then((response) => {
+                if (response.ok) {
+                    savedLocation = position.location;
+                    if (pending === position) {
+                        pending = null;
+                    }
+                }
+                showStatus(response.ok);
+            })
+            .catch(() => showStatus(false));
+    }
+
+    if (saveUrl) {
+        showStatus(true);
+        // Leaving the page (or switching to another app on a phone) saves at once
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "hidden") {
+                send(true);
+            }
+        });
+        window.addEventListener("pagehide", () => send(true));
+    }
+
+    return {
+        // The server page wins (it may come from another device); a page kept in this browser before is
+        // used once and then moved to the server
+        startPage() {
+            const page = pageOf(serverLocation) || pageOf(load(key, ""));
+            return Math.min(pageCount, Math.max(1, page || 1));
+        },
+        moved(page) {
+            const location = "pdfpage(" + page + ")";
+            save(key, location);
+            if (saveUrl) {
+                pending = { location, percent: Math.round(page / pageCount * 100) };
+                clearTimeout(timer);
+                timer = setTimeout(() => send(false), SAVE_DELAY);
+            }
+        }
+    };
 }
 
 function errorText(error) {
@@ -103,7 +193,9 @@ function createReader(pdfjs, pdf, defaultWidth, defaultHeight) {
     let scale = 1;
     let dark = load(DARK_KEY, "0") === "1";
     let current = 1;
+    let restored = false;          // the saved page is open: from now on every new page is saved
     const rendered = new Set();
+    const sync = createSync(pageCount);
 
     // One box per page, sized before the page is read (every page as big as the first one, corrected
     // when the page itself is read), so that the scroll bar and "go to page" work from the start.
@@ -208,7 +300,11 @@ function createReader(pdfjs, pdf, defaultWidth, defaultHeight) {
     }
 
     function setCurrent(number) {
+        const changed = number !== current;
         current = number;
+        if (restored && changed) {
+            sync.moved(number);
+        }
         if (document.activeElement !== pageInput) {
             pageInput.value = String(number);
         }
@@ -428,6 +524,16 @@ function createReader(pdfjs, pdf, defaultWidth, defaultHeight) {
     showZoom();
     showDark();
     layout();
+
+    // Continue from the saved page
+    const startPage = sync.startPage();
+    if (startPage > 1) {
+        goTo(startPage);
+    }
+    restored = true;
+    if (startPage > 1) {
+        sync.moved(startPage);   // a page from this browser moves to the server (nothing is sent when it is there)
+    }
 
     stage.dispatchEvent(new CustomEvent("sl-pdf-ready", {
         detail: {

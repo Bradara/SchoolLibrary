@@ -46,14 +46,22 @@
         <div class="sl-viewer sl-pdf-reader mb-4">
             <div class="sl-viewer-body d-flex flex-column" style="height: 80vh;">
                 <partial name="_PdfReaderToolbar" />
+                @* Signed in: the page is kept on the server (any device); a visitor keeps it in this browser *@
                 <div id="sl-pdf" class="sl-pdf-stage border rounded flex-grow-1" tabindex="0"
                      aria-label="Страниците на документа"
-                     data-pdf-url="@serveUrl" data-pdfjs-base="@Url.Content("~/lib/pdfjs/")">
+                     data-pdf-url="@serveUrl" data-pdfjs-base="@Url.Content("~/lib/pdfjs/")"
+                     data-pdf-key="pdf-pos-@Model.Resource.Id"
+                     data-pdf-save-url="@(signedIn ? Url.Action("SaveReadingPosition", new { id = Model.Resource.Id }) : null)"
+                     data-pdf-position="@Model.ReadingPosition?.Cfi">
                     <p class="sl-pdf-message text-body-secondary p-3 mb-0" id="sl-pdf-message">
                         Документът се зарежда…
                         <a href="@serveUrl" class="ms-1">Отворете файла</a>, ако не се появи.
                     </p>
                 </div>
+                @if (signedIn)
+                {
+                    <form id="sl-pdf-token" class="d-none">@Html.AntiForgeryToken()</form>
+                }
             </div>
         </div>
     }

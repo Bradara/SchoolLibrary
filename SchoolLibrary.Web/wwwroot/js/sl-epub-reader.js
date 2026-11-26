@@ -304,7 +304,7 @@
             }
             var position = pending;
             var body = new FormData();
-            body.append("cfi", position.cfi);
+            body.append("location", position.cfi);
             body.append("percent", String(position.percent));
             body.append("__RequestVerificationToken", antiforgeryToken());
 

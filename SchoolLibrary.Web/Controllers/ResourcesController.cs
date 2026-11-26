@@ -165,8 +165,8 @@ namespace SchoolLibrary.Controllers
 
             var comments = await _comments.GetForResourceAsync(resource.Id, commentPage);
 
-            // A signed-in reader continues a book where they stopped, on whichever device they read it
-            var readingPosition = IsSignedIn && resource.File?.ContentType == ReadingPositionService.EpubContentType
+            // A signed-in reader continues a book or a PDF where they stopped, on whichever device they read it
+            var readingPosition = IsSignedIn && ReadingPositionService.KeepsPosition(resource.File?.ContentType)
                 ? await _reading.GetAsync(CurrentUserId, resource.Id)
                 : null;
 
@@ -202,12 +202,12 @@ namespace SchoolLibrary.Controllers
             return RedirectToAction(nameof(Details), new { id });
         }
 
-        // POST: Resources/SaveReadingPosition/5 — the EPUB reader saves where the user is (fetch, JSON)
+        // POST: Resources/SaveReadingPosition/5 — the EPUB and PDF readers save where the user is (fetch, JSON)
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SaveReadingPosition(int id, string? cfi, int percent)
+        public async Task<IActionResult> SaveReadingPosition(int id, string? location, int percent)
         {
-            var result = await _reading.SaveAsync(CurrentUserId, id, cfi, percent);
+            var result = await _reading.SaveAsync(CurrentUserId, id, location, percent);
             if (result.Error == ServiceError.NotFound)
             {
                 return NotFound();
