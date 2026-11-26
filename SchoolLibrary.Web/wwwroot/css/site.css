@@ -247,6 +247,13 @@ body.sl-maximized-open {
   max-width: calc(100vw - 2rem);
 }
 
+/* Read aloud: the speed list sits in the button group */
+.sl-epub-speech-rate {
+  width: auto;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+
 /* Bookmarks and search results */
 .sl-epub-panel {
   width: 22rem;

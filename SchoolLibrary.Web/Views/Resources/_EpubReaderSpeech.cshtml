@@ -1,0 +1,18 @@
+@* Read aloud in the EPUB reader. sl-epub-speech.js shows it only when the browser can speak (speechSynthesis);
+   the voices come from the browser and the system, so the text never leaves the browser. *@
+<div class="btn-group d-none" role="group" aria-label="Четене на глас" id="sl-epub-speech">
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-epub-speech-play" aria-pressed="false">
+        <i class="bi bi-volume-up" aria-hidden="true"></i> <span>Чети на глас</span>
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-epub-speech-stop" aria-label="Спри четенето" disabled>
+        <i class="bi bi-stop-fill" aria-hidden="true"></i>
+    </button>
+    <select class="form-select form-select-sm sl-epub-speech-rate" id="sl-epub-speech-rate" aria-label="Скорост на четене">
+        <option value="0.75">0,75×</option>
+        <option value="1" selected>1×</option>
+        <option value="1.25">1,25×</option>
+        <option value="1.5">1,5×</option>
+        <option value="2">2×</option>
+    </select>
+</div>
+<span class="small text-body-secondary d-none" id="sl-epub-speech-status" aria-live="polite"></span>
