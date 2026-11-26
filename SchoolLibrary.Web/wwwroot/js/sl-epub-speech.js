@@ -77,21 +77,49 @@
         return result;
     }
 
-    // The voice for a language ("bg", "bg-BG"): the exact language first, then the system default among them.
-    // Without such a voice the text is not read (a Bulgarian book read by an English voice is unusable).
-    function pickVoice(voices, language) {
-        var wanted = (language || "bg").toLowerCase().replace("_", "-");
-        var prefix = wanted.split("-")[0];
-        var matching = (voices || []).filter(function (voice) {
-            var lang = (voice.lang || "").toLowerCase().replace("_", "-");
+    function normalizeLanguage(language) {
+        return (language || "").trim().toLowerCase().replace(/_/g, "-");
+    }
+
+    function languagePrefix(language) {
+        return normalizeLanguage(language).split("-")[0] || "bg";
+    }
+
+    // The id of a voice that stays the same between visits
+    function voiceId(voice) {
+        return voice.voiceURI || voice.name || "";
+    }
+
+    // The voices for a language ("bg" or "bg-BG"): the exact language first, then by name
+    function voicesFor(voices, language) {
+        var wanted = normalizeLanguage(language) || "bg";
+        var prefix = languagePrefix(wanted);
+        return (voices || []).filter(function (voice) {
+            var lang = normalizeLanguage(voice.lang);
             return lang === prefix || lang.indexOf(prefix + "-") === 0;
+        }).sort(function (a, b) {
+            var exactA = normalizeLanguage(a.lang) === wanted ? 0 : 1;
+            var exactB = normalizeLanguage(b.lang) === wanted ? 0 : 1;
+            return exactA - exactB || String(a.name).localeCompare(String(b.name));
         });
+    }
+
+    // The voice for a language: the chosen one (if it is still there), else the exact language first and the
+    // system default among them. Without a voice for the language the text is not read (a Bulgarian book read
+    // by an English voice is unusable).
+    function pickVoice(voices, language, preferredId) {
+        var matching = voicesFor(voices, language);
         if (!matching.length) {
             return null;
         }
-        var exact = matching.filter(function (voice) {
-            return (voice.lang || "").toLowerCase().replace("_", "-") === wanted;
-        });
+        if (preferredId) {
+            var chosen = matching.filter(function (voice) { return voiceId(voice) === preferredId; })[0];
+            if (chosen) {
+                return chosen;
+            }
+        }
+        var wanted = normalizeLanguage(language) || "bg";
+        var exact = matching.filter(function (voice) { return normalizeLanguage(voice.lang) === wanted; });
         var pool = exact.length ? exact : matching;
         return pool.filter(function (voice) { return voice.default; })[0] || pool[0];
     }
@@ -108,7 +136,7 @@
         if (cyrillic + latin < 20) {
             return language;
         }
-        var isCyrillicLanguage = CYRILLIC_LANGUAGES.indexOf(language.toLowerCase().split(/[-_]/)[0]) >= 0;
+        var isCyrillicLanguage = CYRILLIC_LANGUAGES.indexOf(languagePrefix(language)) >= 0;
         if (cyrillic > latin * 2 && !isCyrillicLanguage) {
             return "bg";
         }
@@ -119,7 +147,12 @@
     }
 
     if (typeof module === "object" && module.exports) {
-        module.exports = { splitSentences: splitSentences, pickVoice: pickVoice, guessLanguage: guessLanguage };
+        module.exports = {
+            splitSentences: splitSentences,
+            voicesFor: voicesFor,
+            pickVoice: pickVoice,
+            guessLanguage: guessLanguage
+        };
     }
     if (typeof document === "undefined") {
         return;
@@ -131,6 +164,7 @@
     }
 
     var RATE_KEY = "sl-epub-speech-rate";
+    var VOICES_KEY = "sl-epub-speech-voices"; // the chosen voice per language: { "bg": "<voice id>" }
     var RATES = ["0.75", "1", "1.25", "1.5", "2"];
     var VOICES_WAIT_MS = 2000;
 
@@ -197,8 +231,11 @@
         var playButton = el("sl-epub-speech-play");
         var stopButton = el("sl-epub-speech-stop");
         var rateSelect = el("sl-epub-speech-rate");
+        var voiceSelect = el("sl-epub-speech-voice");
+        var voiceHint = el("sl-epub-speech-voice-hint");
+        var settingsButton = el("sl-epub-speech-settings-btn");
         var status = el("sl-epub-speech-status");
-        if (!group || !playButton || !stopButton || !rateSelect) {
+        if (!group || !playButton || !stopButton || !rateSelect || !voiceSelect) {
             return;
         }
         group.classList.remove("d-none");
@@ -214,6 +251,39 @@
         var playing = false;
         var generation = 0;     // a cancelled utterance may still report "end": only the current one counts
         var utterance = null;   // kept, so that the browser does not drop it before it ends
+        var voiceList = [];     // the voices offered in the settings for their language
+
+        function chosenVoices() {
+            try {
+                var value = JSON.parse(h.load(VOICES_KEY, "{}"));
+                return value && typeof value === "object" ? value : {};
+            } catch (e) {
+                return {};
+            }
+        }
+
+        function chosenVoiceId(lang) {
+            var id = chosenVoices()[languagePrefix(lang)];
+            return typeof id === "string" ? id : "";
+        }
+
+        function saveChosenVoice(lang, id) {
+            var all = chosenVoices();
+            if (id) {
+                all[languagePrefix(lang)] = id;
+            } else {
+                delete all[languagePrefix(lang)];
+            }
+            h.save(VOICES_KEY, JSON.stringify(all));
+        }
+
+        function languageName(lang) {
+            try {
+                return new Intl.DisplayNames(["bg"], { type: "language" }).of(languagePrefix(lang)) || lang;
+            } catch (e) {
+                return lang;
+            }
+        }
 
         function setStatus(text) {
             if (!status) {
@@ -328,24 +398,28 @@
             return all.slice(first);
         }
 
+        // The language of the text on the page (the language a book declares is often wrong)
+        function languageOf(place, found) {
+            var declared = place.contents.document.documentElement.getAttribute("lang");
+            return guessLanguage(declared, found.map(function (sentence) { return sentence.text; }).join(" "));
+        }
+
         function begin() {
             var place = currentPlace();
             if (!place) {
                 setStatus("Книгата още се зарежда.");
                 return;
             }
-            var doc = place.contents.document;
             var found = sentencesFromPage(place);
             if (!found.length) {
                 setStatus("На тази страница няма текст за четене.");
                 return;
             }
-            language = guessLanguage(doc.documentElement.getAttribute("lang"),
-                found.map(function (sentence) { return sentence.text; }).join(" "));
+            language = languageOf(place, found);
             playButton.disabled = true;
             loadVoices().then(function (voices) {
                 playButton.disabled = false;
-                voice = pickVoice(voices, language);
+                voice = pickVoice(voices, language, chosenVoiceId(language));
                 if (!voice) {
                     setStatus("В този браузър няма глас за езика на книгата (" + language + "). " +
                         "Опитайте с Microsoft Edge или инсталирайте глас в настройките на системата.");
@@ -384,6 +458,57 @@
             h.save(RATE_KEY, rateSelect.value);
             if (playing) {
                 // the new speed takes effect from the start of the current sentence
+                silence();
+                speakCurrent();
+            }
+        });
+
+        // The voices for the language of the page; filled each time the settings open (the page may have changed)
+        function fillVoices() {
+            var lang = language;
+            if (sentences === null) {
+                var place = currentPlace();
+                var found = place ? sentencesFromPage(place) : [];
+                if (place && found.length) {
+                    lang = languageOf(place, found);
+                }
+            }
+            loadVoices().then(function (voices) {
+                voiceList = voicesFor(voices, lang);
+                var chosen = chosenVoiceId(lang);
+                while (voiceSelect.options.length > 1) {
+                    voiceSelect.remove(1);
+                }
+                voiceList.forEach(function (v) {
+                    var option = document.createElement("option");
+                    option.value = voiceId(v);
+                    option.textContent = v.name + (v.localService === false ? " (онлайн)" : "");
+                    voiceSelect.appendChild(option);
+                });
+                voiceSelect.value = voiceList.some(function (v) { return voiceId(v) === chosen; }) ? chosen : "";
+                voiceSelect.disabled = !voiceList.length;
+                voiceSelect.setAttribute("data-language", lang);
+                if (voiceHint) {
+                    voiceHint.textContent = voiceList.length
+                        ? "Език на текста: " + languageName(lang) + "."
+                        : "В този браузър няма глас за езика на текста (" + languageName(lang) + ").";
+                }
+            });
+        }
+
+        if (settingsButton) {
+            settingsButton.addEventListener("show.bs.dropdown", fillVoices);
+        }
+
+        voiceSelect.addEventListener("change", function () {
+            var lang = voiceSelect.getAttribute("data-language") || language;
+            saveChosenVoice(lang, voiceSelect.value);
+            if (sentences === null || languagePrefix(lang) !== languagePrefix(language)) {
+                return;
+            }
+            voice = pickVoice(voiceList, language, voiceSelect.value) || voice;
+            if (playing) {
+                // the new voice takes effect from the start of the current sentence
                 silence();
                 speakCurrent();
             }
