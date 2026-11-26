@@ -42,14 +42,18 @@
 
     if (Model.Resource.File.ContentType == "application/pdf")
     {
-        <div class="sl-viewer mb-4">
-            <div class="sl-viewer-bar">
-                <button type="button" class="btn btn-sm btn-outline-secondary ms-auto sl-viewer-toggle"
-                        aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
-            </div>
-            <div class="sl-viewer-body sl-embed" style="height: 80vh;">
-                <iframe src="@serveUrl" title="@Model.Resource.Title" loading="lazy"
-                        style="width: 100%; height: 100%; border: 0;"></iframe>
+        @* pdf.js draws the pages here (sl-pdf-reader.js): the same on every browser, also on phones *@
+        <div class="sl-viewer sl-pdf-reader mb-4">
+            <div class="sl-viewer-body d-flex flex-column" style="height: 80vh;">
+                <partial name="_PdfReaderToolbar" />
+                <div id="sl-pdf" class="sl-pdf-stage border rounded flex-grow-1" tabindex="0"
+                     aria-label="Страниците на документа"
+                     data-pdf-url="@serveUrl" data-pdfjs-base="@Url.Content("~/lib/pdfjs/")">
+                    <p class="sl-pdf-message text-body-secondary p-3 mb-0" id="sl-pdf-message">
+                        Документът се зарежда…
+                        <a href="@serveUrl" class="ms-1">Отворете файла</a>, ако не се появи.
+                    </p>
+                </div>
             </div>
         </div>
     }
@@ -262,6 +266,10 @@ else
     @if ((Model.Resource.Kind == ResourceKind.Upload && Model.Resource.File != null) || Model.Resource.IsEmbeddable)
     {
         <script src="~/js/sl-maximize.js" asp-append-version="true"></script>
+    }
+    @if (Model.Resource.Kind == ResourceKind.Upload && Model.Resource.File?.ContentType == "application/pdf")
+    {
+        <script type="module" src="~/js/sl-pdf-reader.js" asp-append-version="true"></script>
     }
     @if (Model.Resource.Kind == ResourceKind.Upload && Model.Resource.File?.ContentType == "application/epub+zip")
     {

@@ -1,0 +1,40 @@
+@* The toolbar of the PDF reader. sl-pdf-reader.js enables it when the document is open. *@
+<div class="sl-pdf-toolbar d-flex flex-wrap align-items-center gap-2 mb-2">
+    <div class="input-group input-group-sm sl-pdf-pages" role="group" aria-label="Страници">
+        <button type="button" class="btn btn-outline-secondary" id="sl-pdf-prev" aria-label="Предишна страница" disabled>
+            <i class="bi bi-chevron-up" aria-hidden="true"></i>
+        </button>
+        <input type="number" class="form-control text-center" id="sl-pdf-page" min="1" value="1"
+               inputmode="numeric" aria-label="Номер на страницата" disabled>
+        <span class="input-group-text" id="sl-pdf-count">/ –</span>
+        <button type="button" class="btn btn-outline-secondary" id="sl-pdf-next" aria-label="Следваща страница" disabled>
+            <i class="bi bi-chevron-down" aria-hidden="true"></i>
+        </button>
+    </div>
+    <div class="input-group input-group-sm sl-pdf-zoom" role="group" aria-label="Мащаб">
+        <button type="button" class="btn btn-outline-secondary" id="sl-pdf-zoom-out" aria-label="Намали" disabled>
+            <i class="bi bi-zoom-out" aria-hidden="true"></i>
+        </button>
+        <select class="form-select" id="sl-pdf-zoom" aria-label="Мащаб" disabled>
+            <option value="width" selected>По ширина</option>
+            <option value="page">Цяла страница</option>
+            <option value="0.5">50%</option>
+            <option value="0.75">75%</option>
+            <option value="1">100%</option>
+            <option value="1.25">125%</option>
+            <option value="1.5">150%</option>
+            <option value="2">200%</option>
+            <option value="3">300%</option>
+        </select>
+        <button type="button" class="btn btn-outline-secondary" id="sl-pdf-zoom-in" aria-label="Увеличи" disabled>
+            <i class="bi bi-zoom-in" aria-hidden="true"></i>
+        </button>
+    </div>
+    <button type="button" class="btn btn-sm btn-outline-secondary" id="sl-pdf-dark" aria-pressed="false"
+            aria-label="Тъмни страници"
+            title="Светъл текст на тъмен фон (снимките остават същите)" disabled>
+        <i class="bi bi-moon" aria-hidden="true"></i> <span class="d-none d-sm-inline">Тъмни страници</span>
+    </button>
+    <button type="button" class="btn btn-sm btn-outline-secondary ms-auto sl-viewer-toggle"
+            aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
+</div>

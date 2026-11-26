@@ -169,6 +169,7 @@
     var VOICES_WAIT_MS = 2000;
     var HIGHLIGHT_NAME = "sl-speech";
     var HIGHLIGHT_STYLE_ID = "sl-speech-style";
+    var QUEUE_AHEAD = 2;         // sentences given to the browser ahead of the one being read
     var MAX_EMPTY_CHAPTERS = 20; // chapters without text (pictures) skipped one after another
 
     area.addEventListener("sl-epub-ready", function (event) {
@@ -253,7 +254,8 @@
         var voice = null;
         var playing = false;
         var generation = 0;     // a cancelled utterance may still report "end": only the current one counts
-        var utterance = null;   // kept, so that the browser does not drop it before it ends
+        var utterances = [];    // kept, so that the browser does not drop them before they end
+        var queuedUpTo = 0;     // the next sentence to put in the browser's queue
         var voiceList = [];     // the voices offered in the settings for their language
         var advancingTo = -1;   // the next chapter being opened by the reading (not a jump by the reader)
         var book = reader.book;
@@ -318,7 +320,7 @@
 
         function silence() {
             generation++;
-            utterance = null;
+            utterances = [];
             synth.cancel();
         }
 
@@ -519,16 +521,49 @@
             }
             showSentence(sentences[index]);
             var mine = ++generation;
-            var u = new window.SpeechSynthesisUtterance(sentences[index].text);
+            queuedUpTo = index;
+            fillQueue(mine);
+        }
+
+        // The next sentences wait in the browser's own queue, so that each one starts as soon as the one before
+        // ends (one at a time, the voice starts anew after every sentence and the pauses are long, more so with
+        // the online voices). The mark moves when a sentence really starts.
+        function fillQueue(mine) {
+            while (queuedUpTo < sentences.length && queuedUpTo <= index + QUEUE_AHEAD) {
+                enqueue(queuedUpTo, mine);
+                queuedUpTo++;
+            }
+        }
+
+        function enqueue(i, mine) {
+            var u = new window.SpeechSynthesisUtterance(sentences[i].text);
             u.lang = voice.lang || language;
             u.voice = voice;
             u.rate = rate();
+            u.onstart = function () {
+                if (mine !== generation) {
+                    return;
+                }
+                index = i;
+                var sentence = sentences[i];
+                if (!sentence.startNode.isConnected) {
+                    // the chapter was rendered again (font, settings): start anew from this sentence
+                    silence();
+                    speakCurrent();
+                    return;
+                }
+                showSentence(sentence);
+            };
             u.onend = function () {
                 if (mine !== generation) {
                     return;
                 }
-                index++;
-                speakCurrent();
+                index = i + 1;
+                if (index >= sentences.length) {
+                    nextChapter(0);
+                    return;
+                }
+                fillQueue(mine);
             };
             u.onerror = function (e) {
                 if (mine !== generation || e.error === "interrupted" || e.error === "canceled") {
@@ -538,7 +573,10 @@
                     ? "Браузърът не позволи четенето. Натиснете „Чети на глас“ отново."
                     : "Четенето спря поради грешка в браузъра.");
             };
-            utterance = u;
+            utterances.push(u);
+            if (utterances.length > QUEUE_AHEAD + 4) {
+                utterances.shift();
+            }
             synth.speak(u);
         }
 

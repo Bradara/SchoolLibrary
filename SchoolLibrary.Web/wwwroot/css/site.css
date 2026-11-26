@@ -247,6 +247,142 @@ body.sl-maximized-open {
   max-width: calc(100vw - 2rem);
 }
 
+/* ---------- PDF reader (pdf.js) ---------- */
+.sl-pdf-pages {
+  width: auto;
+  flex-wrap: nowrap;
+}
+
+.sl-pdf-pages .form-control {
+  width: 4.5rem;
+  flex: 0 0 auto;
+}
+
+.sl-pdf-zoom {
+  width: auto;
+  flex-wrap: nowrap;
+}
+
+.sl-pdf-zoom .form-select {
+  width: auto;
+  flex: 0 0 auto;
+}
+
+/* the pages one under another; a page wider than the reader scrolls sideways */
+.sl-pdf-stage {
+  position: relative;
+  min-height: 0;
+  overflow: auto;
+  padding: 12px;
+  background: var(--bs-tertiary-bg);
+  overscroll-behavior: contain;
+}
+
+.sl-pdf-stage:focus-visible {
+  outline: 2px solid var(--bs-link-color);
+  outline-offset: -2px;
+}
+
+.sl-pdf-page {
+  position: relative;
+  margin: 0 auto 12px;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+}
+
+.sl-pdf-page:last-child {
+  margin-bottom: 0;
+}
+
+.sl-pdf-stage.is-dark .sl-pdf-page,
+.sl-pdf-page.is-dark {
+  background: #1e1f22;
+}
+
+.sl-pdf-page.has-error {
+  background: repeating-linear-gradient(45deg, var(--bs-secondary-bg), var(--bs-secondary-bg) 10px,
+    var(--bs-tertiary-bg) 10px, var(--bs-tertiary-bg) 20px);
+}
+
+/* stretched while a new picture is drawn after a zoom */
+.sl-pdf-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The text layer of pdf.js (from its pdf_viewer.css): transparent text over the picture, for selecting
+   and copying */
+.sl-pdf-page .textLayer {
+  position: absolute;
+  inset: 0;
+  overflow: clip;
+  opacity: 1;
+  line-height: 1;
+  text-align: initial;
+  letter-spacing: normal;
+  word-spacing: normal;
+  text-size-adjust: none;
+  forced-color-adjust: none;
+  transform-origin: 0 0;
+  caret-color: CanvasText;
+  z-index: 0;
+  --min-font-size: 1;
+  --text-scale-factor: calc(var(--total-scale-factor) * var(--min-font-size));
+  --min-font-size-inv: calc(1 / var(--min-font-size));
+}
+
+.sl-pdf-page .textLayer :is(span, br) {
+  color: transparent;
+  position: absolute;
+  white-space: pre;
+  cursor: text;
+  transform-origin: 0% 0%;
+  user-select: text;
+}
+
+.sl-pdf-page .textLayer > :not(.markedContent),
+.sl-pdf-page .textLayer .markedContent span:not(.markedContent) {
+  z-index: 1;
+  --font-height: 0;
+  font-size: calc(var(--text-scale-factor) * var(--font-height));
+  --scale-x: 1;
+  --rotate: 0deg;
+  transform: rotate(var(--rotate)) scaleX(var(--scale-x)) scale(var(--min-font-size-inv));
+}
+
+.sl-pdf-page .textLayer .markedContent {
+  display: contents;
+}
+
+.sl-pdf-page .textLayer span[role="img"] {
+  user-select: none;
+  cursor: default;
+}
+
+.sl-pdf-page .textLayer ::selection {
+  background: rgba(0, 0, 255, .25);
+  background: color-mix(in srgb, AccentColor, transparent 50%);
+  color: transparent;
+}
+
+.sl-pdf-page .textLayer br::selection {
+  background: transparent;
+}
+
+.sl-pdf-page .textLayer .endOfContent {
+  display: block;
+  position: absolute;
+  inset: 100% 0 0;
+  z-index: 0;
+  cursor: default;
+  user-select: none;
+}
+
+.sl-pdf-page .textLayer.selecting .endOfContent {
+  top: 0;
+}
+
 /* Bookmarks and search results */
 .sl-epub-panel {
   width: 22rem;

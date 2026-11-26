@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using SchoolLibrary.Data;
+using SchoolLibrary.Extensions;
 using SchoolLibrary.Middleware;
 using SchoolLibrary.Data.Seeding;
 using SchoolLibrary.Data.Models;
@@ -131,7 +132,7 @@ namespace SchoolLibrary
             {
                 app.UseHttpsRedirection();
             }
-            app.UseStaticFiles();
+            app.UseStaticFiles(new StaticFileOptions { ContentTypeProvider = StaticFileContentTypes.Create() });
 
             // In Production every cookie (sign-in, antiforgery, TempData) gets the Secure flag, so browsers never
             // send it over plain HTTP. Behind nginx the request is HTTPS (see UseForwardedHeaders above).
