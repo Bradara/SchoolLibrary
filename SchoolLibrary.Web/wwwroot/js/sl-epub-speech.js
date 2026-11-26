@@ -258,6 +258,8 @@
         var advancingTo = -1;   // the next chapter being opened by the reading (not a jump by the reader)
         var book = reader.book;
         var cfiTool = typeof ePub !== "undefined" && ePub.CFI ? new ePub.CFI() : null;
+        // The start of the last sentence read (CFI), kept in this browser for each book
+        var SENTENCE_KEY = h.positionKey + "-speech";
 
         function chosenVoices() {
             try {
@@ -373,7 +375,13 @@
             return range;
         }
 
-        // Turns to the page where the sentence starts, when it is not on the screen
+        function isOnPage(cfi, location) {
+            return cfiTool.compare(cfi, location.start.cfi) >= 0 && cfiTool.compare(cfi, location.end.cfi) <= 0;
+        }
+
+        // Remembers where the sentence starts (to continue from it after the page is opened again) and turns to
+        // its page, when no part of it is on the screen. A sentence that starts on the previous page and goes on
+        // on this one keeps this page (no turning back and forth).
         function followPage(range) {
             var contents = contentsOf(section);
             var location = rendition.currentLocation();
@@ -382,16 +390,40 @@
             }
             var start = range.cloneRange();
             start.collapse(true);
+            var end = range.cloneRange();
+            end.collapse(false);
             var cfi;
             try {
                 cfi = contents.cfiFromRange(start);
-                if (cfiTool.compare(cfi, location.start.cfi) >= 0 && cfiTool.compare(cfi, location.end.cfi) <= 0) {
+                h.save(SENTENCE_KEY, cfi);
+                var startsAfterPage = cfiTool.compare(cfi, location.end.cfi) > 0;
+                var endsBeforePage = cfiTool.compare(contents.cfiFromRange(end), location.start.cfi) < 0;
+                if (!startsAfterPage && !endsBeforePage) {
                     return;
                 }
             } catch (e) {
                 return;
             }
             rendition.display(cfi).catch(function () { /* the reading goes on without turning the page */ });
+        }
+
+        // The last sentence read, when it is on the page on the screen (the saved reading position opens that
+        // page). Elsewhere the reader has moved on, and the reading starts from the top of the page.
+        function savedSentence(place) {
+            var cfi = h.load(SENTENCE_KEY, "");
+            var location = place.location;
+            if (!cfi || !cfiTool || !location || !location.start || !location.end) {
+                return null;
+            }
+            try {
+                if (!isOnPage(cfi, location)) {
+                    return null;
+                }
+                var range = rendition.getRange(cfi);
+                return range && range.startContainer.ownerDocument === place.contents.document ? range : null;
+            } catch (e) {
+                return null;
+            }
         }
 
         function showSentence(sentence) {
@@ -440,6 +472,7 @@
             var current = book.spine.get(section);
             var next = current && typeof current.next === "function" ? current.next() : null;
             if (!next) {
+                h.save(SENTENCE_KEY, "");
                 stop("Краят на книгата.");
                 return;
             }
@@ -528,30 +561,30 @@
             } catch (e) {
                 range = null;
             }
-            return { contents: contents, range: range, index: startLocation.index };
+            return { contents: contents, range: range, index: startLocation.index, location: location };
         }
 
         // All the sentences of the chapter and the one the page starts in
+        // (or the last sentence read, when it is on this page)
         function sentencesFromPage(place) {
             var all = splitSentences(textPieces(place.contents.document));
-            if (!place.range) {
-                return { all: all, first: 0, rest: all };
-            }
-            var first = 0;
-            for (var i = 0; i < all.length; i++) {
-                var after;
-                try {
-                    after = place.range.comparePoint(all[i].endNode, all[i].endOffset) > 0;
-                } catch (e) {
-                    after = true;
-                }
-                if (after) {
-                    first = i;
-                    break;
-                }
-                first = i + 1;
-            }
+            var from = savedSentence(place) || place.range;
+            var first = from ? firstEndingAfter(all, from) : 0;
             return { all: all, first: first, rest: all.slice(first) };
+        }
+
+        // The first sentence that ends after the start of the range (the sentence the range starts in)
+        function firstEndingAfter(all, range) {
+            for (var i = 0; i < all.length; i++) {
+                try {
+                    if (range.comparePoint(all[i].endNode, all[i].endOffset) > 0) {
+                        return i;
+                    }
+                } catch (e) {
+                    return i;
+                }
+            }
+            return all.length;
         }
 
         // The language of the text on the page (the language a book declares is often wrong)
