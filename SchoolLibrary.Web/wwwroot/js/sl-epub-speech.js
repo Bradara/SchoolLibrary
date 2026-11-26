@@ -1,8 +1,8 @@
 // Read aloud in the EPUB reader. Waits for sl-epub-reader.js to open the book ("sl-epub-ready").
 // Uses the speech of the browser (speechSynthesis): the voices come from the browser and the system,
-// nothing is sent to this site. Reads from the current page to the end of the chapter, one sentence at a time
-// (Chrome stops a long text after about 15 seconds). Pause cancels the speech and remembers the sentence,
-// because pause/resume of the browsers is unreliable (Android).
+// nothing is sent to this site. Reads from the current page on, one sentence at a time (Chrome stops a long
+// text after about 15 seconds), marks the sentence, turns the pages and goes on with the next chapter.
+// Pause cancels the speech and remembers the sentence, because pause/resume of the browsers is unreliable (Android).
 (function () {
     "use strict";
 
@@ -167,6 +167,9 @@
     var VOICES_KEY = "sl-epub-speech-voices"; // the chosen voice per language: { "bg": "<voice id>" }
     var RATES = ["0.75", "1", "1.25", "1.5", "2"];
     var VOICES_WAIT_MS = 2000;
+    var HIGHLIGHT_NAME = "sl-speech";
+    var HIGHLIGHT_STYLE_ID = "sl-speech-style";
+    var MAX_EMPTY_CHAPTERS = 20; // chapters without text (pictures) skipped one after another
 
     area.addEventListener("sl-epub-ready", function (event) {
         start(event.detail);
@@ -252,6 +255,9 @@
         var generation = 0;     // a cancelled utterance may still report "end": only the current one counts
         var utterance = null;   // kept, so that the browser does not drop it before it ends
         var voiceList = [];     // the voices offered in the settings for their language
+        var advancingTo = -1;   // the next chapter being opened by the reading (not a jump by the reader)
+        var book = reader.book;
+        var cfiTool = typeof ePub !== "undefined" && ePub.CFI ? new ePub.CFI() : null;
 
         function chosenVoices() {
             try {
@@ -316,19 +322,169 @@
 
         function stop(message) {
             silence();
+            clearHighlight();
             playing = false;
             sentences = null;
             index = 0;
             section = -1;
+            advancingTo = -1;
             setStatus(message || "");
             render();
         }
 
-        function speakCurrent() {
-            if (!sentences || index >= sentences.length) {
-                stop("Краят на главата.");
+        // --- the sentence being read: marked in the book, and the page follows it ---
+
+        function contentsOf(sectionIndex) {
+            return rendition.getContents().filter(function (c) {
+                return c.sectionIndex === sectionIndex;
+            })[0] || null;
+        }
+
+        // The mark uses the CSS Custom Highlight API: the chapter's DOM is not changed, so the search, the
+        // highlights and the positions (CFI) of the reader stay as they are. Without the API nothing is marked.
+        function addHighlightStyle(doc) {
+            if (!doc || doc.getElementById(HIGHLIGHT_STYLE_ID)) {
                 return;
             }
+            var style = doc.createElement("style");
+            style.id = HIGHLIGHT_STYLE_ID;
+            style.textContent = "::highlight(" + HIGHLIGHT_NAME + ") { background-color: rgba(255, 212, 0, 0.4); }";
+            (doc.head || doc.documentElement).appendChild(style);
+        }
+
+        function highlightsOf(doc) {
+            var view = doc && doc.defaultView;
+            return view && view.CSS && view.CSS.highlights && typeof view.Highlight === "function" ? view : null;
+        }
+
+        function clearHighlight() {
+            rendition.getContents().forEach(function (c) {
+                var view = highlightsOf(c.document);
+                if (view) {
+                    view.CSS.highlights.delete(HIGHLIGHT_NAME);
+                }
+            });
+        }
+
+        function rangeOf(sentence) {
+            var range = sentence.startNode.ownerDocument.createRange();
+            range.setStart(sentence.startNode, sentence.startOffset);
+            range.setEnd(sentence.endNode, sentence.endOffset);
+            return range;
+        }
+
+        // Turns to the page where the sentence starts, when it is not on the screen
+        function followPage(range) {
+            var contents = contentsOf(section);
+            var location = rendition.currentLocation();
+            if (!cfiTool || !contents || !location || !location.start || !location.end) {
+                return;
+            }
+            var start = range.cloneRange();
+            start.collapse(true);
+            var cfi;
+            try {
+                cfi = contents.cfiFromRange(start);
+                if (cfiTool.compare(cfi, location.start.cfi) >= 0 && cfiTool.compare(cfi, location.end.cfi) <= 0) {
+                    return;
+                }
+            } catch (e) {
+                return;
+            }
+            rendition.display(cfi).catch(function () { /* the reading goes on without turning the page */ });
+        }
+
+        function showSentence(sentence) {
+            var range;
+            try {
+                range = rangeOf(sentence);
+            } catch (e) {
+                return;
+            }
+            var view = highlightsOf(sentence.startNode.ownerDocument);
+            if (view) {
+                view.CSS.highlights.set(HIGHLIGHT_NAME, new view.Highlight(range));
+            }
+            followPage(range);
+        }
+
+        // A change of the font or the text settings renders the chapter again: its text nodes are new, so the
+        // sentences are split again and the reading goes on from the same sentence
+        function refreshSentences() {
+            var current = sentences[index];
+            if (current.startNode.isConnected && current.endNode.isConnected) {
+                return true;
+            }
+            var contents = contentsOf(section);
+            if (!contents) {
+                return false;
+            }
+            var all = splitSentences(textPieces(contents.document));
+            var best = -1;
+            for (var i = 0; i < all.length; i++) {
+                if (all[i].text === current.text && (best < 0 || Math.abs(i - index) < Math.abs(best - index))) {
+                    best = i;
+                }
+            }
+            if (best < 0) {
+                return false;
+            }
+            sentences = all;
+            index = best;
+            addHighlightStyle(contents.document);
+            return true;
+        }
+
+        // The end of a chapter: the next chapter of the reading order (chapters without text are skipped)
+        function nextChapter(skipped) {
+            var current = book.spine.get(section);
+            var next = current && typeof current.next === "function" ? current.next() : null;
+            if (!next) {
+                stop("Краят на книгата.");
+                return;
+            }
+            var mine = ++generation;
+            advancingTo = next.index;
+            rendition.display(next.href).then(function () {
+                if (mine !== generation) {
+                    return; // paused or stopped meanwhile: "Продължи" goes on from here
+                }
+                advancingTo = -1;
+                section = next.index;
+                var contents = contentsOf(section);
+                var all = contents ? splitSentences(textPieces(contents.document)) : [];
+                if (!all.length) {
+                    if (skipped < MAX_EMPTY_CHAPTERS) {
+                        nextChapter(skipped + 1);
+                    } else {
+                        stop("Няма повече текст за четене.");
+                    }
+                    return;
+                }
+                addHighlightStyle(contents.document);
+                sentences = all;
+                index = 0;
+                speakCurrent();
+            }).catch(function () {
+                if (mine === generation) {
+                    stop("Следващата глава не можа да се отвори.");
+                }
+            });
+        }
+
+        function speakCurrent() {
+            if (!sentences) {
+                return;
+            }
+            if (index >= sentences.length) {
+                nextChapter(0);
+                return;
+            }
+            if (!refreshSentences()) {
+                stop("Текстът на страницата се промени. Натиснете „Чети на глас“ отново.");
+                return;
+            }
+            showSentence(sentences[index]);
             var mine = ++generation;
             var u = new window.SpeechSynthesisUtterance(sentences[index].text);
             u.lang = voice.lang || language;
@@ -375,11 +531,11 @@
             return { contents: contents, range: range, index: startLocation.index };
         }
 
-        // The sentences from the one the page starts in to the end of the chapter
+        // All the sentences of the chapter and the one the page starts in
         function sentencesFromPage(place) {
             var all = splitSentences(textPieces(place.contents.document));
             if (!place.range) {
-                return all;
+                return { all: all, first: 0, rest: all };
             }
             var first = 0;
             for (var i = 0; i < all.length; i++) {
@@ -395,7 +551,7 @@
                 }
                 first = i + 1;
             }
-            return all.slice(first);
+            return { all: all, first: first, rest: all.slice(first) };
         }
 
         // The language of the text on the page (the language a book declares is often wrong)
@@ -411,11 +567,11 @@
                 return;
             }
             var found = sentencesFromPage(place);
-            if (!found.length) {
+            if (!found.rest.length) {
                 setStatus("На тази страница няма текст за четене.");
                 return;
             }
-            language = languageOf(place, found);
+            language = languageOf(place, found.rest);
             playButton.disabled = true;
             loadVoices().then(function (voices) {
                 playButton.disabled = false;
@@ -426,8 +582,9 @@
                     return;
                 }
                 silence();
-                sentences = found;
-                index = 0;
+                addHighlightStyle(place.contents.document);
+                sentences = found.all;
+                index = found.first;
                 section = place.index;
                 playing = true;
                 setStatus("");
@@ -468,7 +625,7 @@
             var lang = language;
             if (sentences === null) {
                 var place = currentPlace();
-                var found = place ? sentencesFromPage(place) : [];
+                var found = place ? sentencesFromPage(place).rest : [];
                 if (place && found.length) {
                     lang = languageOf(place, found);
                 }
@@ -514,11 +671,17 @@
             }
         });
 
-        // Another chapter (the table of contents, a bookmark, a search result) ends the reading of this one
+        // Another chapter chosen by the reader (the table of contents, a bookmark, a search result) ends the reading;
+        // the next chapter opened by the reading itself does not
         rendition.on("relocated", function (location) {
-            if (sentences !== null && location && location.start && location.start.index !== section) {
+            var at = location && location.start ? location.start.index : -1;
+            if (sentences !== null && at !== section && at !== advancingTo) {
                 stop("");
             }
+        });
+
+        rendition.hooks.content.register(function (contents) {
+            addHighlightStyle(contents.document);
         });
 
         // Some browsers go on speaking after the page is left
