@@ -99,7 +99,7 @@
                     <partial name="_EpubReaderBookmarks" />
                     <partial name="_EpubReaderNotes" />
                     <partial name="_EpubReaderSearch" />
-                    <partial name="_EpubReaderSpeech" />
+                    <partial name="_ReaderSpeech" model="@("sl-epub-speech")" />
                     <span class="small text-body-secondary" id="sl-epub-sync" aria-live="polite"></span>
                     <button type="button" class="btn btn-sm btn-outline-secondary ms-auto sl-viewer-toggle"
                             aria-label="На цял екран" aria-pressed="false"><i class="bi bi-arrows-fullscreen"></i></button>
@@ -277,6 +277,8 @@ else
     }
     @if (Model.Resource.Kind == ResourceKind.Upload && Model.Resource.File?.ContentType == "application/pdf")
     {
+        <script src="~/js/sl-speech.js" asp-append-version="true"></script>
+        <script src="~/js/sl-pdf-speech.js" asp-append-version="true"></script>
         <script type="module" src="~/js/sl-pdf-reader.js" asp-append-version="true"></script>
     }
     @if (Model.Resource.Kind == ResourceKind.Upload && Model.Resource.File?.ContentType == "application/epub+zip")
@@ -285,6 +287,7 @@ else
         <script src="~/lib/epubjs/epub.min.js"></script>
         <script src="~/js/sl-epub-reader.js" asp-append-version="true"></script>
         <script src="~/js/sl-epub-highlights.js" asp-append-version="true"></script>
+        <script src="~/js/sl-speech.js" asp-append-version="true"></script>
         <script src="~/js/sl-epub-speech.js" asp-append-version="true"></script>
     }
 }

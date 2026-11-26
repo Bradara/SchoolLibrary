@@ -195,6 +195,7 @@ function createReader(pdfjs, pdf, defaultWidth, defaultHeight) {
     let current = 1;
     let restored = false;          // the saved page is open: from now on every new page is saved
     const rendered = new Set();
+    const drawnListeners = [];     // called with the page number when a page (and its text layer) is drawn
     const sync = createSync(pageCount);
 
     // One box per page, sized before the page is read (every page as big as the first one, corrected
@@ -370,13 +371,14 @@ function createReader(pdfjs, pdf, defaultWidth, defaultHeight) {
                 return;
             }
 
-            const textContent = slot.text || (slot.text = await slot.page.getTextContent());
+            const textContent = await textOf(slot);
             if (token !== slot.token) {
                 return;
             }
             const textDiv = document.createElement("div");
             textDiv.className = "textLayer";
-            await new pdfjs.TextLayer({ textContentSource: textContent, container: textDiv, viewport }).render();
+            const textLayer = new pdfjs.TextLayer({ textContentSource: textContent, container: textDiv, viewport });
+            await textLayer.render();
             if (token !== slot.token) {
                 return;
             }
@@ -386,8 +388,11 @@ function createReader(pdfjs, pdf, defaultWidth, defaultHeight) {
             slot.element.classList.toggle("is-dark", drawnDark);
             slot.drawnScale = scale;
             slot.drawnDark = drawnDark;
+            // one span for each text item of the page, in the same order (read aloud marks the sentence in them)
+            slot.textDivs = textLayer.textDivs;
             rendered.add(slot);
             releaseFarPages();
+            drawnListeners.forEach((listener) => listener(slot.number));
         } catch (error) {
             if (error && error.name === "RenderingCancelledException") {
                 return;
@@ -396,6 +401,17 @@ function createReader(pdfjs, pdf, defaultWidth, defaultHeight) {
             slot.element.classList.add("has-error");
             slot.element.setAttribute("aria-label", "Страница " + slot.number + " не можа да се покаже");
         }
+    }
+
+    // The text of a page (read once and kept: the text layer and read aloud both use it)
+    async function textOf(slot) {
+        if (!slot.text) {
+            if (!slot.page) {
+                slot.page = await pdf.getPage(slot.number);
+            }
+            slot.text = await slot.page.getTextContent();
+        }
+        return slot.text;
     }
 
     // Only the pages closest to the current one stay drawn
@@ -411,6 +427,7 @@ function createReader(pdfjs, pdf, defaultWidth, defaultHeight) {
                 slot.task = null;
             }
             slot.element.replaceChildren();
+            slot.textDivs = null;
             slot.drawnScale = 0;
             rendered.delete(slot);
         }
@@ -458,13 +475,19 @@ function createReader(pdfjs, pdf, defaultWidth, defaultHeight) {
         control.disabled = false;
     });
 
-    prevButton.addEventListener("click", () => goTo(current - 1));
-    nextButton.addEventListener("click", () => goTo(current + 1));
-    pageInput.addEventListener("change", () => goTo(parseInt(pageInput.value, 10) || current));
+    // A page chosen by the reader (not the scrolling) is told to read aloud, which stops there
+    function jump(number) {
+        goTo(number);
+        stage.dispatchEvent(new CustomEvent("sl-pdf-jump", { detail: { page: current } }));
+    }
+
+    prevButton.addEventListener("click", () => jump(current - 1));
+    nextButton.addEventListener("click", () => jump(current + 1));
+    pageInput.addEventListener("change", () => jump(parseInt(pageInput.value, 10) || current));
     pageInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
             e.preventDefault();
-            goTo(parseInt(pageInput.value, 10) || current);
+            jump(parseInt(pageInput.value, 10) || current);
         }
     });
     pageInput.addEventListener("blur", () => { pageInput.value = String(current); });
@@ -485,9 +508,9 @@ function createReader(pdfjs, pdf, defaultWidth, defaultHeight) {
             return;
         }
         if (e.key === "ArrowLeft") {
-            goTo(current - 1);
+            jump(current - 1);
         } else if (e.key === "ArrowRight") {
-            goTo(current + 1);
+            jump(current + 1);
         }
     });
 
@@ -540,8 +563,17 @@ function createReader(pdfjs, pdf, defaultWidth, defaultHeight) {
             pdf,
             pdfjs,
             pageCount,
+            stage,
             goTo,
-            currentPage: () => current
+            currentPage: () => current,
+            // read aloud: the text items of a page, its spans when it is drawn, the page box
+            textOf: (number) => textOf(slots[number - 1]),
+            textDivsOf: (number) => slots[number - 1].textDivs || null,
+            pageElement: (number) => slots[number - 1].element,
+            onDrawn: (listener) => drawnListeners.push(listener),
+            load,
+            save,
+            positionKey: stage.dataset.pdfKey
         }
     }));
 }

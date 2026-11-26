@@ -311,6 +311,11 @@ body.sl-maximized-open {
   height: 100%;
 }
 
+/* The sentence read aloud (sl-pdf-speech.js marks it in the text layer) */
+::highlight(sl-speech) {
+  background-color: rgba(255, 212, 0, 0.4);
+}
+
 /* The text layer of pdf.js (from its pdf_viewer.css): transparent text over the picture, for selecting
    and copying */
 .sl-pdf-page .textLayer {
