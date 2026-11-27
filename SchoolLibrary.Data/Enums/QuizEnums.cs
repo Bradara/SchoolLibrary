@@ -66,3 +66,16 @@ public enum QuizItemKind
     /// <summary>A number of questions drawn at random from a section when the student starts.</summary>
     RandomFromSection = 1
 }
+
+/// <summary>How an exam's points become a 2–6 grade. The numbers are stored in the database.</summary>
+public enum GradingMethod
+{
+    /// <summary>A lowest percentage of the points for each grade 3–6; the grade is a whole number.</summary>
+    Thresholds = 0,
+
+    /// <summary>points / maximum × 6, with two decimals; below 3,00 the grade is a 2.</summary>
+    TimesSix = 1,
+
+    /// <summary>2 + 4 × points / maximum, with two decimals; below 3,00 the grade is a 2.</summary>
+    TwoPlusFour = 2
+}

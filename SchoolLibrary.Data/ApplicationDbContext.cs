@@ -490,6 +490,40 @@ namespace SchoolLibrary.Data
                 .HasIndex(e => e.Code)
                 .IsUnique();
 
+            // A scale in use cannot be deleted (the service says which exams use it)
+            builder.Entity<ExamAssignment>()
+                .HasOne(e => e.GradeScale)
+                .WithMany(s => s.Exams)
+                .HasForeignKey(e => e.GradeScaleId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ExamAssignment>()
+                .ToTable(t => t.HasCheckConstraint("CK_ExamAssignments_GradingMethod", "\"GradingMethod\" BETWEEN 0 AND 2"));
+
+            // A teacher's grade scales: unique names, thresholds within 0–100 and rising (3 < 4 < 5 < 6)
+            builder.Entity<GradeScale>()
+                .HasOne(s => s.Owner)
+                .WithMany()
+                .HasForeignKey(s => s.OwnerId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            builder.Entity<GradeScale>()
+                .HasIndex(s => new { s.OwnerId, s.Name })
+                .IsUnique();
+
+            builder.Entity<GradeScale>(scale =>
+            {
+                scale.Property(s => s.Three).HasPrecision(5, 2);
+                scale.Property(s => s.Four).HasPrecision(5, 2);
+                scale.Property(s => s.Five).HasPrecision(5, 2);
+                scale.Property(s => s.Six).HasPrecision(5, 2);
+                scale.ToTable(t =>
+                {
+                    t.HasCheckConstraint("CK_GradeScales_Range", "\"Three\" >= 0 AND \"Six\" <= 100");
+                    t.HasCheckConstraint("CK_GradeScales_Rising", "\"Three\" < \"Four\" AND \"Four\" < \"Five\" AND \"Five\" < \"Six\"");
+                });
+            });
+
             builder.Entity<QuizAttempt>()
                 .HasOne(a => a.ExamAssignment)
                 .WithMany(e => e.Attempts)
@@ -528,6 +562,7 @@ namespace SchoolLibrary.Data
         public DbSet<QuizAttempt> QuizAttempts { get; set; }
         public DbSet<AttemptQuestion> AttemptQuestions { get; set; }
         public DbSet<AttemptAnswer> AttemptAnswers { get; set; }
+        public DbSet<GradeScale> GradeScales { get; set; }
         public DbSet<AttemptAnswerChoice> AttemptAnswerChoices { get; set; }
     }
 }

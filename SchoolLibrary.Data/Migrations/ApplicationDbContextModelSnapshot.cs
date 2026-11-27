@@ -626,6 +626,12 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<DateTime>("CreatedOn")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<int?>("GradeScaleId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("GradingMethod")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsOpen")
                         .HasColumnType("boolean");
 
@@ -652,11 +658,16 @@ namespace SchoolLibrary.Data.Migrations
                     b.HasIndex("Code")
                         .IsUnique();
 
+                    b.HasIndex("GradeScaleId");
+
                     b.HasIndex("QuizId");
 
                     b.HasIndex("SchoolClassId");
 
-                    b.ToTable("ExamAssignments");
+                    b.ToTable("ExamAssignments", t =>
+                        {
+                            t.HasCheckConstraint("CK_ExamAssignments_GradingMethod", "\"GradingMethod\" BETWEEN 0 AND 2");
+                        });
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Favorite", b =>
@@ -691,6 +702,54 @@ namespace SchoolLibrary.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("GradeLevels");
+                });
+
+            modelBuilder.Entity("SchoolLibrary.Data.Models.GradeScale", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreatedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Five")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<decimal>("Four")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("OwnerId")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("Six")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<decimal>("Three")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("numeric(5,2)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OwnerId", "Name")
+                        .IsUnique();
+
+                    b.ToTable("GradeScales", t =>
+                        {
+                            t.HasCheckConstraint("CK_GradeScales_Range", "\"Three\" >= 0 AND \"Six\" <= 100");
+
+                            t.HasCheckConstraint("CK_GradeScales_Rising", "\"Three\" < \"Four\" AND \"Four\" < \"Five\" AND \"Five\" < \"Six\"");
+                        });
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Highlight", b =>
@@ -1621,6 +1680,11 @@ namespace SchoolLibrary.Data.Migrations
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.ExamAssignment", b =>
                 {
+                    b.HasOne("SchoolLibrary.Data.Models.GradeScale", "GradeScale")
+                        .WithMany("Exams")
+                        .HasForeignKey("GradeScaleId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SchoolLibrary.Data.Models.Quiz", "Quiz")
                         .WithMany()
                         .HasForeignKey("QuizId")
@@ -1632,6 +1696,8 @@ namespace SchoolLibrary.Data.Migrations
                         .HasForeignKey("SchoolClassId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("GradeScale");
 
                     b.Navigation("Quiz");
 
@@ -1655,6 +1721,16 @@ namespace SchoolLibrary.Data.Migrations
                     b.Navigation("Resource");
 
                     b.Navigation("User");
+                });
+
+            modelBuilder.Entity("SchoolLibrary.Data.Models.GradeScale", b =>
+                {
+                    b.HasOne("SchoolLibrary.Data.Models.ApplicationUser", "Owner")
+                        .WithMany()
+                        .HasForeignKey("OwnerId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Owner");
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Highlight", b =>
@@ -1870,6 +1946,11 @@ namespace SchoolLibrary.Data.Migrations
             modelBuilder.Entity("SchoolLibrary.Data.Models.ExamAssignment", b =>
                 {
                     b.Navigation("Attempts");
+                });
+
+            modelBuilder.Entity("SchoolLibrary.Data.Models.GradeScale", b =>
+                {
+                    b.Navigation("Exams");
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.Question", b =>

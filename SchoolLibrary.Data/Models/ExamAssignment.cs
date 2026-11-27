@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SchoolLibrary.Data.Enums;
 
 namespace SchoolLibrary.Data.Models
 {
@@ -39,6 +40,13 @@ namespace SchoolLibrary.Data.Models
 
         /// <summary>Whether students may see their score, grade and answers.</summary>
         public bool ResultsReleased { get; set; }
+
+        /// <summary>How the points become a grade: thresholds (of <see cref="GradeScale"/>) or a formula.</summary>
+        public GradingMethod GradingMethod { get; set; } = GradingMethod.Thresholds;
+
+        /// <summary>The thresholds used with <see cref="GradingMethod.Thresholds"/>; null means the system scale.</summary>
+        public int? GradeScaleId { get; set; }
+        public GradeScale? GradeScale { get; set; }
 
         public DateTime CreatedOn { get; set; }
 

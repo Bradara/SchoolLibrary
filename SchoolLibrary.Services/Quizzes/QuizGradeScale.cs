@@ -1,8 +1,8 @@
 namespace SchoolLibrary.Services.Quizzes;
 
 /// <summary>
-/// Turns a score into a 2–6 grade using fixed percentage thresholds. The thresholds live here as
-/// constants so the scale is defined in one place and easy to adjust.
+/// The system scale: a score becomes a 2–6 grade by fixed percentage thresholds (<see cref="ExamGrading.Default"/>).
+/// It grades practice quizzes and the exams that have no scale of their own.
 /// </summary>
 public static class QuizGradeScale
 {
@@ -17,20 +17,7 @@ public static class QuizGradeScale
         => maxScore <= 0 ? 0 : (int)Math.Round(score * 100m / maxScore, MidpointRounding.AwayFromZero);
 
     /// <summary>The 2–6 grade for a score, compared on the exact ratio (not the rounded percentage).</summary>
-    public static int Grade(decimal score, decimal maxScore)
-    {
-        if (maxScore <= 0)
-        {
-            return 2;
-        }
-
-        var percent = score * 100m / maxScore;
-        if (percent >= ThresholdSix) return 6;
-        if (percent >= ThresholdFive) return 5;
-        if (percent >= ThresholdFour) return 4;
-        if (percent >= ThresholdThree) return 3;
-        return 2;
-    }
+    public static int Grade(decimal score, decimal maxScore) => ExamGrading.Default.Grade(score, maxScore);
 
     /// <summary>The Bulgarian label for a 2–6 grade.</summary>
     public static string Label(int grade) => grade switch
