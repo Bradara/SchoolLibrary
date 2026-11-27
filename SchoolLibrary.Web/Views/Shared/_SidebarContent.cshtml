@@ -32,7 +32,7 @@
         @{
             var onPractice = area == null && controller == "Quizzes" && (action == "Index" || action == "Solve" || action == "Result");
             var resourcesActive = onResources || Active("Favorites") != "" || Active("Discovery") != "";
-            var quizzesActive = onPractice || Active("QuizManagement") != "" || Active("Sections") != "" || Active("Exams") != "";
+            var quizzesActive = onPractice || Active("QuizManagement") != "" || Active("Sections") != "" || Active("Exams") != "" || Active("GradeScales") != "";
             var authenticated = User.Identity?.IsAuthenticated == true;
             var menuDirection = compact ? "dropend" : "dropdown";
             string Item(bool on) => on ? "dropdown-item active" : "dropdown-item";
@@ -80,6 +80,7 @@
                         <li><a class="@Item(Active("QuizManagement") != "")" asp-area="" asp-controller="QuizManagement" asp-action="Index"><i class="bi bi-ui-checks-grid"></i> Моите тестове</a></li>
                         <li><a class="@Item(Active("Sections") != "")" asp-area="" asp-controller="Sections" asp-action="Index"><i class="bi bi-collection"></i> Банка с въпроси</a></li>
                         <li><a class="@Item(Active("Exams") != "")" asp-area="" asp-controller="Exams" asp-action="Index"><i class="bi bi-clipboard-check"></i> Изпити</a></li>
+                        <li><a class="@Item(Active("GradeScales") != "")" asp-area="" asp-controller="GradeScales" asp-action="Index"><i class="bi bi-bar-chart-steps"></i> Оценъчни скали</a></li>
                     }
                 </ul>
             </li>

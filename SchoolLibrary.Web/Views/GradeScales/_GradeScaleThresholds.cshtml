@@ -1,0 +1,7 @@
+@using SchoolLibrary.Services.Quizzes
+@model ExamGrading
+@* The thresholds of a scale on one line: "3 от 30% · 4 от 50% · 5 от 70% · 6 от 85%". *@
+<span>3 от @QuizPoints.Format(Model.Three)%</span> ·
+<span>4 от @QuizPoints.Format(Model.Four)%</span> ·
+<span>5 от @QuizPoints.Format(Model.Five)%</span> ·
+<span>6 от @QuizPoints.Format(Model.Six)%</span>

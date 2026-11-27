@@ -1,0 +1,68 @@
+@using SchoolLibrary.Services.Quizzes
+@model IReadOnlyList<SchoolLibrary.Services.Exams.GradeScaleListItem>
+
+@{
+    ViewData["Title"] = "Оценъчни скали";
+    var system = ExamGrading.Default;
+}
+
+<partial name="_MessagePartial" />
+
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+    <h1 class="h3 mb-0"><i class="bi bi-bar-chart-steps"></i> Оценъчни скали</h1>
+    <a asp-action="Create" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Нова скала</a>
+</div>
+
+<p class="text-body-secondary">
+    Скалата казва колко процента от точките са нужни за всяка оценка. Избира се в настройките на изпита.
+    Там може да се избере и формула вместо скала: <strong>точки / максимум × 6</strong> или
+    <strong>2 + 4 × точки / максимум</strong> (с 2 знака; под 3,00 е Слаб 2).
+    Промяната на скала преизчислява оценките на всички изпити с нея.
+</p>
+
+<div class="list-group">
+    <div class="list-group-item">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div>
+                <strong>Системна скала</strong>
+                <span class="badge text-bg-secondary ms-1">по подразбиране</span>
+                <div class="small text-body-secondary"><partial name="_GradeScaleThresholds" model="system" /></div>
+            </div>
+            <span class="small text-body-secondary">не се променя</span>
+        </div>
+    </div>
+
+    @foreach (var item in Model)
+    {
+        var scale = item.Scale;
+        var grading = new ExamGrading(SchoolLibrary.Data.Enums.GradingMethod.Thresholds, scale.Three, scale.Four, scale.Five, scale.Six);
+        <div class="list-group-item">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <div>
+                    <strong>@scale.Name</strong>
+                    <span class="badge text-bg-light border ms-1" title="Изпити с тази скала">
+                        @(item.ExamCount == 1 ? "1 изпит" : $"{item.ExamCount} изпита")
+                    </span>
+                    <div class="small text-body-secondary"><partial name="_GradeScaleThresholds" model="grading" /></div>
+                </div>
+                <div class="d-flex gap-1">
+                    <a asp-action="Edit" asp-route-id="@scale.Id" class="btn btn-sm btn-outline-secondary" aria-label="Редактирай @scale.Name">
+                        <i class="bi bi-pencil"></i> Редактирай
+                    </a>
+                    @if (item.ExamCount == 0)
+                    {
+                        <form method="post" asp-action="Delete" asp-route-id="@scale.Id" class="d-inline"
+                              onsubmit="return confirm('Да изтрия ли скалата?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" aria-label="Изтрий @scale.Name"><i class="bi bi-trash"></i></button>
+                        </form>
+                    }
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (Model.Count == 0)
+{
+    <p class="text-body-secondary small mt-3">Още нямаш свои скали. Изпитите ползват системната, докато не избереш друга.</p>
+}

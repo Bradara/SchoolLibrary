@@ -1,0 +1,71 @@
+@model SchoolLibrary.ViewModels.GradeScaleFormViewModel
+
+@{
+    var scaleId = ViewData["ScaleId"] as int?;
+    var editing = scaleId.HasValue;
+    ViewData["Title"] = editing ? "Редакция на скала" : "Нова скала";
+}
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a asp-action="Index">Оценъчни скали</a></li>
+        <li class="breadcrumb-item active">@ViewData["Title"]</li>
+    </ol>
+</nav>
+
+<h1 class="h3 mb-3">@ViewData["Title"]</h1>
+
+@if (editing)
+{
+    <div class="alert alert-warning small">
+        <i class="bi bi-exclamation-triangle"></i> Промяната важи за всички изпити с тази скала — оценките им ще се преизчислят.
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8 col-lg-6">
+        <form method="post" asp-action="@(editing ? "Edit" : "Create")" asp-route-id="@scaleId">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+            <div class="mb-3">
+                <label asp-for="Name" class="form-label"></label>
+                <input asp-for="Name" class="form-control" placeholder="напр. Строга" maxlength="100" autofocus />
+                <span asp-validation-for="Name" class="text-danger small"></span>
+            </div>
+
+            <fieldset class="mb-3">
+                <legend class="form-label fs-6">Най-малко процента от точките за оценката</legend>
+                <div class="row g-2">
+                    <div class="col-6 col-sm-3">
+                        <label asp-for="Three" class="form-label small mb-1"></label>
+                        <input asp-for="Three" type="number" min="0" max="100" step="0.01" class="form-control" required />
+                        <span asp-validation-for="Three" class="text-danger small"></span>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <label asp-for="Four" class="form-label small mb-1"></label>
+                        <input asp-for="Four" type="number" min="0" max="100" step="0.01" class="form-control" required />
+                        <span asp-validation-for="Four" class="text-danger small"></span>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <label asp-for="Five" class="form-label small mb-1"></label>
+                        <input asp-for="Five" type="number" min="0" max="100" step="0.01" class="form-control" required />
+                        <span asp-validation-for="Five" class="text-danger small"></span>
+                    </div>
+                    <div class="col-6 col-sm-3">
+                        <label asp-for="Six" class="form-label small mb-1"></label>
+                        <input asp-for="Six" type="number" min="0" max="100" step="0.01" class="form-control" required />
+                        <span asp-validation-for="Six" class="text-danger small"></span>
+                    </div>
+                </div>
+                <div class="form-text">Под прага за 3 оценката е Слаб 2. Праговете растат: за 3 &lt; за 4 &lt; за 5 &lt; за 6.</div>
+            </fieldset>
+
+            <button type="submit" class="btn btn-primary">@(editing ? "Запази" : "Създай")</button>
+            <a asp-action="Index" class="btn btn-link">Отказ</a>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
