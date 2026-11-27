@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using SchoolLibrary.Data.Constants;
 using SchoolLibrary.Services.Common;
 using SchoolLibrary.Services.Exams;
+using SchoolLibrary.Services.Quizzes;
 using SchoolLibrary.ViewModels;
 
 namespace SchoolLibrary.Controllers
@@ -282,6 +283,53 @@ namespace SchoolLibrary.Controllers
 
             return View(result.Value);
         }
+
+        // POST: Exams/SetPoints/5 — the teacher's own points and note on one answer; empty points bring back
+        // the automatic ones ("Върни автоматичните" sends the form without them)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SetPoints(int id, int questionId, string? points, string? comment, bool automatic,
+            [FromServices] IAttemptGradingService grading)
+        {
+            decimal? given = null;
+            if (!automatic && !string.IsNullOrWhiteSpace(points))
+            {
+                given = NumericAnswer.Parse(points);
+                if (given == null)
+                {
+                    TempData["ErrorMessage"] = "Точките трябва да са число, например 1,5.";
+                    return RedirectToAttemptQuestion(id, questionId);
+                }
+            }
+
+            var result = await grading.SetPointsAsync(id, questionId, given, comment, CurrentUserId, IsAdministrator);
+            if (result.Error == ServiceError.NotFound)
+            {
+                return NotFound();
+            }
+
+            if (result.Error == ServiceError.Forbidden)
+            {
+                return Forbid();
+            }
+
+            if (result.Succeeded)
+            {
+                TempData["SuccessMessage"] = given == null
+                    ? "Точките на въпроса са автоматичните."
+                    : $"Точките са променени. Резултат: {QuizPoints.Format(result.Value!.Score)} от {QuizPoints.Format(result.Value.MaxScore)}.";
+            }
+            else
+            {
+                TempData["ErrorMessage"] = result.Message;
+            }
+
+            return RedirectToAttemptQuestion(id, questionId);
+        }
+
+        // Back to the attempt, scrolled to the question that was graded
+        private RedirectToActionResult RedirectToAttemptQuestion(int attemptId, int questionId)
+            => RedirectToAction(nameof(Attempt), null, new { id = attemptId }, "q-" + questionId);
 
         // POST: Exams/DeleteAttempt/5 — remove one student's attempt so they can take the exam again
         [HttpPost]

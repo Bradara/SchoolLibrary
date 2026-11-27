@@ -379,4 +379,85 @@ public class ExamsControllerTests
 
         Assert.IsType(expected, await Controller().Attempt(5));
     }
+
+    // ---------- SetPoints ----------
+
+    private readonly Mock<IAttemptGradingService> _grading = new();
+
+    private void GradingReturns(ServiceResult<QuizAttempt> result)
+        => _grading.Setup(s => s.SetPointsAsync(It.IsAny<int>(), It.IsAny<int>(), It.IsAny<decimal?>(), It.IsAny<string?>(),
+            It.IsAny<string>(), It.IsAny<bool>())).ReturnsAsync(result);
+
+    [Fact]
+    public async Task SetPoints_ParsesADecimalComma_AndReturnsToTheQuestion()
+    {
+        GradingReturns(ServiceResult<QuizAttempt>.Success(new QuizAttempt { Id = 5, Score = 3.5m, MaxScore = 4m }));
+        var controller = Controller();
+
+        var result = await controller.SetPoints(5, 9, " 1,5 ", "Добре", automatic: false, _grading.Object);
+
+        _grading.Verify(s => s.SetPointsAsync(5, 9, 1.5m, "Добре", "t1", false), Times.Once);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(ExamsController.Attempt), redirect.ActionName);
+        Assert.Equal(5, redirect.RouteValues!["id"]);
+        Assert.Equal("q-9", redirect.Fragment);
+        Assert.Equal("Точките са променени. Резултат: 3,5 от 4.", controller.TempDataText("SuccessMessage"));
+    }
+
+    [Theory]
+    [InlineData("", false)]
+    [InlineData("2", true)]   // "Върни автоматичните" ignores the field
+    public async Task SetPoints_EmptyOrAutomatic_BringsBackTheAutomaticPoints(string points, bool automatic)
+    {
+        GradingReturns(ServiceResult<QuizAttempt>.Success(new QuizAttempt { Id = 5 }));
+        var controller = Controller();
+
+        await controller.SetPoints(5, 9, points, null, automatic, _grading.Object);
+
+        _grading.Verify(s => s.SetPointsAsync(5, 9, null, null, "t1", false), Times.Once);
+        Assert.Equal("Точките на въпроса са автоматичните.", controller.TempDataText("SuccessMessage"));
+    }
+
+    [Fact]
+    public async Task SetPoints_NotANumber_IsReported_WithoutCallingTheService()
+    {
+        var controller = Controller();
+
+        var result = await controller.SetPoints(5, 9, "много", null, false, _grading.Object);
+
+        Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Точките трябва да са число, например 1,5.", controller.TempDataText("ErrorMessage"));
+        _grading.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task SetPoints_Invalid_ShowsTheServicesMessage()
+    {
+        GradingReturns(ServiceResult<QuizAttempt>.Failure(ServiceError.Invalid, "Точките трябва да са между 0 и 2."));
+        var controller = Controller();
+
+        await controller.SetPoints(5, 9, "3", null, false, _grading.Object);
+
+        Assert.Equal("Точките трябва да са между 0 и 2.", controller.TempDataText("ErrorMessage"));
+    }
+
+    [Theory]
+    [InlineData(ServiceError.NotFound, typeof(NotFoundResult))]
+    [InlineData(ServiceError.Forbidden, typeof(ForbidResult))]
+    public async Task SetPoints_Errors_MapToStatusResults(ServiceError error, Type expected)
+    {
+        GradingReturns(Fail<QuizAttempt>(error));
+
+        Assert.IsType(expected, await Controller().SetPoints(5, 9, "1", null, false, _grading.Object));
+    }
+
+    [Fact]
+    public async Task SetPoints_PassesTheAdministratorFlag()
+    {
+        GradingReturns(ServiceResult<QuizAttempt>.Success(new QuizAttempt { Id = 5 }));
+
+        await Controller("a1", Roles.Administrator).SetPoints(5, 9, "1", null, false, _grading.Object);
+
+        _grading.Verify(s => s.SetPointsAsync(5, 9, 1m, null, "a1", true), Times.Once);
+    }
 }

@@ -5,7 +5,8 @@
    ученика" for the teacher). Correct options are green; a wrong pick is red; a correct option the
    student did not tick (multiple choice) is shown with an outline icon and "пропуснат". Short-answer and
    numerical questions show the typed text and the accepted answers instead of an option list; a matching
-   question shows each item with the picked answer and, when it is wrong, the right one. *@
+   question shows each item with the picked answer and, when it is wrong, the right one.
+   ViewData["GradingAttemptId"] (the teacher's review) adds the form for the teacher's own points. *@
 @{
     var chosenLabel = ViewData["ChosenLabel"] as string ?? "твоят отговор";
 }
@@ -21,7 +22,7 @@
 
     number++;
     var border = questionResult.IsCorrect ? "success" : questionResult.IsPartial ? "warning" : "danger";
-    <div class="card mb-3 border-@border">
+    <div class="card mb-3 border-@border" id="q-@questionResult.Question.Id">
         <div class="card-body">
             <h2 class="h6 card-title">
                 @number. <span class="question-text">@Html.QuestionText(questionResult.Question)</span>
@@ -149,6 +150,10 @@
                         </li>
                     }
                 </ul>
+            }
+            @if (ViewData["GradingAttemptId"] is int)
+            {
+                <partial name="_AnswerGrading" model="questionResult" />
             }
         </div>
     </div>

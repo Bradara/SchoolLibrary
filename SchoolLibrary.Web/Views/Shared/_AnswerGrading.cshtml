@@ -1,0 +1,51 @@
+@using SchoolLibrary.Data.Models
+@using SchoolLibrary.Services.Quizzes
+@model QuestionResult
+@* The teacher's form under one answer of a submitted attempt: own points (empty = the automatic ones) and a
+   note the student sees with the result. ViewData["GradingAttemptId"] is the attempt. *@
+@{
+    var attemptId = (int)ViewData["GradingAttemptId"]!;
+    var id = "grade-" + Model.Question.Id;
+}
+
+@if (Model.CodePending)
+{
+    <div class="border-top mt-3 pt-2 small text-body-secondary">
+        <i class="bi bi-hourglass-split"></i> Точките могат да се променят, след като програмата бъде проверена.
+    </div>
+}
+else
+{
+    <form method="post" asp-controller="Exams" asp-action="SetPoints" asp-route-id="@attemptId" class="border-top mt-3 pt-3">
+        <input type="hidden" name="questionId" value="@Model.Question.Id" />
+        <div class="row g-2 align-items-end">
+            <div class="col-auto">
+                <label class="form-label small mb-1" for="@id-points">Точки (от @Model.Question.Points)</label>
+                <input id="@id-points" name="points" class="form-control form-control-sm" style="max-width: 7rem;"
+                       inputmode="decimal" autocomplete="off"
+                       value="@(Model.IsManual ? QuizPoints.Format(Model.AwardedPoints) : "")"
+                       placeholder="@QuizPoints.Format(Model.AutomaticPoints)" />
+            </div>
+            <div class="col-12 col-md">
+                <label class="form-label small mb-1" for="@id-comment">Коментар към ученика</label>
+                <textarea id="@id-comment" name="comment" class="form-control form-control-sm" rows="2"
+                          maxlength="@AttemptAnswer.MaxCommentLength">@Model.ManualComment</textarea>
+            </div>
+            <div class="col-auto">
+                <button type="submit" class="btn btn-sm btn-primary">Запази</button>
+                @if (Model.IsManual)
+                {
+                    <button type="submit" name="automatic" value="true" class="btn btn-sm btn-outline-secondary">Върни автоматичните</button>
+                }
+            </div>
+        </div>
+        <div class="form-text">
+            Автоматично: @QuizPoints.Format(Model.AutomaticPoints) т.
+            @if (Model.IsManual)
+            {
+                <span>· от учителя: <strong>@QuizPoints.Format(Model.AwardedPoints) т.</strong></span>
+            }
+            · празно поле = автоматичните точки.
+        </div>
+    </form>
+}
