@@ -231,6 +231,92 @@ public class MatchingQuestionTests
         Assert.Contains("„С“: нужни са поне 2 двойки за съпоставяне.", result.Errors);
     }
 
+    [Fact]
+    public void Parse_GapSelect_BecomesMatchingWithTheGapsInTheText()
+    {
+        var xml = "<?xml version=\"1.0\"?><quiz><question type=\"gapselect\"><defaultgrade>3</defaultgrade>" +
+                  "<questiontext><text><![CDATA[<p>[[2]] е столица, а [[1]] е <b>река</b>.</p>]]></text></questiontext>" +
+                  "<selectoption><text>Дунав</text><group>1</group></selectoption>" +
+                  "<selectoption><text>София</text><group>1</group></selectoption>" +
+                  "<selectoption><text>Мусала</text><group>2</group></selectoption>" +
+                  "</question></quiz>";
+
+        var result = MoodleXmlParser.Parse(xml);
+
+        Assert.Empty(result.Errors);
+        var q = Assert.Single(result.Questions);
+        Assert.Equal(QuestionType.Matching, q.Type);
+        Assert.Equal("[2] е столица, а [1] е река.", q.Text);
+        Assert.Equal(3, q.Points);
+        Assert.Equal(new[] { "Празнина [2]", "Празнина [1]", "" }, q.Options);   // in the order of the text
+        Assert.Equal(new[] { "София", "Дунав", "Мусала" }, q.Matches);          // the unused choice is extra
+        Assert.Null(QuizService.ValidateQuestion(q));
+    }
+
+    [Fact]
+    public void Parse_DragAndDropIntoText_BecomesMatching()
+    {
+        var xml = "<?xml version=\"1.0\"?><quiz><question type=\"ddwtos\">" +
+                  "<questiontext><text>[[1]] ⇄ [[2]] ⇄ [[3]] [[img:1]]</text></questiontext>" +
+                  "<dragbox><text>потребител</text><group>1</group></dragbox>" +
+                  "<dragbox><text>драйвър</text><group>1</group><infinite/></dragbox>" +
+                  "<dragbox><text>контролер</text><group>1</group></dragbox>" +
+                  "</question></quiz>";
+
+        var result = MoodleXmlParser.Parse(xml);
+
+        Assert.Empty(result.Errors);
+        var q = Assert.Single(result.Questions);
+        Assert.Equal(QuestionType.Matching, q.Type);
+        Assert.Equal("[1] ⇄ [2] ⇄ [3] [[img:1]]", q.Text);   // a picture marker is not a gap
+        Assert.Equal(new[] { "Празнина [1]", "Празнина [2]", "Празнина [3]" }, q.Options);
+        Assert.Equal(new[] { "потребител", "драйвър", "контролер" }, q.Matches);
+    }
+
+    [Fact]
+    public void Parse_GapSelect_RepeatedGapIsOneItem()
+    {
+        var xml = "<?xml version=\"1.0\"?><quiz><question type=\"gapselect\">" +
+                  "<questiontext><text>[[1]], [[2]] и пак [[1]]</text></questiontext>" +
+                  "<selectoption><text>а</text><group>1</group></selectoption>" +
+                  "<selectoption><text>б</text><group>1</group></selectoption>" +
+                  "</question></quiz>";
+
+        var q = Assert.Single(MoodleXmlParser.Parse(xml).Questions);
+
+        Assert.Equal(new[] { "Празнина [1]", "Празнина [2]" }, q.Options);
+    }
+
+    [Fact]
+    public void Parse_GapWithoutChoice_IsReported()
+    {
+        var xml = "<?xml version=\"1.0\"?><quiz><question type=\"gapselect\"><name><text>П</text></name>" +
+                  "<questiontext><text>[[1]] и [[3]]</text></questiontext>" +
+                  "<selectoption><text>а</text><group>1</group></selectoption>" +
+                  "<selectoption><text>б</text><group>1</group></selectoption>" +
+                  "</question></quiz>";
+
+        var result = MoodleXmlParser.Parse(xml);
+
+        Assert.Empty(result.Questions);
+        Assert.Contains("„П“: няма отговор за празнина [[3]].", result.Errors);
+    }
+
+    [Fact]
+    public void Parse_GapSelectWithOneGap_IsReported()
+    {
+        var xml = "<?xml version=\"1.0\"?><quiz><question type=\"ddwtos\"><name><text>П</text></name>" +
+                  "<questiontext><text>Само [[1]]</text></questiontext>" +
+                  "<dragbox><text>а</text><group>1</group></dragbox>" +
+                  "<dragbox><text>б</text><group>1</group></dragbox>" +
+                  "</question></quiz>";
+
+        var result = MoodleXmlParser.Parse(xml);
+
+        Assert.Empty(result.Questions);
+        Assert.Contains("„П“: нужни са поне 2 празнини [[N]] в текста.", result.Errors);
+    }
+
     // ---------- Storage and results ----------
 
     private static async Task<(QuizService Service, Quiz Exam)> ExamAsync(Data.ApplicationDbContext context)

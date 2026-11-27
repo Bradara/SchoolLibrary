@@ -18,6 +18,9 @@ namespace SchoolLibrary.Services.Quizzes;
 /// <item><c>numerical</c>: the accepted values (or <c>*</c>) with their <c>fraction</c> and <c>tolerance</c>;
 /// units are ignored;</item>
 /// <item><c>matching</c>: each <c>subquestion</c> with its answer; one with empty text is an extra wrong answer;</item>
+/// <item><c>gapselect</c> and <c>ddwtos</c>, read as matching: each gap <c>[[N]]</c> becomes the item "Празнина [N]"
+/// (and "[N]" in the text) whose answer is the N-th <c>selectoption</c> / <c>dragbox</c>; choices no gap uses are
+/// extra wrong answers. The groups are not kept: every gap offers all the choices;</item>
 /// <item><c>description</c>: text shown between the questions, without points;</item>
 /// <item><c>coderunner</c> of the types in <see cref="CodeRunnerTypes"/> whose tests give only an input
 /// (<c>stdin</c>) and an expected output: the tests (without the precheck-only ones), <c>useasexample</c>,
@@ -36,6 +39,9 @@ public static class MoodleXmlParser
     private static readonly Regex HtmlBlockTag = new(
         @"</?(p|div|br|hr|li|ul|ol|dl|dt|dd|table|thead|tbody|tfoot|tr|td|th|caption|h[1-6]|pre|blockquote|section|article|header|footer|figure|figcaption)\b[^>]*>",
         RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    // A gap in a gapselect / ddwtos question: [[1]], [[2]], ... (picture markers are [[img:N]], so they never match)
+    private static readonly Regex GapMarker = new(@"\[\[(\d+)\]\]", RegexOptions.Compiled);
+
     private static readonly Regex HtmlLineBreak = new(@"<br\s*/?>|</(p|div|pre|li|h[1-6]|tr)>", RegexOptions.Compiled | RegexOptions.IgnoreCase);
 
     /// <summary>CodeRunner question types that can be imported → the language they become.</summary>
@@ -119,6 +125,7 @@ public static class MoodleXmlParser
                 && !string.Equals(type, "numerical", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(type, "matching", StringComparison.OrdinalIgnoreCase)
                 && !string.Equals(type, "description", StringComparison.OrdinalIgnoreCase)
+                && GapChoiceElement(type) == null
                 && !string.Equals(type, "coderunner", StringComparison.OrdinalIgnoreCase))
             {
                 errors.Add($"{label}: типът „{type}“ не се поддържа.");
@@ -138,6 +145,15 @@ public static class MoodleXmlParser
                 }
 
                 continue;
+            }
+
+            // Gaps in the order they first appear in the text; in the text each one is shown as [N]
+            var gapChoiceElement = GapChoiceElement(type);
+            var gaps = new List<int>();
+            if (gapChoiceElement != null)
+            {
+                gaps = GapMarker.Matches(questionHtml).Select(m => int.Parse(m.Groups[1].Value)).Distinct().ToList();
+                questionHtml = GapMarker.Replace(questionHtml, m => $"[{m.Groups[1].Value}]");
             }
 
             var isMultiple = string.Equals(type, "multichoice", StringComparison.OrdinalIgnoreCase)
@@ -209,6 +225,19 @@ public static class MoodleXmlParser
                 continue;
             }
 
+            if (gapChoiceElement != null)
+            {
+                var pairs = GapPairs(question, gapChoiceElement, gaps, out var error);
+                if (pairs == null)
+                {
+                    errors.Add($"{label}: {error}");
+                    continue;
+                }
+
+                Add(QuestionInput.Matching(questionText, pairs, points));
+                continue;
+            }
+
             if (string.Equals(type, "numerical", StringComparison.OrdinalIgnoreCase))
             {
                 // The accepted values with their shares and tolerances; units are not supported and are ignored
@@ -267,6 +296,43 @@ public static class MoodleXmlParser
         }
 
         return new ImportParseResult(questions, errors);
+    }
+
+    // The element that holds the choices of a gap question type; null for the other types
+    private static string? GapChoiceElement(string? type)
+        => type?.ToLowerInvariant() switch
+        {
+            "gapselect" => "selectoption",
+            "ddwtos" => "dragbox",
+            _ => null
+        };
+
+    // The matching pairs of a gap question: gap N → the N-th choice, then the unused choices as extra wrong
+    // answers; null with the reason when a gap has no choice or there are fewer than 2 gaps
+    private static List<(string Item, string Answer)>? GapPairs(XElement question, string choiceElement,
+        IReadOnlyList<int> gaps, out string? error)
+    {
+        var choices = question.Elements(choiceElement).Select(c => CleanText(c.Element("text"))).ToList();
+        error = null;
+
+        if (gaps.Count < 2)
+        {
+            error = "нужни са поне 2 празнини [[N]] в текста.";
+            return null;
+        }
+
+        var missing = gaps.Where(g => g < 1 || g > choices.Count || choices[g - 1].Length == 0).ToList();
+        if (missing.Count > 0)
+        {
+            error = $"няма отговор за празнина {string.Join(", ", missing.Select(g => $"[[{g}]]"))}.";
+            return null;
+        }
+
+        var pairs = gaps.Select(g => ($"Празнина [{g}]", choices[g - 1])).ToList();
+        pairs.AddRange(choices
+            .Where((choice, index) => choice.Length > 0 && !gaps.Contains(index + 1))
+            .Select(choice => (string.Empty, choice)));
+        return pairs;
     }
 
     // A CodeRunner question that runs a whole program with each test's input; null with the reason otherwise
