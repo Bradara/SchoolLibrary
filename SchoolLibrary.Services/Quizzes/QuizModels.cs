@@ -124,6 +124,21 @@ public record QuestionResult(Question Question, SubmittedAnswer Answer, decimal 
     /// <summary>For a code question: the program still waits to be checked, so its points are not counted yet.</summary>
     public bool CodePending { get; init; }
 
+    /// <summary>Whether the teacher set the points by hand (<see cref="AwardedPoints"/> are then the teacher's).</summary>
+    public bool IsManual { get; init; }
+
+    /// <summary>The points the answer earned automatically; equal to <see cref="AwardedPoints"/> unless set by hand.</summary>
+    public decimal AutomaticPoints
+    {
+        get => automaticPoints ?? AwardedPoints;
+        init => automaticPoints = value;
+    }
+
+    private readonly decimal? automaticPoints;
+
+    /// <summary>The teacher's note on the answer; null when there is none.</summary>
+    public string? ManualComment { get; init; }
+
     /// <summary>The picked option of a single-choice question; null when unanswered.</summary>
     public int? SelectedOptionId => Answer.OptionId;
 

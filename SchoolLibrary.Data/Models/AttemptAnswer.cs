@@ -42,6 +42,24 @@ namespace SchoolLibrary.Data.Models
         /// <summary>The points the answer earned; fractional with partial credit.</summary>
         public decimal AwardedPoints { get; set; }
 
+        /// <summary>
+        /// The points the teacher gave instead of <see cref="AwardedPoints"/>; null means the automatic points count.
+        /// Regrading never changes them, so a teacher's decision survives an edit of the question.
+        /// </summary>
+        public decimal? ManualPoints { get; set; }
+
+        /// <summary>The teacher's note on the answer, shown to the student with the result.</summary>
+        [MaxLength(MaxCommentLength, ErrorMessage = "Коментарът не може да бъде по-дълъг от 500 символа")]
+        public string? ManualComment { get; set; }
+
+        /// <summary>When the teacher last set the points or the note (UTC).</summary>
+        public DateTime? ManualGradedOn { get; set; }
+
+        /// <summary>The points that count for the attempt: the teacher's when given, otherwise the automatic ones.</summary>
+        public decimal Points => ManualPoints ?? AwardedPoints;
+
+        public const int MaxCommentLength = 500;
+
         /// <summary>Set when the teacher still has to grade the answer by hand (essay questions).</summary>
         public bool NeedsReview { get; set; }
     }

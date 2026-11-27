@@ -330,6 +330,17 @@ namespace SchoolLibrary.Data.Migrations
                     b.Property<bool>("IsCorrect")
                         .HasColumnType("boolean");
 
+                    b.Property<string>("ManualComment")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ManualGradedOn")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("ManualPoints")
+                        .HasPrecision(7, 2)
+                        .HasColumnType("numeric(7,2)");
+
                     b.Property<bool>("NeedsReview")
                         .HasColumnType("boolean");
 
@@ -353,7 +364,10 @@ namespace SchoolLibrary.Data.Migrations
 
                     b.HasIndex("SelectedOptionId");
 
-                    b.ToTable("AttemptAnswers");
+                    b.ToTable("AttemptAnswers", t =>
+                        {
+                            t.HasCheckConstraint("CK_AttemptAnswers_ManualPoints", "\"ManualPoints\" IS NULL OR \"ManualPoints\" >= 0");
+                        });
                 });
 
             modelBuilder.Entity("SchoolLibrary.Data.Models.AttemptAnswerChoice", b =>

@@ -408,6 +408,14 @@ namespace SchoolLibrary.Data
                 .Property(a => a.AwardedPoints)
                 .HasPrecision(7, 2);
 
+            // The teacher's points: never negative (the upper limit is the question's points, checked in the service)
+            builder.Entity<AttemptAnswer>()
+                .Property(a => a.ManualPoints)
+                .HasPrecision(7, 2);
+
+            builder.Entity<AttemptAnswer>()
+                .ToTable(t => t.HasCheckConstraint("CK_AttemptAnswers_ManualPoints", "\"ManualPoints\" IS NULL OR \"ManualPoints\" >= 0"));
+
             // The parts of an answer go with it; the options they refer to are kept (Restrict),
             // like SelectedOption above
             builder.Entity<AttemptAnswerChoice>()

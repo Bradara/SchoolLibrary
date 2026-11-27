@@ -80,7 +80,7 @@ public class CodeGradingService : ICodeGradingService
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        // An attempt's score is the sum of its answers' points
+        // An attempt's score is the sum of its answers' points (the teacher's where given)
         var gradedAttemptIds = waiting.Where(a => !a.CodeCheckPending).Select(a => a.AttemptId).Distinct().ToList();
         if (gradedAttemptIds.Count > 0)
         {
@@ -88,7 +88,7 @@ public class CodeGradingService : ICodeGradingService
             var scores = await _context.AttemptAnswers
                 .Where(a => gradedAttemptIds.Contains(a.AttemptId))
                 .GroupBy(a => a.AttemptId)
-                .Select(g => new { AttemptId = g.Key, Score = g.Sum(a => a.AwardedPoints) })
+                .Select(g => new { AttemptId = g.Key, Score = g.Sum(a => a.ManualPoints ?? a.AwardedPoints) })
                 .ToDictionaryAsync(x => x.AttemptId, x => x.Score, cancellationToken);
             foreach (var attempt in attempts)
             {

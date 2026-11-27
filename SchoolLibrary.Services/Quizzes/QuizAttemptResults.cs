@@ -5,8 +5,18 @@ namespace SchoolLibrary.Services.Quizzes;
 /// <summary>Rebuilds what an exam attempt looked like and how it was graded, from what was stored.</summary>
 public static class QuizAttemptResults
 {
-    /// <summary>Regrades the attempt from the answers the student gave (stored on the attempt).</summary>
+    /// <summary>
+    /// Regrades the attempt from the answers the student gave (stored on the attempt), with the points the teacher
+    /// gave by hand in place of the automatic ones. This is what the attempt is worth and what is shown.
+    /// </summary>
     public static QuizResult Build(QuizAttempt attempt)
+        => ApplyManualPoints(BuildAutomatic(attempt), attempt);
+
+    /// <summary>
+    /// Regrades the attempt from the answers the student gave, ignoring the teacher's points: the automatic
+    /// points that regrading stores in <see cref="AttemptAnswer.AwardedPoints"/>.
+    /// </summary>
+    public static QuizResult BuildAutomatic(QuizAttempt attempt)
     {
         var questions = SnapshotQuestions(attempt);
 
@@ -28,6 +38,45 @@ public static class QuizAttemptResults
             .ToDictionary(a => a.QuestionId, a => new CodeOutcome(a.ResponseText ?? string.Empty, a.AwardedPoints, a.IsCorrect,
                 StoredCodeResults.FromJson(a.CodeResults), a.CodeCheckPending));
         return QuizGrading.Grade(attempt.Quiz, questions, answers, code);
+    }
+
+    // The teacher's points replace the automatic ones (never above what the question is worth now); the score is
+    // their sum. A description earns nothing, whatever is stored.
+    private static QuizResult ApplyManualPoints(QuizResult result, QuizAttempt attempt)
+    {
+        var manual = attempt.Answers
+            .Where(a => a.ManualPoints != null || a.ManualComment != null)
+            .ToDictionary(a => a.QuestionId);
+        if (manual.Count == 0)
+        {
+            return result;
+        }
+
+        var questions = result.Questions.Select(r =>
+        {
+            if (r.IsDescription || !manual.TryGetValue(r.Question.Id, out var answer))
+            {
+                return r;
+            }
+
+            if (answer.ManualPoints is not { } points)
+            {
+                return r with { ManualComment = answer.ManualComment };
+            }
+
+            var max = QuizGrading.MaxPoints(r.Question);
+            var given = Math.Min(points, max);
+            return r with
+            {
+                AwardedPoints = given,
+                IsCorrect = max > 0 && given >= max,
+                IsManual = true,
+                AutomaticPoints = r.AwardedPoints,
+                ManualComment = answer.ManualComment
+            };
+        }).ToList();
+
+        return result with { Score = questions.Sum(q => q.AwardedPoints), Questions = questions };
     }
 
     /// <summary>

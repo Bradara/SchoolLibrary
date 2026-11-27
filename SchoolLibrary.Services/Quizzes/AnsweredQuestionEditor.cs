@@ -140,8 +140,9 @@ internal class AnsweredQuestionEditor
 
         foreach (var attempt in attempts)
         {
-            var result = QuizAttemptResults.Build(attempt);
-            var byQuestion = result.Questions.ToDictionary(r => r.Question.Id);
+            // The automatic points are stored; the teacher's points stay as they are and count in the score
+            var automatic = QuizAttemptResults.BuildAutomatic(attempt);
+            var byQuestion = automatic.Questions.ToDictionary(r => r.Question.Id);
             foreach (var answer in attempt.Answers)
             {
                 if (byQuestion.TryGetValue(answer.QuestionId, out var graded))
@@ -151,6 +152,7 @@ internal class AnsweredQuestionEditor
                 }
             }
 
+            var result = QuizAttemptResults.Build(attempt);
             attempt.Score = result.Score;
             attempt.MaxScore = result.MaxScore;
         }
