@@ -52,6 +52,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ISchoolClassService, SchoolClassService>();
         services.AddScoped<IExamAssignmentService, ExamAssignmentService>();
         services.AddScoped<IAttemptGradingService, AttemptGradingService>();
+        services.AddScoped<IGradeScaleService, GradeScaleService>();
         services.AddScoped<ICodeGradingService, CodeGradingService>();
         services.AddScoped<ICodeCheckService, CodeCheckService>();
 
