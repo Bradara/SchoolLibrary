@@ -179,8 +179,17 @@ public class ResourceService : IResourceService
         return ServiceResult<Resource>.Success(resource);
     }
 
+    private const string UploadNeedsFileMessage = "Качен материал се добавя само с файл — от „Качи материал“.";
+
     public async Task<ServiceResult<Resource>> CreateAsync(ResourceInput input, string? ownerId)
     {
+        // An uploaded resource is made only with its file (IResourceUploadService); without one it would be
+        // a resource with no link and nothing to show
+        if (input.Kind == ResourceKind.Upload)
+        {
+            return ServiceResult<Resource>.Failure(ServiceError.Invalid, UploadNeedsFileMessage);
+        }
+
         var validation = Validate(input);
         if (validation != null)
         {
@@ -226,6 +235,18 @@ public class ResourceService : IResourceService
         if (!ResourcePermissions.CanEdit(resource, userId, isAdministrator))
         {
             return ServiceResult<Resource>.Failure(ServiceError.Forbidden, ForbiddenMessage);
+        }
+
+        // The kind follows the file: an uploaded resource stays uploaded and has no link (whatever the form sends),
+        // and a resource with a link cannot become an uploaded one without a file
+        if (resource.Kind == ResourceKind.Upload)
+        {
+            input.Kind = ResourceKind.Upload;
+            input.Url = string.Empty;
+        }
+        else if (input.Kind == ResourceKind.Upload)
+        {
+            return ServiceResult<Resource>.Failure(ServiceError.Invalid, UploadNeedsFileMessage);
         }
 
         var validation = Validate(input);

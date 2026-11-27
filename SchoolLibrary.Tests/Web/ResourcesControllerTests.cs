@@ -998,4 +998,164 @@ public class ResourcesControllerTests
         Assert.NotEmpty(model.AllCategories);
         Assert.NotEmpty(model.AllGradeLevels);
     }
+
+    // ---------- editing an uploaded resource and replacing its file ----------
+
+    private static Resource UploadedResource() => new()
+    {
+        Id = 5,
+        Title = "Учебник",
+        Kind = ResourceKind.Upload,
+        OwnerId = "u1",
+        File = new ResourceFile { ResourceId = 5, FileName = "учебник.pdf", SizeBytes = 2048, ContentType = "application/pdf" }
+    };
+
+    private static Microsoft.AspNetCore.Http.IFormFile FormFile(string name, byte[] bytes) =>
+        new Microsoft.AspNetCore.Http.FormFile(new MemoryStream(bytes), 0, bytes.Length, "File", name)
+        {
+            Headers = new Microsoft.AspNetCore.Http.HeaderDictionary(),
+            ContentType = "application/octet-stream"
+        };
+
+    [Fact]
+    public async Task Edit_OfAnUpload_ShowsTheFileInsteadOfTheLink()
+    {
+        _resources.Setup(r => r.GetForEditAsync(5, "u1", false)).ReturnsAsync(ServiceResult<Resource>.Success(UploadedResource()));
+
+        var form = Assert.IsType<ResourceFormViewModel>(Assert.IsType<ViewResult>(await Controller().Edit(5)).Model);
+
+        Assert.True(form.IsUpload);
+        Assert.Equal("учебник.pdf", form.FileName);
+        Assert.Equal(2048, form.FileSizeBytes);
+    }
+
+    [Fact]
+    public async Task Edit_PostOfAnUpload_DoesNotNeedALink()
+    {
+        var form = ValidForm();
+        form.Id = 5;
+        form.Kind = ResourceKind.Upload;
+        form.Url = string.Empty;
+        var controller = Controller();
+        controller.ModelState.AddModelError(nameof(form.Url), "Уеб адресът е задължителен");
+        _resources.Setup(r => r.UpdateAsync(5, It.IsAny<ResourceInput>(), "u1", false))
+            .ReturnsAsync(ServiceResult<Resource>.Success(UploadedResource()));
+
+        var result = await controller.Edit(5, form);
+
+        Assert.IsType<RedirectToActionResult>(result);
+        _resources.Verify(r => r.UpdateAsync(5, It.Is<ResourceInput>(i => i.Kind == ResourceKind.Upload), "u1", false));
+    }
+
+    [Fact]
+    public async Task Edit_PostOfAnUpload_WhenRefused_ShowsTheFileAgain()
+    {
+        var form = ValidForm();
+        form.Id = 5;
+        form.Kind = ResourceKind.Upload;
+        _resources.Setup(r => r.UpdateAsync(5, It.IsAny<ResourceInput>(), "u1", false))
+            .ReturnsAsync(ServiceResult<Resource>.Failure(ServiceError.Invalid, "Невалидно"));
+        _resources.Setup(r => r.GetForEditAsync(5, "u1", false)).ReturnsAsync(ServiceResult<Resource>.Success(UploadedResource()));
+
+        var view = Assert.IsType<ViewResult>(await Controller().Edit(5, form));
+
+        Assert.Equal("учебник.pdf", Assert.IsType<ResourceFormViewModel>(view.Model).FileName);
+    }
+
+    [Fact]
+    public async Task ReplaceFile_ShowsTheCurrentFile()
+    {
+        _resources.Setup(r => r.GetForEditAsync(5, "u1", false)).ReturnsAsync(ServiceResult<Resource>.Success(UploadedResource()));
+
+        var view = Assert.IsType<ViewResult>(await Controller().ReplaceFile(5));
+
+        var model = Assert.IsType<ResourceReplaceFileViewModel>(view.Model);
+        Assert.Equal("Учебник", model.Title);
+        Assert.Equal("учебник.pdf", model.CurrentFileName);
+    }
+
+    [Fact]
+    public async Task ReplaceFile_OfAResourceWithALink_IsNotFound()
+    {
+        _resources.Setup(r => r.GetForEditAsync(5, "u1", false))
+            .ReturnsAsync(ServiceResult<Resource>.Success(new Resource { Id = 5, Title = "Връзка", Kind = ResourceKind.Lesson }));
+
+        Assert.IsType<NotFoundResult>(await Controller().ReplaceFile(5));
+    }
+
+    [Fact]
+    public async Task ReplaceFile_OfAnotherTeachersUpload_IsForbidden()
+    {
+        _resources.Setup(r => r.GetForEditAsync(5, "u1", false))
+            .ReturnsAsync(ServiceResult<Resource>.Failure(ServiceError.Forbidden, "Не"));
+
+        Assert.IsType<ForbidResult>(await Controller().ReplaceFile(5));
+    }
+
+    [Fact]
+    public async Task ReplaceFile_Post_ReplacesAndGoesToTheDetails()
+    {
+        _uploads.Setup(u => u.ReplaceFileAsync(5, It.IsAny<UploadedFile>(), "u1", false, It.IsAny<UploadedFile?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult<Resource>.Success(UploadedResource()));
+        var controller = Controller();
+
+        var result = Assert.IsType<RedirectToActionResult>(await controller.ReplaceFile(5,
+            new ResourceReplaceFileViewModel { Id = 5, File = FormFile("нов.pdf", new byte[] { 0x25, 0x50 }) }));
+
+        Assert.Equal(nameof(ResourcesController.Details), result.ActionName);
+        Assert.Contains("сменен", controller.TempDataText("SuccessMessage"));
+        _uploads.Verify(u => u.ReplaceFileAsync(5, It.Is<UploadedFile>(f => f.FileName == "нов.pdf"), "u1", false,
+            null, It.IsAny<CancellationToken>()));
+    }
+
+    [Fact]
+    public async Task ReplaceFile_Post_PassesTheCoverOfAPdf()
+    {
+        _uploads.Setup(u => u.ReplaceFileAsync(5, It.IsAny<UploadedFile>(), "u1", false, It.IsAny<UploadedFile?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult<Resource>.Success(UploadedResource()));
+
+        await Controller().ReplaceFile(5, new ResourceReplaceFileViewModel
+        {
+            Id = 5,
+            File = FormFile("нов.pdf", new byte[] { 0x25, 0x50 }),
+            Cover = FormFile("cover.jpg", new byte[] { 0xFF, 0xD8, 0xFF })
+        });
+
+        _uploads.Verify(u => u.ReplaceFileAsync(5, It.IsAny<UploadedFile>(), "u1", false,
+            It.Is<UploadedFile?>(c => c != null && c.FileName == "cover.jpg"), It.IsAny<CancellationToken>()));
+    }
+
+    [Fact]
+    public async Task ReplaceFile_PostWithoutAFile_ShowsTheFormAgain()
+    {
+        _resources.Setup(r => r.GetForEditAsync(5, "u1", false)).ReturnsAsync(ServiceResult<Resource>.Success(UploadedResource()));
+        var controller = Controller();
+
+        var view = Assert.IsType<ViewResult>(await controller.ReplaceFile(5, new ResourceReplaceFileViewModel { Id = 5 }));
+
+        Assert.False(controller.ModelState.IsValid);
+        Assert.Equal("учебник.pdf", Assert.IsType<ResourceReplaceFileViewModel>(view.Model).CurrentFileName);
+        _uploads.Verify(u => u.ReplaceFileAsync(It.IsAny<int>(), It.IsAny<UploadedFile>(), It.IsAny<string>(), It.IsAny<bool>(),
+            It.IsAny<UploadedFile?>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task ReplaceFile_PostRefused_ShowsTheReason()
+    {
+        _resources.Setup(r => r.GetForEditAsync(5, "u1", false)).ReturnsAsync(ServiceResult<Resource>.Success(UploadedResource()));
+        _uploads.Setup(u => u.ReplaceFileAsync(5, It.IsAny<UploadedFile>(), "u1", false, It.IsAny<UploadedFile?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult<Resource>.Failure(ServiceError.Conflict, "Това е същият файл, който вече е качен."));
+        var controller = Controller();
+
+        Assert.IsType<ViewResult>(await controller.ReplaceFile(5,
+            new ResourceReplaceFileViewModel { Id = 5, File = FormFile("same.pdf", new byte[] { 0x25 }) }));
+
+        Assert.Contains(controller.ModelState[string.Empty]!.Errors, e => e.ErrorMessage.Contains("същият файл"));
+    }
+
+    [Fact]
+    public async Task ReplaceFile_PostWithAnotherId_IsNotFound()
+    {
+        Assert.IsType<NotFoundResult>(await Controller().ReplaceFile(5, new ResourceReplaceFileViewModel { Id = 6 }));
+    }
 }

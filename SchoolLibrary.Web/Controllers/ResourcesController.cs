@@ -451,7 +451,9 @@ namespace SchoolLibrary.Controllers
                 Audience = ResourceVisibility.Groups.Select(g => g.Group).Where(g => resource.Audience.HasFlag(g)).ToList(),
                 LicenseId = resource.LicenseId,
                 SelectedCategoryIds = resource.Categories.Select(c => c.Id).ToList(),
-                SelectedGradeLevelIds = resource.GradeLevels.Select(g => g.Id).ToList()
+                SelectedGradeLevelIds = resource.GradeLevels.Select(g => g.Id).ToList(),
+                FileName = resource.File?.FileName,
+                FileSizeBytes = resource.File?.SizeBytes ?? 0
             };
             await LoadOptionsAsync(vm);
             return View(vm);
@@ -469,6 +471,11 @@ namespace SchoolLibrary.Controllers
             }
 
             ValidateSelections(vm);
+            if (vm.IsUpload)
+            {
+                // An uploaded resource has no link; the service keeps its kind whatever the form says
+                ModelState.Remove(nameof(vm.Url));
+            }
 
             if (ModelState.IsValid)
             {
@@ -487,8 +494,97 @@ namespace SchoolLibrary.Controllers
                 await AddFailureAsync(vm, result);
             }
 
+            await LoadFileAsync(vm);
             await LoadOptionsAsync(vm);
             return View(vm);
+        }
+
+        // GET: Resources/ReplaceFile/5 — a new version of the file of an uploaded resource
+        [Authorize(Roles = Roles.TeacherOrAdministrator)]
+        public async Task<IActionResult> ReplaceFile(int id)
+        {
+            var vm = new ResourceReplaceFileViewModel { Id = id };
+            var found = await LoadReplaceFileAsync(vm);
+            return found ?? View(vm);
+        }
+
+        // POST: Resources/ReplaceFile/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = Roles.TeacherOrAdministrator)]
+        [RequestSizeLimit(MaxUploadRequestBytes)]
+        public async Task<IActionResult> ReplaceFile(int id, ResourceReplaceFileViewModel vm)
+        {
+            if (id != vm.Id)
+            {
+                return NotFound();
+            }
+
+            if (vm.File == null)
+            {
+                ModelState.AddModelError(nameof(vm.File), "Изберете файл за качване.");
+            }
+
+            if (ModelState.IsValid)
+            {
+                await using var stream = vm.File!.OpenReadStream();
+                var file = new UploadedFile(vm.File.FileName, vm.File.ContentType, vm.File.Length, stream);
+                await using var coverStream = vm.Cover?.OpenReadStream();
+                var cover = vm.Cover == null
+                    ? null
+                    : new UploadedFile(vm.Cover.FileName, vm.Cover.ContentType, vm.Cover.Length, coverStream!);
+
+                var result = await _uploads.ReplaceFileAsync(id, file, CurrentUserId, IsAdministrator, cover);
+                if (result.Succeeded)
+                {
+                    TempData["SuccessMessage"] = $"Файлът на {result.Value!.Title} е сменен.";
+                    return RedirectToAction(nameof(Details), new { id });
+                }
+
+                if (result.Error != ServiceError.Invalid && result.Error != ServiceError.Conflict)
+                {
+                    return ToActionResult(result);
+                }
+
+                ModelState.AddModelError(string.Empty, result.Message!);
+            }
+
+            var found = await LoadReplaceFileAsync(vm);
+            return found ?? View(vm);
+        }
+
+        // The title and the current file of an uploaded resource the user may change; otherwise the error page
+        private async Task<IActionResult?> LoadReplaceFileAsync(ResourceReplaceFileViewModel vm)
+        {
+            var result = await _resources.GetForEditAsync(vm.Id, CurrentUserId, IsAdministrator);
+            if (!result.Succeeded)
+            {
+                return ToActionResult(result);
+            }
+
+            var resource = result.Value!;
+            if (resource.Kind != ResourceKind.Upload || resource.File == null)
+            {
+                return NotFound();
+            }
+
+            vm.Title = resource.Title;
+            vm.CurrentFileName = resource.File.FileName;
+            vm.CurrentFileSizeBytes = resource.File.SizeBytes;
+            return null;
+        }
+
+        // The file shown on the edit form of an uploaded resource, after a failed save
+        private async Task LoadFileAsync(ResourceFormViewModel vm)
+        {
+            if (!vm.IsUpload)
+            {
+                return;
+            }
+
+            var result = await _resources.GetForEditAsync(vm.Id, CurrentUserId, IsAdministrator);
+            vm.FileName = result.Value?.File?.FileName;
+            vm.FileSizeBytes = result.Value?.File?.SizeBytes ?? 0;
         }
 
         // GET: Resources/Delete

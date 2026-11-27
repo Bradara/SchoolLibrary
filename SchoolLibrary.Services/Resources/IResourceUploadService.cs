@@ -15,4 +15,14 @@ public interface IResourceUploadService
     Task<ServiceResult<Resource>> UploadAsync(
         ResourceInput input, UploadedFile file, string? ownerId, UploadedFile? pdfCover = null,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Puts a new version of the file in place of the old one: the same checks as an upload (type, size, the same
+    /// file nowhere else in the library), and the cover comes from the new file. The old file and its cover are
+    /// removed from the storage only after the database points to the new ones. The details of the resource
+    /// (title, subjects, …), its comments, favorites and reading positions stay.
+    /// </summary>
+    Task<ServiceResult<Resource>> ReplaceFileAsync(
+        int resourceId, UploadedFile file, string userId, bool isAdministrator, UploadedFile? pdfCover = null,
+        CancellationToken cancellationToken = default);
 }

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 using System.ComponentModel.DataAnnotations;
@@ -53,6 +54,16 @@ public class ResourceFormViewModel
 
     [Display(Name = "Класове")]
     public List<int> SelectedGradeLevelIds { get; set; } = new();
+
+    // The file of an uploaded resource (Kind = Upload), shown instead of the link; filled by the controller,
+    // never taken from the form
+    [BindNever]
+    public string? FileName { get; set; }
+
+    [BindNever]
+    public long FileSizeBytes { get; set; }
+
+    public bool IsUpload => Kind == ResourceKind.Upload;
 
     // Set by the controller when the link is already in the library, to offer a link to that resource
     public int? DuplicateOfId { get; set; }

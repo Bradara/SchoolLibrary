@@ -1,0 +1,58 @@
+@using SchoolLibrary.Services.Resources
+@model SchoolLibrary.ViewModels.ResourceReplaceFileViewModel
+
+@{
+    ViewData["Title"] = "Смени файла";
+    var accept = string.Join(",", UploadConstraints.AllowedExtensions);
+}
+
+<h1>Смени файла</h1>
+
+<h4>@Model.Title</h4>
+<hr />
+<div class="row">
+    <div class="col-lg-8">
+        <p>
+            Сегашен файл: <strong>@Model.CurrentFileName</strong>
+            <span class="text-body-secondary">(@FileSizes.Format(Model.CurrentFileSizeBytes))</span>
+        </p>
+        <p class="text-body-secondary small">
+            Новият файл заменя стария. Заглавието, предметите, коментарите и любимите остават.
+            Обложката се взима от новия файл, а старият файл се изтрива.
+        </p>
+
+        @* data-epub-metadata: the same script as the upload form draws the first page of a new PDF as its cover;
+           there are no title or author fields here, so nothing else is filled *@
+        <form asp-action="ReplaceFile" asp-route-id="@Model.Id" enctype="multipart/form-data" data-epub-metadata
+              data-pdfjs-base="@Url.Content("~/lib/pdfjs/")">
+            <input type="hidden" asp-for="Id" />
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <div class="form-group mb-3">
+                <label asp-for="File" class="control-label"></label>
+                <input asp-for="File" type="file" class="form-control" accept="@accept" required />
+                <span asp-validation-for="File" class="text-danger"></span>
+                <div class="form-text">
+                    Разрешени формати: PDF, EPUB, Markdown (.pdf, .epub, .md).
+                    Максимален размер: @UploadConstraints.MaxFileSizeMegabytes МБ.
+                </div>
+                <input asp-for="Cover" type="file" class="d-none" accept="image/jpeg" tabindex="-1" aria-hidden="true" />
+                <div class="d-flex align-items-center gap-2 mt-2" data-pdf-cover-preview hidden>
+                    <img alt="" class="border rounded" style="height: 6rem; width: auto;" />
+                    <span class="form-text mt-0">Обложка: първата страница на документа.</span>
+                </div>
+            </div>
+
+            <div class="form-group mt-4">
+                <input type="submit" value="Смени файла" class="btn btn-primary" />
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">Отказ</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script src="~/js/sl-epub-metadata.js" asp-append-version="true"></script>
+    <script type="module" src="~/js/sl-pdf-cover.js" asp-append-version="true"></script>
+}

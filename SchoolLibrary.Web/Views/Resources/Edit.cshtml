@@ -1,12 +1,12 @@
 @model SchoolLibrary.ViewModels.ResourceFormViewModel
 
 @{
-    ViewData["Title"] = "Редактирай ресурс";
+    ViewData["Title"] = Model.IsUpload ? "Редактирай материал" : "Редактирай ресурс";
 }
 
-<h1>Редактирай ресурс</h1>
+<h1>@ViewData["Title"]</h1>
 
-<h4>Редактиране на учебен ресурс</h4>
+<h4>@(Model.IsUpload ? "Редактиране на качен материал" : "Редактиране на учебен ресурс")</h4>
 <hr />
 <div class="row">
     <div class="col-lg-8">
@@ -16,7 +16,7 @@
 
             <div class="form-group mt-4">
                 <input type="submit" value="Запази" class="btn btn-primary" />
-                <a asp-action="Index" class="btn btn-secondary">Отказ</a>
+                <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary">Отказ</a>
             </div>
         </form>
     </div>

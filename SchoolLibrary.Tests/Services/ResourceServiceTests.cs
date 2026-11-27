@@ -545,6 +545,103 @@ public class ResourceServiceTests
         Assert.Equal(ServiceError.Forbidden, result.Error);
     }
 
+    // ---------- the kind follows the file ----------
+
+    private async Task<Resource> AddUploadAsync()
+    {
+        var resource = await AddResourceAsync("Качен", kind: ResourceKind.Upload);
+        resource.Url = string.Empty;
+        resource.NormalizedUrl = null;
+        resource.File = new ResourceFile
+        {
+            StorageKey = "resources/a.pdf", FileName = "a.pdf", ContentType = "application/pdf",
+            Sha256 = new string('a', 64), UploadedOn = DateTime.UtcNow
+        };
+        await _context.SaveChangesAsync();
+        return resource;
+    }
+
+    [Fact]
+    public async Task CreateAsync_UploadKindWithoutAFile_IsRefused()
+    {
+        var input = ValidInput();
+        input.Kind = ResourceKind.Upload;
+        input.Url = string.Empty;
+
+        var result = await _service.CreateAsync(input, _ivan.Id);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        Assert.Contains("Качи материал", result.Message);
+        Assert.Empty(_context.Resources);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_Upload_ChangesTheDetailsAndStaysUploaded()
+    {
+        var upload = await AddUploadAsync();
+        var input = ValidInput();
+        input.Title = "Ново заглавие";
+        input.Url = string.Empty;
+        input.Kind = ResourceKind.Upload;
+
+        var result = await _service.UpdateAsync(upload.Id, input, _ivan.Id, isAdministrator: false);
+
+        Assert.True(result.Succeeded);
+        var saved = _context.Resources.Single();
+        Assert.Equal("Ново заглавие", saved.Title);
+        Assert.Equal(ResourceKind.Upload, saved.Kind);
+        Assert.Equal(string.Empty, saved.Url);
+        Assert.Null(saved.NormalizedUrl);
+        Assert.Single(_context.ResourceFiles);
+    }
+
+    [Theory]
+    [InlineData(ResourceKind.Lesson)]
+    [InlineData(ResourceKind.External)]
+    public async Task UpdateAsync_Upload_IgnoresAnotherKindAndALinkFromTheForm(ResourceKind kind)
+    {
+        var upload = await AddUploadAsync();
+        var input = ValidInput();
+        input.Kind = kind;
+        input.Url = "https://example.com/elsewhere";
+
+        var result = await _service.UpdateAsync(upload.Id, input, _ivan.Id, isAdministrator: false);
+
+        Assert.True(result.Succeeded);
+        var saved = _context.Resources.Single();
+        Assert.Equal(ResourceKind.Upload, saved.Kind);
+        Assert.Equal(string.Empty, saved.Url);
+        Assert.Null(saved.NormalizedUrl);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ALinkCannotBecomeAnUpload()
+    {
+        var lesson = await AddResourceAsync("Урок");
+        var input = ValidInput();
+        input.Kind = ResourceKind.Upload;
+        input.Url = string.Empty;
+
+        var result = await _service.UpdateAsync(lesson.Id, input, _ivan.Id, isAdministrator: false);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        var saved = _context.Resources.Single();
+        Assert.Equal(ResourceKind.Lesson, saved.Kind);
+        Assert.Equal("https://example.com", saved.Url);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_UploadOfAnotherTeacher_IsForbidden()
+    {
+        var upload = await AddUploadAsync();
+        var input = ValidInput();
+
+        var result = await _service.UpdateAsync(upload.Id, input, "someone-else", isAdministrator: false);
+
+        Assert.Equal(ServiceError.Forbidden, result.Error);
+        Assert.Equal("Качен", _context.Resources.Single().Title);
+    }
+
     [Fact]
     public async Task UpdateAsync_AdministratorOnResourceWithoutOwner_ChangesItAndKeepsItOwnerless()
     {
@@ -640,37 +737,6 @@ public class ResourceServiceTests
         var result = await _service.CreateAsync(input, _ivan.Id);
 
         Assert.Equal(ResourceKind.External, _context.Resources.Single(r => r.Id == result.Value!.Id).Kind);
-    }
-
-    [Fact]
-    public async Task CreateAsync_UploadKind_DoesNotRequireUrl()
-    {
-        var input = ValidInput();
-        input.Kind = ResourceKind.Upload;
-        input.Url = "";
-
-        var result = await _service.CreateAsync(input, _ivan.Id);
-
-        Assert.True(result.Succeeded);
-        var saved = _context.Resources.Single();
-        Assert.Equal(ResourceKind.Upload, saved.Kind);
-        Assert.Equal(string.Empty, saved.Url);
-        Assert.Null(saved.NormalizedUrl);
-    }
-
-    [Fact]
-    public async Task CreateAsync_UploadKind_StillRequiresLicenseSubjectAndGrade()
-    {
-        var input = ValidInput();
-        input.Kind = ResourceKind.Upload;
-        input.Url = "";
-        input.LicenseId = null;
-
-        var result = await _service.CreateAsync(input, _ivan.Id);
-
-        Assert.Equal(ServiceError.Invalid, result.Error);
-        Assert.Contains("лиценз", result.Message);
-        Assert.Empty(_context.Resources);
     }
 
     [Fact]

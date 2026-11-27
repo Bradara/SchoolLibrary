@@ -436,6 +436,195 @@ public class ResourceUploadServiceTests
         Assert.Empty(_storage.Files);
     }
 
+    // ---------- ReplaceFileAsync ----------
+
+    private static byte[] OtherPdf() => Encoding.ASCII.GetBytes("%PDF-1.7\nnew version");
+
+    private async Task<Resource> UploadedAsync(string name, byte[] bytes, byte[]? picture = null)
+    {
+        var result = await _service.UploadAsync(Input(), File(name, bytes), "teacher-1",
+            picture == null ? null : File("cover.jpg", picture));
+        Assert.True(result.Succeeded);
+        return result.Value!;
+    }
+
+    private Task<ServiceResult<Resource>> ReplaceAsync(
+        int id, string name, byte[] bytes, string user = "teacher-1", bool admin = false, byte[]? picture = null) =>
+        _service.ReplaceFileAsync(id, File(name, bytes), user, admin, picture == null ? null : File("cover.jpg", picture));
+
+    [Fact]
+    public async Task ReplaceFileAsync_PutsTheNewFileInPlaceAndRemovesTheOldOne()
+    {
+        var resource = await UploadedAsync("lesson.pdf", Pdf());
+        var oldKey = _context.ResourceFiles.Single().StorageKey;
+
+        var result = await ReplaceAsync(resource.Id, "version2.pdf", OtherPdf());
+
+        Assert.True(result.Succeeded);
+        var file = _context.ResourceFiles.Single();
+        Assert.NotEqual(oldKey, file.StorageKey);
+        Assert.Equal("version2.pdf", file.FileName);
+        Assert.Equal(OtherPdf().Length, file.SizeBytes);
+        Assert.Equal(OtherPdf(), _storage.Files[file.StorageKey]);
+        Assert.False(_storage.Files.ContainsKey(oldKey));
+        Assert.Single(_storage.Files);
+        // the details of the resource stay
+        Assert.Equal("Моят материал", _context.Resources.Single().Title);
+    }
+
+    [Fact]
+    public async Task ReplaceFileAsync_CanChangeTheTypeOfTheFile()
+    {
+        var resource = await UploadedAsync("lesson.pdf", Pdf());
+
+        var result = await ReplaceAsync(resource.Id, "book.epub", TestEpubs.Book(TestEpubs.JpegCover));
+
+        Assert.True(result.Succeeded);
+        var file = _context.ResourceFiles.Single();
+        Assert.Equal("application/epub+zip", file.ContentType);
+        Assert.EndsWith(".epub", file.StorageKey);
+        Assert.Equal("image/jpeg", file.CoverContentType);
+        Assert.Equal(TestEpubs.JpegCover, _storage.Files[file.CoverKey!]);
+    }
+
+    [Fact]
+    public async Task ReplaceFileAsync_RemovesTheOldCoverAndTakesTheNewOne()
+    {
+        var resource = await UploadedAsync("lesson.pdf", Pdf(), JpegPicture);
+        var oldCover = _context.ResourceFiles.Single().CoverKey!;
+
+        var result = await ReplaceAsync(resource.Id, "v2.pdf", OtherPdf(), picture: PngPicture);
+
+        Assert.True(result.Succeeded);
+        var file = _context.ResourceFiles.Single();
+        Assert.Equal("image/png", file.CoverContentType);
+        Assert.Equal(PngPicture, _storage.Files[file.CoverKey!]);
+        Assert.False(_storage.Files.ContainsKey(oldCover));
+        Assert.Equal(2, _storage.Files.Count);
+    }
+
+    [Fact]
+    public async Task ReplaceFileAsync_WithoutANewCover_LeavesNoCover()
+    {
+        var resource = await UploadedAsync("lesson.pdf", Pdf(), JpegPicture);
+
+        await ReplaceAsync(resource.Id, "v2.pdf", OtherPdf());
+
+        var file = _context.ResourceFiles.Single();
+        Assert.Null(file.CoverKey);
+        Assert.Null(file.CoverContentType);
+        Assert.Single(_storage.Files);
+    }
+
+    [Fact]
+    public async Task ReplaceFileAsync_TheSameFile_IsRefused()
+    {
+        var resource = await UploadedAsync("lesson.pdf", Pdf());
+        var key = _context.ResourceFiles.Single().StorageKey;
+
+        var result = await ReplaceAsync(resource.Id, "again.pdf", Pdf());
+
+        Assert.Equal(ServiceError.Conflict, result.Error);
+        Assert.Contains("същият файл", result.Message);
+        Assert.Equal(key, _context.ResourceFiles.Single().StorageKey);
+        Assert.True(_storage.Files.ContainsKey(key));
+    }
+
+    [Fact]
+    public async Task ReplaceFileAsync_AFileOfAnotherResource_IsRefused()
+    {
+        var resource = await UploadedAsync("lesson.pdf", Pdf());
+        await UploadedAsync("other.pdf", OtherPdf());
+
+        var result = await ReplaceAsync(resource.Id, "copy.pdf", OtherPdf());
+
+        Assert.Equal(ServiceError.Conflict, result.Error);
+        Assert.Equal(2, _storage.Files.Count);
+    }
+
+    [Theory]
+    [InlineData("virus.exe")]
+    [InlineData("fake.pdf")]
+    public async Task ReplaceFileAsync_AFileThatIsNotAllowed_IsRefusedAndKeepsTheOldOne(string name)
+    {
+        var resource = await UploadedAsync("lesson.pdf", Pdf());
+        var key = _context.ResourceFiles.Single().StorageKey;
+
+        var result = await ReplaceAsync(resource.Id, name, Encoding.ASCII.GetBytes("MZ not a pdf"));
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        Assert.Equal(key, _context.ResourceFiles.Single().StorageKey);
+        Assert.Single(_storage.Files);
+    }
+
+    [Fact]
+    public async Task ReplaceFileAsync_TooLargeFile_IsRefused()
+    {
+        var resource = await UploadedAsync("lesson.pdf", Pdf());
+
+        var result = await _service.ReplaceFileAsync(resource.Id,
+            File("big.pdf", OtherPdf(), declaredLength: UploadConstraints.MaxFileSizeBytes + 1), "teacher-1", false);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+    }
+
+    [Fact]
+    public async Task ReplaceFileAsync_ByAnotherTeacher_IsForbidden()
+    {
+        var resource = await UploadedAsync("lesson.pdf", Pdf());
+
+        var result = await ReplaceAsync(resource.Id, "v2.pdf", OtherPdf(), user: "teacher-2");
+
+        Assert.Equal(ServiceError.Forbidden, result.Error);
+        Assert.Single(_storage.Files);
+    }
+
+    [Fact]
+    public async Task ReplaceFileAsync_ResourceWithALink_IsNotFound()
+    {
+        var link = new Resource { Title = "Връзка", Author = "А", Url = "https://example.com", Kind = ResourceKind.Lesson, OwnerId = "teacher-1" };
+        _context.Resources.Add(link);
+        await _context.SaveChangesAsync();
+
+        var result = await ReplaceAsync(link.Id, "v2.pdf", OtherPdf());
+
+        Assert.Equal(ServiceError.NotFound, result.Error);
+        Assert.Empty(_storage.Files);
+    }
+
+    [Fact]
+    public async Task ReplaceFileAsync_MissingResource_IsNotFound()
+    {
+        var result = await ReplaceAsync(999, "v2.pdf", OtherPdf());
+
+        Assert.Equal(ServiceError.NotFound, result.Error);
+    }
+
+    [Fact]
+    public async Task ReplaceFileAsync_WhenTheDatabaseWriteFails_KeepsTheOldFileAndRemovesTheNewOne()
+    {
+        var context = new FailingSaveContext();
+        var license = new License { Name = "CC BY 4.0" };
+        var subject = new Category { Name = "Литература" };
+        var grade = new GradeLevel { Number = 9 };
+        context.AddRange(license, subject, grade);
+        context.SaveWorks = true;
+        await context.SaveChangesAsync();
+        var input = Input();
+        input.LicenseId = license.Id;
+        input.CategoryIds = new List<int> { subject.Id };
+        input.GradeLevelIds = new List<int> { grade.Id };
+        var service = new ResourceUploadService(context, _storage);
+        var resource = (await service.UploadAsync(input, File("lesson.pdf", Pdf()), "teacher-1")).Value!;
+        var oldKey = _storage.Files.Keys.Single();
+        context.SaveWorks = false;
+
+        await Assert.ThrowsAsync<DbUpdateException>(() =>
+            service.ReplaceFileAsync(resource.Id, File("v2.pdf", OtherPdf()), "teacher-1", false, File("c.jpg", JpegPicture)));
+
+        Assert.Equal(new[] { oldKey }, _storage.Files.Keys);
+    }
+
     // An in-memory database whose writes fail on demand
     private sealed class FailingSaveContext() : ApplicationDbContext(
         new DbContextOptionsBuilder<ApplicationDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options)

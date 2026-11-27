@@ -10,7 +10,7 @@
     var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
     var isAdministrator = User.IsInRole(Roles.Administrator);
     // An uploaded file has no edit form
-    var canEdit = resource.Kind != ResourceKind.Upload && ResourcePermissions.CanEdit(resource, userId, isAdministrator);
+    var canEdit = ResourcePermissions.CanEdit(resource, userId, isAdministrator);
     var canDelete = ResourcePermissions.CanDelete(resource, userId, isAdministrator);
 }
 <article class="res-card" style="--subj:@Model.Color">

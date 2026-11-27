@@ -238,9 +238,12 @@ else
 @if (User.Identity?.IsAuthenticated == true && SchoolLibrary.Services.Resources.ResourcePermissions.CanEdit(Model.Resource, userId, isAdministrator))
 {
     <div class="mt-4">
-        @if (Model.Resource.Kind != ResourceKind.Upload)
+        <a asp-action="Edit" asp-route-id="@Model.Resource.Id" class="btn btn-outline-primary">Редактирай</a>
+        @if (Model.Resource.Kind == ResourceKind.Upload)
         {
-            <a asp-action="Edit" asp-route-id="@Model.Resource.Id" class="btn btn-outline-primary">Редактирай</a>
+            <a asp-action="ReplaceFile" asp-route-id="@Model.Resource.Id" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-repeat" aria-hidden="true"></i> Смени файла
+            </a>
         }
         <a asp-action="Delete" asp-route-id="@Model.Resource.Id" class="btn btn-outline-danger">Изтрий</a>
         @if (Model.CanChangeAudience)
