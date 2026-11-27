@@ -10,7 +10,7 @@ public static class QuizAttemptResults
     /// gave by hand in place of the automatic ones. This is what the attempt is worth and what is shown.
     /// </summary>
     public static QuizResult Build(QuizAttempt attempt)
-        => ApplyManualPoints(BuildAutomatic(attempt), attempt);
+        => ApplyManualPoints(BuildAutomatic(attempt), attempt) with { Grading = ExamGrading.For(attempt.ExamAssignment) };
 
     /// <summary>
     /// Regrades the attempt from the answers the student gave, ignoring the teacher's points: the automatic

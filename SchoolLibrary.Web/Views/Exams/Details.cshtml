@@ -5,6 +5,7 @@
     var exam = Model.Results.Exam;
     var attempts = Model.Results.Attempts;
     var proctored = exam.MaxLeaves.HasValue;
+    var grading = ExamGrading.For(exam);
     ViewData["Title"] = exam.Quiz.Title + " — " + exam.SchoolClass.Name;
 }
 
@@ -30,6 +31,9 @@
             {
                 <text>· без подсказки за код</text>
             }
+            · оценяване: @(exam.GradingMethod != SchoolLibrary.Data.Enums.GradingMethod.Thresholds
+                ? ExamGrading.MethodName(exam.GradingMethod)
+                : exam.GradeScale != null ? "скала „" + exam.GradeScale.Name + "“" : "системна скала")
         </div>
     </div>
     <div class="text-lg-end">
@@ -117,11 +121,12 @@ else
                         <td>@attempt.StudentName</td>
                         @if (submitted)
                         {
-                            var grade = QuizGradeScale.Grade(attempt.Score, attempt.MaxScore);
+                            var mark = grading.Mark(attempt.Score, attempt.MaxScore);
+                            var grade = ExamGrading.Whole(mark);
                             <td class="text-center fw-semibold">@QuizPoints.Format(attempt.Score) / @QuizPoints.Format(attempt.MaxScore)</td>
                             <td class="text-center">
                                 <span class="badge @(grade >= 3 ? "text-bg-success" : "text-bg-danger")"
-                                      title="@QuizGradeScale.Label(grade) · @QuizGradeScale.Percent(attempt.Score, attempt.MaxScore)%">@grade</span>
+                                      title="@QuizGradeScale.Label(grade) · @QuizGradeScale.Percent(attempt.Score, attempt.MaxScore)%">@grading.Format(mark)</span>
                             </td>
                         }
                         else

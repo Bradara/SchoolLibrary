@@ -692,7 +692,8 @@ public class QuizService : IQuizService
             _codeQueue!.Notify();
         }
 
-        return ServiceResult<QuizResult>.Success(result);
+        // Graded as the exam grades (its method and scale), like every later look at the attempt
+        return ServiceResult<QuizResult>.Success(result with { Grading = ExamGrading.For(attempt.ExamAssignment) });
     }
 
     public async Task<ServiceResult<QuizResult>> GetExamResultAsync(Guid token)

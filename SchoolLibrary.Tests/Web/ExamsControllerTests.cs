@@ -14,6 +14,7 @@ public class ExamsControllerTests
 {
     private readonly Mock<ISchoolClassService> _classes = new();
     private readonly Mock<IExamAssignmentService> _exams = new();
+    private readonly Mock<IGradeScaleService> _scales = new();
 
     public ExamsControllerTests()
     {
@@ -22,7 +23,7 @@ public class ExamsControllerTests
     }
 
     private ExamsController Controller(string userId = "t1", params string[] roles) =>
-        new ExamsController(_classes.Object, _exams.Object).WithUser(userId, roles.Length == 0 ? new[] { Roles.Teacher } : roles);
+        new ExamsController(_classes.Object, _exams.Object, _scales.Object).WithUser(userId, roles.Length == 0 ? new[] { Roles.Teacher } : roles);
 
     private static ServiceResult<T> Fail<T>(ServiceError error) => ServiceResult<T>.Failure(error, "грешка");
 
@@ -243,6 +244,48 @@ public class ExamsControllerTests
 
         _exams.Verify(s => s.CreateAsync(new ExamAssignmentInput(1, 2, null, null, false, false), "t1", false), Times.Once);
         _exams.Verify(s => s.UpdateSettingsAsync(3, new ExamSettingsInput(30, null, false, true), "t1", false), Times.Once);
+    }
+
+    [Fact]
+    public async Task Create_And_UpdateSettings_PassTheGradingMethodAndScale()
+    {
+        _exams.Setup(s => s.CreateAsync(It.IsAny<ExamAssignmentInput>(), "t1", false))
+            .ReturnsAsync(ServiceResult<ExamAssignment>.Success(Exam(7)));
+        _exams.Setup(s => s.UpdateSettingsAsync(3, It.IsAny<ExamSettingsInput>(), "t1", false))
+            .ReturnsAsync(ServiceResult<ExamAssignment>.Success(Exam()));
+
+        await Controller().Create(new ExamAssignFormViewModel { QuizId = 1, SchoolClassId = 2, GradeScaleId = 9 });
+        await Controller().UpdateSettings(3, new ExamSettingsViewModel { GradingMethod = Data.Enums.GradingMethod.TwoPlusFour });
+
+        _exams.Verify(s => s.CreateAsync(new ExamAssignmentInput(1, 2, null, null, true, true, Data.Enums.GradingMethod.Thresholds, 9), "t1", false), Times.Once);
+        _exams.Verify(s => s.UpdateSettingsAsync(3, new ExamSettingsInput(null, null, true, true, Data.Enums.GradingMethod.TwoPlusFour, null), "t1", false), Times.Once);
+    }
+
+    [Fact]
+    public async Task Details_OffersTheScalesOfTheClassTeacher_AndTheExamsGrading()
+    {
+        var exam = Exam();
+        exam.GradingMethod = Data.Enums.GradingMethod.Thresholds;
+        exam.GradeScaleId = 9;
+        var results = new ExamResults(exam, new PagedResult<QuizAttempt>(new List<QuizAttempt>(), 0, 1, 50));
+        _exams.Setup(s => s.GetResultsAsync(3, "a1", true, 1, It.IsAny<int>())).ReturnsAsync(ServiceResult<ExamResults>.Success(results));
+        _scales.Setup(s => s.GetForOwnerAsync("t1")).ReturnsAsync(new List<GradeScaleListItem> { new(new GradeScale { Id = 9, Name = "Строга" }, 1) });
+
+        // An administrator opens another teacher's exam: the scales are that teacher's
+        var model = Assert.IsType<ExamDetailsViewModel>(Assert.IsType<ViewResult>(await Controller("a1", Roles.Administrator).Details(3)).Model);
+
+        Assert.Equal(9, model.Settings.GradeScaleId);
+        Assert.Equal("Строга", Assert.Single(model.Settings.Scales).Scale.Name);
+    }
+
+    [Fact]
+    public async Task Create_Get_OffersTheTeachersScales()
+    {
+        _scales.Setup(s => s.GetForOwnerAsync("t1")).ReturnsAsync(new List<GradeScaleListItem> { new(new GradeScale { Id = 9, Name = "Строга" }, 0) });
+
+        var model = Assert.IsType<ExamAssignFormViewModel>(Assert.IsType<ViewResult>(await Controller().Create(null, null)).Model);
+
+        Assert.Single(model.Scales);
     }
 
     [Theory]

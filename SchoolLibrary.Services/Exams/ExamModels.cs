@@ -1,3 +1,4 @@
+using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Common;
 using SchoolLibrary.Services.Quizzes;
@@ -14,11 +15,13 @@ public record GradeScaleListItem(GradeScale Scale, int ExamCount);
 public record GradeScaleInput(string? Name, decimal Three, decimal Four, decimal Five, decimal Six);
 
 /// <summary>What a teacher types when giving a quiz to a class as an exam. The code is generated.</summary>
+/// <param name="GradeScaleId">The teacher's scale for <see cref="GradingMethod.Thresholds"/>; null is the system scale.</param>
 public record ExamAssignmentInput(int QuizId, int SchoolClassId, int? TimeLimitMinutes, int? MaxLeaves, bool CodeHints = true,
-    bool OneQuestionPerPage = true);
+    bool OneQuestionPerPage = true, GradingMethod GradingMethod = GradingMethod.Thresholds, int? GradeScaleId = null);
 
 /// <summary>The exam settings a teacher can change after assigning (the quiz and the class stay).</summary>
-public record ExamSettingsInput(int? TimeLimitMinutes, int? MaxLeaves, bool CodeHints = true, bool OneQuestionPerPage = true);
+public record ExamSettingsInput(int? TimeLimitMinutes, int? MaxLeaves, bool CodeHints = true, bool OneQuestionPerPage = true,
+    GradingMethod GradingMethod = GradingMethod.Thresholds, int? GradeScaleId = null);
 
 /// <summary>A class exam (with its quiz and class) and its attempt counts, for the exams panel.</summary>
 public record ExamAssignmentListItem(ExamAssignment Exam, int SubmittedCount, int InProgressCount);

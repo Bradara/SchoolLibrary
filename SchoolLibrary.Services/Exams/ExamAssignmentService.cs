@@ -97,7 +97,8 @@ public class ExamAssignmentService : IExamAssignmentService
             return ServiceResult<ExamAssignment>.Failure(ServiceError.Invalid, "Тестът още няма въпроси.");
         }
 
-        var validation = Validate(input.TimeLimitMinutes, input.MaxLeaves);
+        var validation = Validate(input.TimeLimitMinutes, input.MaxLeaves)
+                         ?? await ValidateGradingAsync(input.GradingMethod, input.GradeScaleId, schoolClass);
         if (validation != null)
         {
             return ServiceResult<ExamAssignment>.Failure(ServiceError.Invalid, validation);
@@ -105,6 +106,8 @@ public class ExamAssignmentService : IExamAssignmentService
 
         var exam = new ExamAssignment
         {
+            GradingMethod = input.GradingMethod,
+            GradeScaleId = ScaleToStore(input.GradingMethod, input.GradeScaleId),
             QuizId = quiz.Id,
             SchoolClassId = schoolClass.Id,
             Code = await QuizCode.GenerateUniqueAsync(_context, QuizService.CodeLength),
@@ -131,13 +134,17 @@ public class ExamAssignmentService : IExamAssignmentService
             return failure;
         }
 
-        var validation = Validate(input.TimeLimitMinutes, input.MaxLeaves);
+        var validation = Validate(input.TimeLimitMinutes, input.MaxLeaves)
+                         ?? await ValidateGradingAsync(input.GradingMethod, input.GradeScaleId, exam!.SchoolClass);
         if (validation != null)
         {
             return ServiceResult<ExamAssignment>.Failure(ServiceError.Invalid, validation);
         }
 
-        exam!.TimeLimitMinutes = input.TimeLimitMinutes;
+        // The grades are computed when shown, so a new method or scale applies to the attempts already made
+        exam.GradingMethod = input.GradingMethod;
+        exam.GradeScaleId = ScaleToStore(input.GradingMethod, input.GradeScaleId);
+        exam.TimeLimitMinutes = input.TimeLimitMinutes;
         exam.MaxLeaves = input.MaxLeaves;
         exam.CodeHints = input.CodeHints;
         exam.OneQuestionPerPage = input.OneQuestionPerPage;
@@ -273,6 +280,29 @@ public class ExamAssignmentService : IExamAssignmentService
 
         return ServiceResult<QuizAttempt>.Success(attempt);
     }
+
+    // A known method, and a scale (when one is picked) of the class's teacher, so an exam's grades stay theirs
+    private async Task<string?> ValidateGradingAsync(GradingMethod method, int? scaleId, SchoolClass schoolClass)
+    {
+        if (!Enum.IsDefined(method))
+        {
+            return "Изберете начин на оценяване.";
+        }
+
+        if (method != GradingMethod.Thresholds || scaleId == null)
+        {
+            return null;
+        }
+
+        var scale = await _context.GradeScales.AsNoTracking().FirstOrDefaultAsync(s => s.Id == scaleId);
+        return scale != null && scale.OwnerId == schoolClass.OwnerId
+            ? null
+            : "Изберете една от скалите на учителя на класа.";
+    }
+
+    // A formula uses no scale
+    private static int? ScaleToStore(GradingMethod method, int? scaleId)
+        => method == GradingMethod.Thresholds ? scaleId : null;
 
     private async Task<(ExamAssignment? Exam, ServiceResult<ExamAssignment>? Failure)> FindManageableAsync(int id, string userId, bool isAdministrator)
     {

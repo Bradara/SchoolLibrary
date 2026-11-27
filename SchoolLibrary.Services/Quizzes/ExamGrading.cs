@@ -20,6 +20,34 @@ public record ExamGrading(GradingMethod Method, decimal Three, decimal Four, dec
     public static ExamGrading Formula(GradingMethod method)
         => Default with { Method = method };
 
+    /// <summary>
+    /// The grading of a class exam (its method and, with thresholds, its scale or the system one); the system scale
+    /// for anything else (practice, older exams). The exam's scale is loaded with it (auto-included).
+    /// </summary>
+    public static ExamGrading For(SchoolLibrary.Data.Models.ExamAssignment? exam)
+    {
+        if (exam == null)
+        {
+            return Default;
+        }
+
+        if (exam.GradingMethod != GradingMethod.Thresholds)
+        {
+            return Formula(exam.GradingMethod);
+        }
+
+        var scale = exam.GradeScale;
+        return scale == null ? Default : new ExamGrading(GradingMethod.Thresholds, scale.Three, scale.Four, scale.Five, scale.Six);
+    }
+
+    /// <summary>The name of a method as the teacher sees it.</summary>
+    public static string MethodName(GradingMethod method) => method switch
+    {
+        GradingMethod.TimesSix => "точки / максимум × 6",
+        GradingMethod.TwoPlusFour => "2 + 4 × точки / максимум",
+        _ => "по скала"
+    };
+
     /// <summary>Whether the grade has decimals (the formulas) rather than being a whole number.</summary>
     public bool HasDecimals => Method != GradingMethod.Thresholds;
 

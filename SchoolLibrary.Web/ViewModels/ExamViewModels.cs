@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 using SchoolLibrary.Services.Exams;
 
@@ -40,6 +41,16 @@ public class ExamSettingsViewModel
 
     [Display(Name = "По един въпрос на екран")]
     public bool OneQuestionPerPage { get; set; } = true;
+
+    [Display(Name = "Оценяване")]
+    public GradingMethod GradingMethod { get; set; } = GradingMethod.Thresholds;
+
+    /// <summary>The teacher's scale for <see cref="GradingMethod.Thresholds"/>; null is the system scale.</summary>
+    [Display(Name = "Скала")]
+    public int? GradeScaleId { get; set; }
+
+    /// <summary>The scales to pick from (the class teacher's own).</summary>
+    public IReadOnlyList<GradeScaleListItem> Scales { get; set; } = new List<GradeScaleListItem>();
 }
 
 /// <summary>The "give a practice quiz to a class as an exam" form, with the pickers' choices.</summary>

@@ -1,3 +1,5 @@
+@using SchoolLibrary.Data.Enums
+@using SchoolLibrary.Services.Quizzes
 @model SchoolLibrary.ViewModels.ExamSettingsViewModel
 
 <div class="mb-3">
@@ -21,6 +23,38 @@
     </div>
     <div class="form-text">Ученикът вижда по един въпрос и минава към следващия с бутони или от номерата вдясно. Без отметката всички въпроси са на една страница.</div>
 </div>
+
+<fieldset class="mb-3">
+    <legend class="form-label fs-6 mb-1">Оценяване</legend>
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="GradingMethod" id="grading-thresholds"
+               value="@GradingMethod.Thresholds" checked="@(Model.GradingMethod == GradingMethod.Thresholds)" />
+        <label class="form-check-label" for="grading-thresholds">По скала</label>
+    </div>
+    <div class="ms-4 mb-2" style="max-width: 28rem;">
+        <label class="visually-hidden" for="GradeScaleId">Скала</label>
+        <select id="GradeScaleId" name="GradeScaleId" class="form-select form-select-sm">
+            <option value="" selected="@(Model.GradeScaleId == null)">Системна скала (3 от 30%, 4 от 50%, 5 от 70%, 6 от 85%)</option>
+            @foreach (var item in Model.Scales)
+            {
+                var s = item.Scale;
+                <option value="@s.Id" selected="@(Model.GradeScaleId == s.Id)">@s.Name (3 от @QuizPoints.Format(s.Three)%, 4 от @QuizPoints.Format(s.Four)%, 5 от @QuizPoints.Format(s.Five)%, 6 от @QuizPoints.Format(s.Six)%)</option>
+            }
+        </select>
+        <div class="form-text"><a asp-controller="GradeScales" asp-action="Index">Моите скали</a> — създаване и промяна.</div>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="GradingMethod" id="grading-times-six"
+               value="@GradingMethod.TimesSix" checked="@(Model.GradingMethod == GradingMethod.TimesSix)" />
+        <label class="form-check-label" for="grading-times-six">Точки / максимум × 6</label>
+    </div>
+    <div class="form-check">
+        <input class="form-check-input" type="radio" name="GradingMethod" id="grading-two-plus-four"
+               value="@GradingMethod.TwoPlusFour" checked="@(Model.GradingMethod == GradingMethod.TwoPlusFour)" />
+        <label class="form-check-label" for="grading-two-plus-four">2 + 4 × точки / максимум</label>
+    </div>
+    <div class="form-text">При формулите оценката е с 2 знака (напр. Добър 4,37), а под 3,00 е Слаб 2. Промяната важи и за вече предадените опити.</div>
+</fieldset>
 
 <div class="mb-3">
     <div class="form-check">

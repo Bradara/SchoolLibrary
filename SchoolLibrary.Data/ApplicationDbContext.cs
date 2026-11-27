@@ -497,6 +497,11 @@ namespace SchoolLibrary.Data
                 .HasForeignKey(e => e.GradeScaleId)
                 .OnDelete(DeleteBehavior.Restrict);
 
+            // An exam always comes with its scale, so a grade is never computed with the system scale by mistake
+            builder.Entity<ExamAssignment>()
+                .Navigation(e => e.GradeScale)
+                .AutoInclude();
+
             builder.Entity<ExamAssignment>()
                 .ToTable(t => t.HasCheckConstraint("CK_ExamAssignments_GradingMethod", "\"GradingMethod\" BETWEEN 0 AND 2"));
 

@@ -170,8 +170,17 @@ public record QuizResult(Quiz Quiz, decimal Score, decimal MaxScore, IReadOnlyLi
     /// <summary>The score as a whole-number percentage of the maximum.</summary>
     public int Percent => QuizGradeScale.Percent(Score, MaxScore);
 
-    /// <summary>The 2–6 grade for the score.</summary>
-    public int Grade => QuizGradeScale.Grade(Score, MaxScore);
+    /// <summary>How the points become a grade: the exam's method and scale, or the system scale.</summary>
+    public ExamGrading Grading { get; init; } = ExamGrading.Default;
+
+    /// <summary>The grade, with two decimals when the exam grades by a formula (4,37).</summary>
+    public decimal Mark => Grading.Mark(Score, MaxScore);
+
+    /// <summary>The whole 2–6 grade for the score.</summary>
+    public int Grade => ExamGrading.Whole(Mark);
+
+    /// <summary>The grade as shown: "5" or "4,37".</summary>
+    public string GradeText => Grading.Format(Mark);
 
     /// <summary>The Bulgarian label for <see cref="Grade"/> (Отличен, Много добър, …).</summary>
     public string GradeLabel => QuizGradeScale.Label(Grade);

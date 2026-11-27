@@ -16,11 +16,13 @@ namespace SchoolLibrary.Controllers
     {
         private readonly ISchoolClassService _classes;
         private readonly IExamAssignmentService _exams;
+        private readonly IGradeScaleService _scales;
 
-        public ExamsController(ISchoolClassService classes, IExamAssignmentService exams)
+        public ExamsController(ISchoolClassService classes, IExamAssignmentService exams, IGradeScaleService scales)
         {
             _classes = classes;
             _exams = exams;
+            _scales = scales;
         }
 
         private string CurrentUserId => User.FindFirstValue(ClaimTypes.NameIdentifier)!;
@@ -157,7 +159,8 @@ namespace SchoolLibrary.Controllers
             }
 
             var result = await _exams.CreateAsync(
-                new ExamAssignmentInput(vm.QuizId, vm.SchoolClassId, vm.TimeLimitMinutes, vm.MaxLeaves, vm.CodeHints, vm.OneQuestionPerPage),
+                new ExamAssignmentInput(vm.QuizId, vm.SchoolClassId, vm.TimeLimitMinutes, vm.MaxLeaves, vm.CodeHints, vm.OneQuestionPerPage,
+                    vm.GradingMethod, vm.GradeScaleId),
                 CurrentUserId, IsAdministrator);
 
             if (result.Error == ServiceError.Forbidden)
@@ -198,7 +201,13 @@ namespace SchoolLibrary.Controllers
                     TimeLimitMinutes = exam.TimeLimitMinutes,
                     MaxLeaves = exam.MaxLeaves,
                     CodeHints = exam.CodeHints,
-                    OneQuestionPerPage = exam.OneQuestionPerPage
+                    OneQuestionPerPage = exam.OneQuestionPerPage,
+                    GradingMethod = exam.GradingMethod,
+                    GradeScaleId = exam.GradeScaleId,
+                    // The scales of the class's teacher (also when an administrator opens the exam)
+                    Scales = exam.SchoolClass.OwnerId == null
+                        ? new List<GradeScaleListItem>()
+                        : await _scales.GetForOwnerAsync(exam.SchoolClass.OwnerId)
                 }
             });
         }
@@ -216,7 +225,8 @@ namespace SchoolLibrary.Controllers
                 return RedirectToAction(nameof(Details), new { id });
             }
 
-            var result = await _exams.UpdateSettingsAsync(id, new ExamSettingsInput(settings.TimeLimitMinutes, settings.MaxLeaves, settings.CodeHints, settings.OneQuestionPerPage),
+            var result = await _exams.UpdateSettingsAsync(id, new ExamSettingsInput(settings.TimeLimitMinutes, settings.MaxLeaves,
+                    settings.CodeHints, settings.OneQuestionPerPage, settings.GradingMethod, settings.GradeScaleId),
                 CurrentUserId, IsAdministrator);
             return AfterChange(id, result, "Настройките са запазени.");
         }
@@ -357,6 +367,7 @@ namespace SchoolLibrary.Controllers
         {
             vm.Classes = await _classes.GetForOwnerAsync(OwnerScope);
             vm.Quizzes = await _exams.GetAssignableQuizzesAsync(OwnerScope);
+            vm.Scales = await _scales.GetForOwnerAsync(OwnerScope);
             return vm;
         }
 
