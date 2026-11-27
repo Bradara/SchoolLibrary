@@ -24,12 +24,14 @@ public class AdminHomeControllerTests
 
         var covers = new Mock<IResourceCoverService>();
         covers.Setup(c => c.CountBooksWithoutCoverAsync(It.IsAny<CancellationToken>())).ReturnsAsync(4);
+        covers.Setup(c => c.CountPdfsWithoutCoverAsync(It.IsAny<CancellationToken>())).ReturnsAsync(2);
 
         var result = await controller.Index(covers.Object);
 
         var view = Assert.IsType<ViewResult>(result);
         Assert.Equal(totals, view.Model);
         Assert.Equal(4, view.ViewData["BooksWithoutCover"]);
+        Assert.Equal(2, view.ViewData["PdfsWithoutCover"]);
     }
 }
 
@@ -77,6 +79,63 @@ public class AdminBookCoversControllerTests
         await controller.Extract(CancellationToken.None);
 
         Assert.Equal("Всички книги вече имат обложки.", controller.TempDataText("SuccessMessage"));
+    }
+
+    // ---------- PDF covers drawn by the browser ----------
+
+    private static Microsoft.AspNetCore.Http.IFormFile Picture(byte[] bytes) =>
+        new Microsoft.AspNetCore.Http.FormFile(new MemoryStream(bytes), 0, bytes.Length, "picture", "cover.jpg");
+
+    private static readonly byte[] Jpeg = { 0xFF, 0xD8, 0xFF, 0xE0, 1, 2 };
+
+    [Fact]
+    public async Task Pdfs_ListsThePdfsWithoutACover()
+    {
+        var list = new List<PdfWithoutCover> { new(5, "Учебник") };
+        _covers.Setup(c => c.GetPdfsWithoutCoverAsync(It.IsAny<CancellationToken>())).ReturnsAsync(list);
+
+        var result = Assert.IsType<ViewResult>(await Controller().Pdfs(CancellationToken.None));
+
+        Assert.Same(list, result.Model);
+    }
+
+    [Fact]
+    public async Task SetPdfCover_PassesThePictureOn()
+    {
+        _covers.Setup(c => c.SetPdfCoverAsync(5, It.IsAny<byte[]?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Success());
+
+        var result = await Controller().SetPdfCover(5, Picture(Jpeg), CancellationToken.None);
+
+        Assert.IsType<JsonResult>(result);
+        _covers.Verify(c => c.SetPdfCoverAsync(5, It.Is<byte[]?>(b => b != null && b.SequenceEqual(Jpeg)), It.IsAny<CancellationToken>()));
+    }
+
+    [Fact]
+    public async Task SetPdfCover_TooLargePicture_IsNotRead()
+    {
+        _covers.Setup(c => c.SetPdfCoverAsync(5, null, It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Failure(ServiceError.Invalid, "лошо"));
+        var large = new byte[ResourceCovers.MaxPdfCoverBytes + 1];
+
+        var result = await Controller().SetPdfCover(5, Picture(large), CancellationToken.None);
+
+        Assert.IsType<BadRequestObjectResult>(result);
+        _covers.Verify(c => c.SetPdfCoverAsync(5, null, It.IsAny<CancellationToken>()));
+    }
+
+    [Theory]
+    [InlineData(ServiceError.NotFound, typeof(NotFoundObjectResult))]
+    [InlineData(ServiceError.Conflict, typeof(ConflictObjectResult))]
+    [InlineData(ServiceError.Invalid, typeof(BadRequestObjectResult))]
+    public async Task SetPdfCover_Refused_ReturnsTheMatchingStatus(ServiceError error, Type expected)
+    {
+        _covers.Setup(c => c.SetPdfCoverAsync(It.IsAny<int>(), It.IsAny<byte[]?>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(ServiceResult.Failure(error, "не"));
+
+        var result = await Controller().SetPdfCover(5, null, CancellationToken.None);
+
+        Assert.IsType(expected, result);
     }
 }
 

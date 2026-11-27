@@ -404,8 +404,12 @@ namespace SchoolLibrary.Controllers
             {
                 await using var stream = vm.File!.OpenReadStream();
                 var file = new UploadedFile(vm.File.FileName, vm.File.ContentType, vm.File.Length, stream);
+                await using var coverStream = vm.Cover?.OpenReadStream();
+                var cover = vm.Cover == null
+                    ? null
+                    : new UploadedFile(vm.Cover.FileName, vm.Cover.ContentType, vm.Cover.Length, coverStream!);
 
-                var result = await _uploads.UploadAsync(ToUploadInput(vm), file, CurrentUserId);
+                var result = await _uploads.UploadAsync(ToUploadInput(vm), file, CurrentUserId, cover);
                 if (result.Succeeded)
                 {
                     TempData["SuccessMessage"] = $"Материалът {result.Value!.Title} е качен успешно.";

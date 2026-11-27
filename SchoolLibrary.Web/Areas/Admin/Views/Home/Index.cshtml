@@ -104,3 +104,20 @@
         </div>
     </div>
 }
+
+@if (ViewData["PdfsWithoutCover"] is int pdfsWithoutCover && pdfsWithoutCover > 0)
+{
+    @* PDF files uploaded before covers were kept: the cover is their first page, drawn in this browser *@
+    <div class="card mt-4">
+        <div class="card-body d-flex flex-wrap align-items-center gap-3">
+            <i class="bi bi-file-earmark-pdf fs-3" aria-hidden="true"></i>
+            <div class="me-auto">
+                <div class="fw-semibold">PDF файлове без обложка: @pdfsWithoutCover</div>
+                <div class="text-muted small">Обложката е първата страница на документа. Рисува се в този браузър и се изпраща на сървъра.</div>
+            </div>
+            <a asp-area="Admin" asp-controller="BookCovers" asp-action="Pdfs" class="btn btn-outline-primary">
+                <i class="bi bi-image" aria-hidden="true"></i> Направи обложките
+            </a>
+        </div>
+    </div>
+}

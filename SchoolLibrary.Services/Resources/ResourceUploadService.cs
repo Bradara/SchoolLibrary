@@ -29,7 +29,8 @@ public class ResourceUploadService : IResourceUploadService
     }
 
     public async Task<ServiceResult<Resource>> UploadAsync(
-        ResourceInput input, UploadedFile file, string? ownerId, CancellationToken cancellationToken = default)
+        ResourceInput input, UploadedFile file, string? ownerId, UploadedFile? pdfCover = null,
+        CancellationToken cancellationToken = default)
     {
         if (file == null || file.Length <= 0)
         {
@@ -130,6 +131,12 @@ public class ResourceUploadService : IResourceUploadService
             {
                 coverKey = await ResourceCovers.AttachAsync(resource.File, bytes, _storage, cancellationToken);
             }
+            else if (ResourceCovers.IsPdf(resource.File) && pdfCover != null)
+            {
+                // The first page drawn by the browser; a picture that is not accepted is left out
+                var picture = await ReadPictureAsync(pdfCover, cancellationToken);
+                coverKey = await ResourceCovers.AttachPdfCoverAsync(resource.File, picture, _storage, cancellationToken);
+            }
 
             foreach (var category in categories)
             {
@@ -164,6 +171,26 @@ public class ResourceUploadService : IResourceUploadService
 
     private static ServiceResult<Resource> Invalid(string message) =>
         ServiceResult<Resource>.Failure(ServiceError.Invalid, message);
+
+    // At most one byte over the limit is read, so a large picture costs nothing and is then refused
+    private static async Task<byte[]?> ReadPictureAsync(UploadedFile picture, CancellationToken cancellationToken)
+    {
+        if (picture.Length <= 0 || picture.Length > ResourceCovers.MaxPdfCoverBytes)
+        {
+            return null;
+        }
+
+        var buffer = new byte[ResourceCovers.MaxPdfCoverBytes + 1];
+        var total = 0;
+        int read;
+        while (total < buffer.Length
+               && (read = await picture.Content.ReadAsync(buffer.AsMemory(total), cancellationToken)) > 0)
+        {
+            total += read;
+        }
+
+        return total is > 0 and <= ResourceCovers.MaxPdfCoverBytes ? buffer[..total] : null;
+    }
 
     private static async Task<byte[]> ReadBytesAsync(Stream content, CancellationToken cancellationToken)
     {

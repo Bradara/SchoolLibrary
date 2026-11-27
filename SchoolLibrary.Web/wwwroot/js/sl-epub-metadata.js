@@ -1,6 +1,7 @@
-// Upload form: when an EPUB is chosen, the title and the author are read from the book (in the browser, nothing is
-// sent) and put into empty fields. A field the user typed in is never changed; a field filled from an earlier book
-// is replaced by the next one. The server checks everything again on submit.
+// Upload form: when an EPUB or a PDF is chosen, the title and the author are read from the file (in the browser) and
+// put into empty fields. A field the user typed in is never changed; a field filled from an earlier file is replaced
+// by the next one. For a PDF the first page is drawn as the cover (sl-pdf-cover.js) and sent with the form in a
+// hidden file field. The server checks everything again on submit.
 (function () {
     'use strict';
 
@@ -55,13 +56,17 @@
     }
 
     document.querySelectorAll('[data-epub-metadata]').forEach(function (form) {
-        var fileInput = form.querySelector('input[type="file"]');
+        var fileInput = form.querySelector('input[type="file"]:not([name="Cover"])');
+        var coverInput = form.querySelector('input[type="file"][name="Cover"]');
+        var preview = form.querySelector('[data-pdf-cover-preview]');
         var note = form.querySelector('[data-epub-metadata-note]');
         var fields = {
             title: form.querySelector('[data-epub-field="title"]'),
             author: form.querySelector('[data-epub-field="author"]')
         };
-        if (!fileInput || typeof JSZip === 'undefined') return;
+        if (!fileInput) return;
+        var previewUrl = null;
+        var chosen = 0; // a later choice wins over a PDF still being read
 
         // What the script put into each field; a field whose value still equals it may be replaced
         var filled = { title: null, author: null };
@@ -79,14 +84,54 @@
             return true;
         }
 
+        function setCover(blob) {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+            }
+            if (coverInput) {
+                var files = new DataTransfer();
+                if (blob) files.items.add(new File([blob], 'cover.jpg', { type: 'image/jpeg' }));
+                coverInput.files = files.files;
+            }
+            if (preview) {
+                preview.hidden = !blob;
+                if (blob) {
+                    previewUrl = URL.createObjectURL(blob);
+                    preview.querySelector('img').src = previewUrl;
+                }
+            }
+        }
+
+        async function readPdf(file, mine) {
+            if (!window.SlPdfCover) return;
+            try {
+                var pdf = await window.SlPdfCover.read(file);
+                if (mine !== chosen) return;
+                setCover(pdf.cover);
+                var any = fill('title', pdf.title);
+                any = fill('author', pdf.author) || any;
+                if (any && note) note.hidden = false;
+            } catch (e) {
+                // Not a readable PDF: no cover, the server explains the problem on submit
+            }
+        }
+
         fileInput.addEventListener('change', async function () {
             if (note) note.hidden = true;
+            var mine = ++chosen;
+            setCover(null);
             var file = fileInput.files && fileInput.files[0];
-            if (!file || !/\.epub$/i.test(file.name) || file.size > MAX_BYTES) return;
+            if (!file || file.size > MAX_BYTES) return;
+            if (/\.pdf$/i.test(file.name)) {
+                await readPdf(file, mine);
+                return;
+            }
+            if (!/\.epub$/i.test(file.name) || typeof JSZip === 'undefined') return;
 
             try {
                 var meta = await readMetadata(file);
-                if (!meta) return;
+                if (!meta || mine !== chosen) return;
                 var any = fill('title', meta.title);
                 any = fill('author', meta.author) || any;
                 if (any && note) note.hidden = false;

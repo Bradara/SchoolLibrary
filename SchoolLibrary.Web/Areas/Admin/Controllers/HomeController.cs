@@ -18,6 +18,7 @@ namespace SchoolLibrary.Areas.Admin.Controllers
         {
             // The books uploaded before covers were kept; the dashboard offers to take their covers out
             ViewData["BooksWithoutCover"] = await covers.CountBooksWithoutCoverAsync();
+            ViewData["PdfsWithoutCover"] = await covers.CountPdfsWithoutCoverAsync();
             return View(await _statistics.GetDashboardAsync());
         }
     }

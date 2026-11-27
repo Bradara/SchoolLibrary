@@ -12,7 +12,8 @@
 <hr />
 <div class="row">
     <div class="col-lg-8">
-        <form asp-action="Upload" enctype="multipart/form-data" data-epub-metadata>
+        <form asp-action="Upload" enctype="multipart/form-data" data-epub-metadata
+              data-pdfjs-base="@Url.Content("~/lib/pdfjs/")">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
             <div class="form-group mb-3">
@@ -22,10 +23,16 @@
                 <div class="form-text">
                     Разрешени формати: PDF, EPUB, Markdown (.pdf, .epub, .md).
                     Максимален размер: @UploadConstraints.MaxFileSizeMegabytes МБ.
-                    При EPUB заглавието и авторът се попълват от книгата.
+                    При EPUB и PDF заглавието и авторът се попълват от файла, а обложката е от книгата или първата страница.
                 </div>
                 <div class="form-text text-success" data-epub-metadata-note hidden aria-live="polite">
-                    <i class="bi bi-check2-circle" aria-hidden="true"></i> Заглавието и авторът са взети от книгата — проверете ги.
+                    <i class="bi bi-check2-circle" aria-hidden="true"></i> Заглавието и авторът са взети от файла — проверете ги.
+                </div>
+                @* The first page of a PDF, drawn in the browser (sl-pdf-cover.js); the server checks the picture *@
+                <input asp-for="Cover" type="file" class="d-none" accept="image/jpeg" tabindex="-1" aria-hidden="true" />
+                <div class="d-flex align-items-center gap-2 mt-2" data-pdf-cover-preview hidden>
+                    <img alt="" class="border rounded" style="height: 6rem; width: auto;" />
+                    <span class="form-text mt-0">Обложка: първата страница на документа.</span>
                 </div>
             </div>
 
@@ -108,4 +115,5 @@
     @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
     <script src="~/lib/jszip/jszip.min.js"></script>
     <script src="~/js/sl-epub-metadata.js" asp-append-version="true"></script>
+    <script type="module" src="~/js/sl-pdf-cover.js" asp-append-version="true"></script>
 }

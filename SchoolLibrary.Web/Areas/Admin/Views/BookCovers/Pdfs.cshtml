@@ -1,0 +1,49 @@
+@model IReadOnlyList<SchoolLibrary.Services.Resources.PdfWithoutCover>
+
+@{
+    ViewData["Title"] = "Обложки на PDF файловете";
+}
+
+<h1 class="mb-3">Обложки на PDF файловете</h1>
+
+<p class="text-muted">
+    Обложката на PDF е първата му страница. Този браузър я рисува за всеки документ и я изпраща на сървъра,
+    който я пази за картите в каталога. Оставете страницата отворена, докато свърши.
+</p>
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-success">Всички PDF файлове вече имат обложки.</div>
+    <a asp-area="Admin" asp-controller="Home" asp-action="Index" class="btn btn-secondary">Към таблото</a>
+}
+else
+{
+    <div id="sl-pdf-covers" data-pdfjs-base="@Url.Content("~/lib/pdfjs/")"
+         data-save-url="@Url.Action("SetPdfCover", "BookCovers", new { area = "Admin", id = 0 })">
+        <form id="sl-pdf-covers-token" class="d-none">@Html.AntiForgeryToken()</form>
+        <div class="d-flex flex-wrap align-items-center gap-3 mb-3">
+            <button type="button" class="btn btn-primary" id="sl-pdf-covers-start" disabled>
+                <i class="bi bi-image" aria-hidden="true"></i> Направи обложките (@Model.Count)
+            </button>
+            <span class="text-muted" id="sl-pdf-covers-status" aria-live="polite"></span>
+            <a asp-area="Admin" asp-controller="Home" asp-action="Index" class="btn btn-outline-secondary ms-auto">Към таблото</a>
+        </div>
+        <ul class="list-group">
+            @foreach (var pdf in Model)
+            {
+                <li class="list-group-item d-flex align-items-center gap-3" data-pdf-cover-item
+                    data-id="@pdf.ResourceId"
+                    data-url="@Url.Action("Download", "Resources", new { area = "", id = pdf.ResourceId })">
+                    <img alt="" class="border rounded d-none" style="height: 3.5rem; width: auto;" />
+                    <a asp-area="" asp-controller="Resources" asp-action="Details" asp-route-id="@pdf.ResourceId"
+                       class="me-auto">@pdf.Title</a>
+                    <span class="small text-muted" data-pdf-cover-result>Чака</span>
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+@section Scripts {
+    <script type="module" src="~/js/sl-pdf-covers-admin.js" asp-append-version="true"></script>
+}

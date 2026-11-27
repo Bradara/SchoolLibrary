@@ -11,6 +11,12 @@ public class ResourceUploadViewModel
     [Display(Name = "Файл")]
     public IFormFile? File { get; set; }
 
+    /// <summary>
+    /// The first page of a PDF, drawn by the browser (pdf.js) and sent with the form; the server checks it and
+    /// keeps it as the cover. Empty for other files or without JavaScript.
+    /// </summary>
+    public IFormFile? Cover { get; set; }
+
     [Required(ErrorMessage = "Заглавието е задължително")]
     [MaxLength(100, ErrorMessage = "Заглавието не може да бъде по-дълго от 100 символа")]
     [Display(Name = "Заглавие")]

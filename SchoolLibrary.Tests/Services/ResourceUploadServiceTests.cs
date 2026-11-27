@@ -298,11 +298,120 @@ public class ResourceUploadServiceTests
     }
 
     [Fact]
-    public async Task UploadAsync_Pdf_HasNoCover()
+    public async Task UploadAsync_PdfWithoutAPicture_HasNoCover()
     {
         await UploadAsync("lesson.pdf", Pdf());
 
         Assert.Null(_context.ResourceFiles.Single().CoverKey);
+    }
+
+    // ---------- the first page of a PDF, drawn by the browser ----------
+
+    private static readonly byte[] JpegPicture = { 0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3, 4 };
+    private static readonly byte[] PngPicture = { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0, 0, 0, 13 };
+
+    private Task<ServiceResult<Resource>> UploadWithPictureAsync(string name, byte[] bytes, byte[] picture, long? declared = null) =>
+        _service.UploadAsync(Input(), File(name, bytes), "teacher-1", File("cover.jpg", picture, declared));
+
+    [Theory]
+    [MemberData(nameof(AcceptedPictures))]
+    public async Task UploadAsync_PdfWithAPicture_KeepsItAsTheCover(byte[] picture, string contentType, string extension)
+    {
+        var result = await UploadWithPictureAsync("lesson.pdf", Pdf(), picture);
+
+        Assert.True(result.Succeeded);
+        var file = _context.ResourceFiles.Single();
+        Assert.StartsWith(ResourceCovers.KeyPrefix, file.CoverKey);
+        Assert.EndsWith(extension, file.CoverKey);
+        Assert.Equal(contentType, file.CoverContentType);
+        Assert.Equal(picture, _storage.Files[file.CoverKey!]);
+    }
+
+    public static TheoryData<byte[], string, string> AcceptedPictures() => new()
+    {
+        { JpegPicture, "image/jpeg", ".jpg" },
+        { PngPicture, "image/png", ".png" },
+        { "RIFF\0\0\0\0WEBPVP8 "u8.ToArray(), "image/webp", ".webp" }
+    };
+
+    [Theory]
+    [MemberData(nameof(RefusedPictures))]
+    public async Task UploadAsync_PdfWithAPictureThatIsNotAccepted_IsUploadedWithoutACover(byte[] picture)
+    {
+        var result = await UploadWithPictureAsync("lesson.pdf", Pdf(), picture);
+
+        Assert.True(result.Succeeded);
+        Assert.Null(_context.ResourceFiles.Single().CoverKey);
+        Assert.Single(_storage.Files);
+    }
+
+    public static TheoryData<byte[]> RefusedPictures() => new()
+    {
+        "GIF89a\u0001\0"u8.ToArray(),
+        "<svg xmlns=\"http://www.w3.org/2000/svg\"/>"u8.ToArray(),
+        "<html><script>alert(1)</script>"u8.ToArray(),
+        JpegPicture.Concat(new byte[ResourceCovers.MaxPdfCoverBytes]).ToArray()
+    };
+
+    [Fact]
+    public async Task UploadAsync_PictureLargerThanItSays_IsNotKept()
+    {
+        var large = JpegPicture.Concat(new byte[ResourceCovers.MaxPdfCoverBytes]).ToArray();
+
+        var result = await UploadWithPictureAsync("lesson.pdf", Pdf(), large, declared: 100);
+
+        Assert.True(result.Succeeded);
+        Assert.Null(_context.ResourceFiles.Single().CoverKey);
+    }
+
+    [Fact]
+    public async Task UploadAsync_PictureOfMaxSize_IsKept()
+    {
+        var picture = JpegPicture.Concat(new byte[ResourceCovers.MaxPdfCoverBytes - JpegPicture.Length]).ToArray();
+
+        await UploadWithPictureAsync("lesson.pdf", Pdf(), picture);
+
+        Assert.NotNull(_context.ResourceFiles.Single().CoverKey);
+    }
+
+    [Fact]
+    public async Task UploadAsync_PictureForAnEpub_IsIgnored()
+    {
+        await UploadWithPictureAsync("book.epub", TestEpubs.Book(cover: null), JpegPicture);
+
+        Assert.Null(_context.ResourceFiles.Single().CoverKey);
+        Assert.Single(_storage.Files);
+    }
+
+    [Fact]
+    public async Task UploadAsync_PictureForMarkdown_IsIgnored()
+    {
+        await UploadWithPictureAsync("notes.md", Markdown(), JpegPicture);
+
+        Assert.Null(_context.ResourceFiles.Single().CoverKey);
+    }
+
+    [Fact]
+    public async Task UploadAsync_WhenTheDatabaseWriteFails_RemovesThePdfCoverToo()
+    {
+        var context = new FailingSaveContext();
+        var license = new License { Name = "CC BY 4.0" };
+        var subject = new Category { Name = "Литература" };
+        var grade = new GradeLevel { Number = 9 };
+        context.AddRange(license, subject, grade);
+        context.SaveWorks = true;
+        await context.SaveChangesAsync();
+        context.SaveWorks = false;
+        var input = Input();
+        input.LicenseId = license.Id;
+        input.CategoryIds = new List<int> { subject.Id };
+        input.GradeLevelIds = new List<int> { grade.Id };
+
+        await Assert.ThrowsAsync<DbUpdateException>(() =>
+            new ResourceUploadService(context, _storage).UploadAsync(
+                input, File("lesson.pdf", Pdf()), "teacher-1", File("cover.jpg", JpegPicture)));
+
+        Assert.Empty(_storage.Files);
     }
 
     [Fact]

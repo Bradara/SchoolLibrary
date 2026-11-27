@@ -1,6 +1,7 @@
 using SchoolLibrary.Data;
 using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
+using SchoolLibrary.Services.Common;
 using SchoolLibrary.Services.Resources;
 
 namespace SchoolLibrary.Tests.Services;
@@ -107,5 +108,97 @@ public class ResourceCoverServiceTests
 
         Assert.Equal(new CoverExtractionResult(0, 0, 0, 0), second);
         Assert.Single(_storage.Files.Keys, k => k.StartsWith(ResourceCovers.KeyPrefix));
+    }
+
+    // ---------- PDF: the first page drawn by the administrator's browser ----------
+
+    private const string Pdf = "application/pdf";
+    private static readonly byte[] JpegPicture = { 0xFF, 0xD8, 0xFF, 0xE0, 1, 2, 3, 4 };
+
+    [Fact]
+    public async Task PdfsWithoutCover_AreCountedAndListedOldestFirst()
+    {
+        var first = AddFile(Pdf, null);
+        AddFile(Pdf, null, coverKey: "covers/a.jpg");
+        AddFile(Epub, null);
+        var second = AddFile(Pdf, null);
+
+        Assert.Equal(2, await _service.CountPdfsWithoutCoverAsync());
+        var list = await _service.GetPdfsWithoutCoverAsync();
+        Assert.Equal(new[] { first.ResourceId, second.ResourceId }, list.Select(p => p.ResourceId));
+        Assert.Equal("Книга", list[0].Title);
+    }
+
+    [Fact]
+    public async Task SetPdfCover_StoresThePicture()
+    {
+        var pdf = AddFile(Pdf, null);
+
+        var result = await _service.SetPdfCoverAsync(pdf.ResourceId, JpegPicture);
+
+        Assert.True(result.Succeeded);
+        var saved = _context.ResourceFiles.Single(f => f.Id == pdf.Id);
+        Assert.StartsWith(ResourceCovers.KeyPrefix, saved.CoverKey);
+        Assert.Equal("image/jpeg", saved.CoverContentType);
+        Assert.Equal(JpegPicture, _storage.Files[saved.CoverKey!]);
+        Assert.Equal(0, await _service.CountPdfsWithoutCoverAsync());
+    }
+
+    [Fact]
+    public async Task SetPdfCover_RefusesAFileThatIsNotAPdf()
+    {
+        var book = AddFile(Epub, null);
+
+        var result = await _service.SetPdfCoverAsync(book.ResourceId, JpegPicture);
+
+        Assert.Equal(ServiceError.NotFound, result.Error);
+        Assert.Empty(_storage.Files);
+    }
+
+    [Fact]
+    public async Task SetPdfCover_RefusesAMissingResource()
+    {
+        var result = await _service.SetPdfCoverAsync(999, JpegPicture);
+
+        Assert.Equal(ServiceError.NotFound, result.Error);
+    }
+
+    [Fact]
+    public async Task SetPdfCover_DoesNotReplaceACover()
+    {
+        var pdf = AddFile(Pdf, null, coverKey: "covers/old.jpg");
+
+        var result = await _service.SetPdfCoverAsync(pdf.ResourceId, JpegPicture);
+
+        Assert.Equal(ServiceError.Conflict, result.Error);
+        Assert.Equal("covers/old.jpg", _context.ResourceFiles.Single().CoverKey);
+        Assert.Empty(_storage.Files);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData(new byte[0])]
+    [InlineData(new byte[] { 0x47, 0x49, 0x46, 0x38, 0x39, 0x61, 1, 0 })]
+    [InlineData(new byte[] { 0x3C, 0x73, 0x76, 0x67, 0x3E })]
+    public async Task SetPdfCover_RefusesAPictureThatIsNotAccepted(byte[]? picture)
+    {
+        var pdf = AddFile(Pdf, null);
+
+        var result = await _service.SetPdfCoverAsync(pdf.ResourceId, picture);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
+        Assert.Null(_context.ResourceFiles.Single().CoverKey);
+        Assert.Empty(_storage.Files);
+    }
+
+    [Fact]
+    public async Task SetPdfCover_RefusesATooLargePicture()
+    {
+        var pdf = AddFile(Pdf, null);
+        var large = JpegPicture.Concat(new byte[ResourceCovers.MaxPdfCoverBytes]).ToArray();
+
+        var result = await _service.SetPdfCoverAsync(pdf.ResourceId, large);
+
+        Assert.Equal(ServiceError.Invalid, result.Error);
     }
 }
