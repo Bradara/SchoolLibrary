@@ -37,7 +37,7 @@ public class MoodleImageImportTests
 
         Assert.Empty(result.Errors);
         var q = Assert.Single(result.Questions);
-        Assert.Equal("Разгледайте: [[img:1]] Кое е вярно?", q.Text);
+        Assert.Equal("Разгледайте:\n[[img:1]]\nКое е вярно?", q.Text);   // each paragraph on its own line
         var image = Assert.Single(q.Images!);
         Assert.Equal(1, image.Number);
         Assert.Equal("image.png", image.FileName);

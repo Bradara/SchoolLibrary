@@ -159,7 +159,9 @@ public static class MoodleXmlParser
             var isMultiple = string.Equals(type, "multichoice", StringComparison.OrdinalIgnoreCase)
                 && string.Equals(CleanText(question.Element("single")), "false", StringComparison.OrdinalIgnoreCase);
 
-            var questionText = CleanHtml(questionHtml);
+            // The question text keeps its line breaks: in HTML those of the paragraphs, <br> and list items
+            // (a line break in the HTML source is only a space), in Moodle's text formats the written ones
+            var questionText = MultilineHtml(questionHtml, keepSourceBreaks: IsTextFormat(question.Element("questiontext")));
             if (questionText.Length == 0)
             {
                 errors.Add($"{label}: липсва текст на въпроса.");
@@ -424,16 +426,27 @@ public static class MoodleXmlParser
     private static string RawText(XElement? element)
         => (element?.Value ?? string.Empty).Replace("\r\n", "\n");
 
-    // HTML question text with its line breaks kept: tags removed, entities decoded, spaces collapsed per line
-    private static string MultilineHtml(string html)
+    // HTML question text with its line breaks kept: tags removed, entities decoded, spaces collapsed per line.
+    // Without keepSourceBreaks the line breaks of the HTML source count as spaces, as a browser shows them.
+    private static string MultilineHtml(string html, bool keepSourceBreaks = true)
     {
-        var withBreaks = HtmlLineBreak.Replace(html.Replace("\r\n", "\n"), "\n");
+        var source = html.Replace("\r\n", "\n");
+        if (!keepSourceBreaks)
+        {
+            source = Regex.Replace(source, @"\s+", " ");
+        }
+
+        var withBreaks = HtmlLineBreak.Replace(source, "\n");
         var decoded = WebUtility.HtmlDecode(StripTags(withBreaks));
         var lines = decoded.Split('\n')
             .Select(line => Regex.Replace(line, @"[ \t\u00A0]+", " ").Trim())
             .ToList();
         return Regex.Replace(string.Join('\n', lines), @"\n{3,}", "\n\n").Trim();
     }
+
+    // Moodle's text formats (not HTML), where a written line break is a line break
+    private static bool IsTextFormat(XElement? text)
+        => ((string?)text?.Attribute("format"))?.ToLowerInvariant() is "plain_text" or "moodle_auto_format" or "markdown";
 
     // The question's points from <defaultgrade> ("1.0000000" in Moodle's own files), rounded and kept within
     // 1..100; a missing or unreadable value means 1

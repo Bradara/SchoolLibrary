@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Data.Models;
 
@@ -7,12 +8,28 @@ namespace SchoolLibrary.Services.Quizzes;
 public static class QuestionContent
 {
     /// <summary>
+    /// The question text as it is stored: line endings unified, spaces at the line ends and runs of blank lines
+    /// removed. A code question's text is its short title, so it stays on one line.
+    /// </summary>
+    public static string NormalizeText(string? text, QuestionType type)
+    {
+        var unified = (text ?? string.Empty).Replace("\r\n", "\n").Replace('\r', '\n');
+        if (type == QuestionType.Code)
+        {
+            return Regex.Replace(unified, @"\s+", " ").Trim();
+        }
+
+        var lines = unified.Split('\n').Select(line => line.TrimEnd());
+        return Regex.Replace(string.Join('\n', lines), @"\n{3,}", "\n\n").Trim();
+    }
+
+    /// <summary>
     /// Sets the question's text, type, points and case sensitivity and replaces its options with the input's. The caller
     /// removes the old option rows from the context when the question is already saved.
     /// </summary>
     public static void Apply(Question question, QuestionInput input)
     {
-        question.Text = input.Text.Trim();
+        question.Text = NormalizeText(input.Text, input.Type);
         question.Type = input.Type;
         // A description is worth nothing, whatever the form sent
         question.Points = input.Type == QuestionType.Description ? 0 : input.Points;

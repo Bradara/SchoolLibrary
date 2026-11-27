@@ -101,7 +101,7 @@ else
                     <h3 class="h6 mb-1 d-flex align-items-start gap-2">
                         <input class="form-check-input mt-1 flex-shrink-0" type="checkbox" name="questionIds"
                                value="@question.Id" form="selectionForm" aria-label="Избери въпроса" />
-                        <span>@number. @Html.QuestionText(question, compact: true) @if (question.Type != SchoolLibrary.Data.Enums.QuestionType.Description) { <span class="badge text-bg-light">@question.Points т.</span> }<partial name="_QuestionTypeBadge" model="question" /></span>
+                        <span>@number. <span class="question-text">@Html.QuestionText(question, compact: true)</span> @if (question.Type != SchoolLibrary.Data.Enums.QuestionType.Description) { <span class="badge text-bg-light">@question.Points т.</span> }<partial name="_QuestionTypeBadge" model="question" /></span>
                     </h3>
                     <div class="d-inline-flex gap-1">
                         <a asp-action="EditQuestion" asp-route-id="@topic.Id" asp-route-questionId="@question.Id"
@@ -125,7 +125,7 @@ else
         <form method="post" asp-action="AddQuestion" asp-route-id="@topic.Id" class="question-form">
             <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
             <div class="mb-2">
-                <input name="Text" value="@newQuestion.Text" class="form-control" maxlength="1000" placeholder="Текст на въпроса" required />
+                <textarea name="Text" class="form-control" maxlength="1000" rows="2" placeholder="Текст на въпроса" required>@newQuestion.Text</textarea>
                 <div class="form-text">Изображения се добавят след запис — от „Редакция“ на въпроса.</div>
             </div>
             <div class="mb-2 qt-points" style="max-width: 9rem;">

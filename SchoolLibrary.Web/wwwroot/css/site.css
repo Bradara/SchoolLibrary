@@ -471,6 +471,11 @@ body.sl-maximized-open {
   overflow: hidden;
 }
 
+/* A question text keeps the line breaks it was written with (the text never holds HTML) */
+.question-text {
+  white-space: pre-line;
+}
+
 .sl-epub-note-text {
   white-space: pre-line;
   font-style: italic;

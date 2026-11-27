@@ -983,7 +983,7 @@ public class QuizService : IQuizService
             return "Текстът на въпроса е задължителен.";
         }
 
-        if (input.Text.Trim().Length > QuestionMaxLength)
+        if (QuestionContent.NormalizeText(input.Text, input.Type).Length > QuestionMaxLength)
         {
             return $"Въпросът не може да бъде по-дълъг от {QuestionMaxLength} символа.";
         }

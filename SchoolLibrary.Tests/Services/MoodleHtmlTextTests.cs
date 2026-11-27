@@ -1,3 +1,4 @@
+using SchoolLibrary.Data.Enums;
 using SchoolLibrary.Services.Quizzes;
 
 namespace SchoolLibrary.Tests.Services;
@@ -25,14 +26,54 @@ public class MoodleHtmlTextTests
     }
 
     [Theory]
-    [InlineData("<p>Първи</p><p>Втори</p>", "Първи Втори")]
-    [InlineData("ред<br>ред<br/>ред", "ред ред ред")]
-    [InlineData("<ul><li>а</li><li>б</li></ul>", "а б")]
-    [InlineData("<table><tr><td>1</td><td>2</td></tr></table>", "1 2")]
-    [InlineData("<div>а</div><div>б</div>", "а б")]
-    public void BlockTags_SeparateWords(string html, string expected)
+    [InlineData("<p>Първи</p><p>Втори</p>", "Първи\nВтори")]
+    [InlineData("ред<br>ред<br/>ред", "ред\nред\nред")]
+    [InlineData("<ul><li>а</li><li>б</li></ul>", "а\nб")]
+    [InlineData("<table><tr><td>1</td><td>2</td></tr><tr><td>3</td></tr></table>", "1 2\n3")]
+    [InlineData("<div>а</div><div>б</div>", "а\nб")]
+    [InlineData("<p>1. [[1]]<br>2. [[2]]</p><p></p><p></p><p>Край</p>", "1. [[1]]\n2. [[2]]\n\nКрай")]
+    public void BlockTags_BreakLines(string html, string expected)
     {
         Assert.Equal(expected, Text(html));
+    }
+
+    [Fact]
+    public void LineBreaksOfTheHtmlSource_AreSpaces()
+    {
+        Assert.Equal("Един дълъг абзац\nВтори", Text("\n<p>Един\r\n  дълъг\nабзац</p>\n\n<p>Втори</p>\n"));
+    }
+
+    [Theory]
+    [InlineData("plain_text")]
+    [InlineData("moodle_auto_format")]
+    [InlineData("markdown")]
+    public void TextFormats_KeepTheWrittenLineBreaks(string format)
+    {
+        var xml = "<?xml version=\"1.0\"?><quiz><question type=\"truefalse\">" +
+                  $"<questiontext format=\"{format}\"><text>Първи ред\nвтори ред</text></questiontext>" +
+                  "<answer fraction=\"100\"><text>true</text></answer><answer fraction=\"0\"><text>false</text></answer></question></quiz>";
+
+        Assert.Equal("Първи ред\nвтори ред", Assert.Single(MoodleXmlParser.Parse(xml).Questions).Text);
+    }
+
+    [Theory]
+    [InlineData("а\r\nб", QuestionType.SingleChoice, "а\nб")]
+    [InlineData("  а   \n\n\n\nб  \n", QuestionType.Matching, "а\n\nб")]
+    [InlineData("а\rб", QuestionType.Description, "а\nб")]
+    [InlineData("Сума\r\nна две\n числа", QuestionType.Code, "Сума на две числа")]   // the title of a code question
+    public void NormalizeText_UnifiesTheLines(string text, QuestionType type, string expected)
+    {
+        Assert.Equal(expected, QuestionContent.NormalizeText(text, type));
+    }
+
+    [Fact]
+    public void Validation_CountsALineBreakAsOneCharacter()
+    {
+        // The browser counts a line break as one character for maxlength but sends it as \r\n
+        var text = string.Join("\r\n", Enumerable.Repeat(new string('а', 9), 100)).TrimEnd();   // 999 when unified
+        var input = new QuestionInput(text, new[] { "Да", "Не" }, 0);
+
+        Assert.Null(QuizService.ValidateQuestion(input));
     }
 
     [Fact]
