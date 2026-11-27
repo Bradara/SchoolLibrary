@@ -6,9 +6,11 @@
    student did not tick (multiple choice) is shown with an outline icon and "пропуснат". Short-answer and
    numerical questions show the typed text and the accepted answers instead of an option list; a matching
    question shows each item with the picked answer and, when it is wrong, the right one.
-   ViewData["GradingAttemptId"] (the teacher's review) adds the form for the teacher's own points. *@
+   ViewData["GradingAttemptId"] (the teacher's review) adds the form for the teacher's own points. Points the
+   teacher set by hand are marked, and the student sees the teacher's note under the answer. *@
 @{
     var chosenLabel = ViewData["ChosenLabel"] as string ?? "твоят отговор";
+    var grading = ViewData["GradingAttemptId"] is int;
 }
 
 @{ var number = 0; }
@@ -39,6 +41,12 @@
                     <span class="badge text-bg-danger">Грешно</span>
                 }
                 <span class="badge text-bg-light">@QuizPoints.Format(questionResult.AwardedPoints) / @questionResult.Question.Points т.</span>
+                @if (questionResult.IsManual)
+                {
+                    <span class="badge text-bg-info" title="Автоматично: @QuizPoints.Format(questionResult.AutomaticPoints) т.">
+                        <i class="bi bi-pencil"></i> коригирано от учителя
+                    </span>
+                }
             </h2>
             @if (questionResult.IsCode)
             {
@@ -151,9 +159,16 @@
                     }
                 </ul>
             }
-            @if (ViewData["GradingAttemptId"] is int)
+            @if (grading)
             {
                 <partial name="_AnswerGrading" model="questionResult" />
+            }
+            else if (questionResult.ManualComment != null)
+            {
+                <div class="alert alert-info small mt-3 mb-0 py-2">
+                    <div class="fw-semibold"><i class="bi bi-chat-left-text"></i> Коментар от учителя</div>
+                    <div class="text-break" style="white-space: pre-line;">@questionResult.ManualComment</div>
+                </div>
             }
         </div>
     </div>

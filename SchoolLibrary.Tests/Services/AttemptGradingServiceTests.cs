@@ -266,6 +266,26 @@ public class AttemptGradingServiceTests
     }
 
     [Fact]
+    public async Task TheStudentsResult_ShowsTheTeachersPointsAndNote_OnceReleased()
+    {
+        var s = await ArrangeAsync();
+        using var _ = s.Context;
+        await s.Grading.SetPointsAsync(s.Attempt.Id, s.Skipped.Id, 1m, "Половин точка за идеята.", Owner, false);
+        var examId = (await s.Context.QuizAttempts.SingleAsync(a => a.Id == s.Attempt.Id)).ExamAssignmentId!.Value;
+        await new ExamAssignmentService(s.Context).SetResultsReleasedAsync(examId, true, Owner, false);
+        s.Context.ChangeTracker.Clear();
+
+        var result = await s.Quizzes.GetExamResultAsync(s.Attempt.Token);
+
+        Assert.True(result.Succeeded, result.Message);
+        Assert.Equal(3m, result.Value!.Score);
+        var skipped = result.Value.Questions.Single(q => q.Question.Id == s.Skipped.Id);
+        Assert.True(skipped.IsManual);
+        Assert.Equal(0m, skipped.AutomaticPoints);
+        Assert.Equal("Половин точка за идеята.", skipped.ManualComment);
+    }
+
+    [Fact]
     public void Build_TeachersPointsAboveTheQuestionsPoints_CountOnlyUpToThem()
     {
         var question = new Question { Id = 1, Points = 2, Type = QuestionType.SingleChoice, Options = new List<AnswerOption>() };
