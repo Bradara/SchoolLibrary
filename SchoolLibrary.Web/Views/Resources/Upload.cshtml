@@ -1,3 +1,4 @@
+@using SchoolLibrary.Data.Enums
 @using SchoolLibrary.Services.Resources
 @model SchoolLibrary.ViewModels.ResourceUploadViewModel
 
@@ -8,13 +9,24 @@
 
 <h1>Качи материал</h1>
 
-<h4>Качване на авторски файл (PDF, EPUB или Markdown)</h4>
+<h4>Качване на файл (PDF, EPUB или Markdown)</h4>
 <hr />
 <div class="row">
     <div class="col-lg-8">
         <form asp-action="Upload" enctype="multipart/form-data" data-epub-metadata
               data-pdfjs-base="@Url.Content("~/lib/pdfjs/")">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            @* The same kind list as on the add resource form; a link kind opens that form. It has no name, so it
+               is not sent with the upload *@
+            <div class="form-group mb-3">
+                <label for="ResourceKindChoice" class="control-label">Вид</label>
+                <select id="ResourceKindChoice" class="form-select" data-navigate-select>
+                    <option data-href="@Url.Action("Create", new { kind = ResourceKind.Lesson })">Урок — авторски материал</option>
+                    <option data-href="@Url.Action("Create", new { kind = ResourceKind.External })">Свободен ресурс — материал от мрежата</option>
+                    <option selected>Качен материал — файл (PDF, EPUB, Markdown)</option>
+                </select>
+            </div>
 
             <div class="form-group mb-3">
                 <label asp-for="File" class="control-label"></label>

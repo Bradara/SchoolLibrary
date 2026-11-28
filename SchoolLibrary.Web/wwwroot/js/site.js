@@ -67,3 +67,25 @@ document.addEventListener('click', function (e) {
         box.checked = chosen.indexOf(box.value) !== -1;
     });
 });
+
+// A <select data-navigate-select> whose option has data-href opens that page instead of being chosen
+// (the "add resource" form offers the upload form this way). Without JavaScript the option is empty and
+// the form asks for a kind.
+document.addEventListener('change', function (e) {
+    var select = e.target.closest('select[data-navigate-select]');
+    if (!select) return;
+    var option = select.options[select.selectedIndex];
+    var href = option && option.getAttribute('data-href');
+    if (href) window.location.href = href;
+});
+
+// Coming back with the browser's Back button may restore the navigating option; choose the page's own
+// option again (the one the page was drawn with).
+window.addEventListener('pageshow', function () {
+    document.querySelectorAll('select[data-navigate-select]').forEach(function (select) {
+        var option = select.options[select.selectedIndex];
+        if (!option || !option.getAttribute('data-href')) return;
+        var own = Array.prototype.find.call(select.options, function (o) { return o.defaultSelected; });
+        if (own) own.selected = true; else select.selectedIndex = 0;
+    });
+});

@@ -27,9 +27,14 @@ else
 {
     <div class="form-group mb-3">
         <label asp-for="Kind" class="control-label"></label>
-        <select asp-for="Kind" class="form-select">
+        <select asp-for="Kind" class="form-select" data-navigate-select>
             <option value="@ResourceKind.Lesson">Урок — авторски материал</option>
             <option value="@ResourceKind.External">Свободен ресурс — материал от мрежата</option>
+            @if (Model.Id == 0)
+            {
+                @* Uploading has its own form; choosing it opens that page (a link resource cannot become an upload) *@
+                <option value="" data-href="@Url.Action("Upload")">Качен материал — файл (PDF, EPUB, Markdown)</option>
+            }
         </select>
         <span asp-validation-for="Kind" class="text-danger"></span>
     </div>
